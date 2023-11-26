@@ -1,0 +1,20 @@
+{
+  "name" : "storepress/admin-utils",
+  "description" : "Utility Functions for StorePress WordPress Plugin Projects.",
+  "type" : "library",
+  "minimum-stability" : "dev",
+  "require" : {
+    "php" : ">=7.4"
+  },
+  "autoload" : {
+    "psr-4" : {
+      "StorePress\\AdminUtils\\" : "includes/"
+    }
+  },
+  "authors" : [
+    {
+      "name" : "Emran Ahmed",
+      "email" : "emran.bd.08@gmail.com"
+    }
+  ]
+}
