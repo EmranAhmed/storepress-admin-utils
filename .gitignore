@@ -10,7 +10,6 @@ npm-debug.log
 *.tar.gz
 *.zip
 .idea
-assets/
 vendor/
 languages/
 getwooplugins/
