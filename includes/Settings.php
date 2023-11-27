@@ -44,9 +44,19 @@
 			
 			/**
 			 * Show Settings in REST
+			 *
 			 * @return true
 			 */
 			public function show_in_rest(): bool {
+				return true;
+			}
+			
+			/**
+			 * Control displaying reset button.
+			 *
+			 * @return bool
+			 */
+			public function show_reset_button(): bool {
 				return true;
 			}
 			
@@ -66,7 +76,7 @@
 			
 			public function plugin_action_links( $links ): array {
 				$action_links = array(
-					'settings' => sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $this->get_settings_uri() ), esc_html__( 'Settings' ) ),
+					'settings' => sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $this->get_settings_uri() ), esc_html( $this->i18n_setting_link_text() ) ),
 				);
 				
 				return array_merge( $action_links, $links );
@@ -74,6 +84,7 @@
 			
 			/**
 			 * Admin Scripts
+			 *
 			 * @return void
 			 */
 			public function register_admin_scripts() {
@@ -82,14 +93,14 @@
 					$plugin_dir_url  = untrailingslashit( plugin_dir_url( $this->get_plugin_file() ) );
 					$plugin_dir_path = untrailingslashit( plugin_dir_path( $this->get_plugin_file() ) );
 					
-					$script_src_url    = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.js';
-					$style_src_url     = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.css';
-					$script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/build/admin-settings.asset.php';
+					$script_src_url    = $plugin_dir_url . '/vendor/storepress/admin-utils/assets/admin-settings.js';
+					$style_src_url     = $plugin_dir_url . '/vendor/storepress/admin-utils/assets/admin-settings.css';
+					$script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/assets/admin-settings.asset.php';
 					$script_assets     = include $script_asset_file;
 					
 					wp_register_script( 'storepress-admin-settings', $script_src_url, $script_assets[ 'dependencies' ], $script_assets[ 'version' ], true );
 					wp_register_style( 'storepress-admin-settings', $style_src_url, array(), $script_assets[ 'version' ] );
-					wp_localize_script( 'storepress-admin-settings', 'StorePressAdminUtilsSettingsParams', $this->script_params() );
+					wp_localize_script( 'storepress-admin-settings', 'StorePressAdminUtilsSettingsParams', $this->i18n_script_params() );
 				}
 			}
 			
@@ -104,18 +115,25 @@
 			/**
 			 * @return array
 			 */
-			public function script_params(): array {
+			public function i18n_script_params(): array {
 				return array(
-					'i18n_nav_switch_warning' => esc_html__( 'The changes you made will be lost if you navigate away from this page.' ),
-					'i18n_reset_warning'      => esc_html__( 'Are you sure?' ),
+					'unsaved_warning_text' => esc_html__( 'The changes you made will be lost if you navigate away from this page.' ),
+					'reset_warning_text'   => esc_html__( 'Are you sure to reset?' ),
 				);
 			}
 			
 			/**
 			 * @return string
 			 */
-			public function i18n_reset_title(): string {
+			public function i18n_reset_button_text(): string {
 				return esc_html__( 'Reset All' );
+			}
+			
+			/**
+			 * @return string
+			 */
+			public function i18n_setting_link_text(): string {
+				return esc_html__( 'Settings' );
 			}
 			
 			/**
@@ -167,7 +185,7 @@
 			public function get_default_sidebar() {
 				$current_tab       = $this->get_current_tab();
 				$callback_function = sprintf( $this->sidebar_callback_fn_name_convention, $current_tab );
-				$message           = sprintf( __( 'not implemented. Must be overridden in subclass. Create "%s" method for "%s" tab sidebar.' ), $callback_function, $current_tab );
+				$message           = sprintf( __( 'not implemented. Must be overridden in subclass. Create "%1$s" method for "%2$s" tab sidebar.' ), $callback_function, $current_tab );
 				$this->trigger_error( __METHOD__, $message );
 			}
 			
@@ -199,7 +217,6 @@
 						
 						$this->display_buttons();
 					}
-					
 				} else {
 					$fields_fn_name = sprintf( $this->fields_callback_fn_name_convention, $current_tab );
 					$page_fn_name   = sprintf( $this->page_callback_fn_name_convention, $current_tab );
@@ -214,14 +231,18 @@
 			public function display_buttons() {
 				$submit_button = get_submit_button( null, 'primary large', 'submit', false, null );
 				$reset_button  = $this->get_reset_button();
-				echo sprintf( '<p class="submit">%s %s</p>', $submit_button, $reset_button );
+				printf( '<p class="submit">%s %s</p>', $submit_button, $reset_button );
 			}
 			
 			/**
 			 * @return string
 			 */
 			public function get_reset_button(): string {
-				return sprintf( '<a href="%s" class="storepress-settings-reset-action-link button-link-delete">%s</a>', esc_url( $this->get_reset_uri() ), esc_html( $this->i18n_reset_title() ) );
+				if ( ! $this->show_reset_button() ) {
+					return '';
+				}
+				
+				return sprintf( '<a href="%s" class="storepress-settings-reset-action-link button-link-delete">%s</a>', esc_url( $this->get_reset_uri() ), esc_html( $this->i18n_reset_button_text() ) );
 			}
 			
 			/**
@@ -275,9 +296,9 @@
 						'icon'        => null,
 						'css-classes' => array(),
 						'sidebar'     => true,
-						//'page_callback'    => null,
-						//'fields_callback'  => null,
-						//'sidebar_callback' => null,
+						// 'page_callback'    => null,
+						// 'fields_callback'  => null,
+						// 'sidebar_callback' => null,
 					);
 					
 					if ( is_array( $tab ) ) {
@@ -418,7 +439,6 @@
 						}
 						
 						return sprintf( '%s="%s"', $key, esc_attr( $attributes[ $key ] ) );
-						
 					}, array_keys( $attributes ) ) );
 					
 					$navs[] = sprintf( '<a %s target="%s" href="%s" class="%s">%s</span><span>%s</span></a>', $attrs, esc_attr( $tab_target ), esc_url( $tab_url ), esc_attr( implode( ' ', $tab[ 'css-classes' ] ) ), wp_kses_post( $icon ), esc_html( $tab[ 'name' ] ) );
@@ -629,8 +649,7 @@
 				return $fields[ $field_id ] ?? null;
 			}
 			
-			
-			/***
+			/**
 			 *
 			 * @param array $_post
 			 *
@@ -675,22 +694,18 @@
 							$public_data[ $key ] = sanitize_hex_color( $_post[ $key ] );
 							break;
 						case 'checkbox':
-							
 							$options = $field->get_options();
 							
 							if ( count( $options ) > 1 ) {
 								$public_data[ $key ] = map_deep( $_post[ $key ], 'sanitize_text_field' );
+							} elseif ( isset( $_post[ $key ] ) ) {
+								$public_data[ $key ] = sanitize_text_field( $_post[ $key ] );
 							} else {
-								if ( isset( $_post[ $key ] ) ) {
-									$public_data[ $key ] = sanitize_text_field( $_post[ $key ] );
-								} else {
-									$public_data[ $key ] = 'no';
-								}
+								$public_data[ $key ] = 'no';
 							}
 							break;
 						case 'select':
-							
-							$is_multiple = $field->has_attribute( 'multiple' );;
+							$is_multiple = $field->has_attribute( 'multiple' );
 							
 							if ( $is_multiple ) {
 								$public_data[ $key ] = map_deep( $_post[ $key ], 'sanitize_text_field' );
@@ -722,7 +737,10 @@
 					}
 				}
 				
-				return array( 'public' => $public_data, 'private' => $private_data );
+				return array(
+					'public'  => $public_data,
+					'private' => $private_data,
+				);
 			}
 			
 			/**
@@ -784,6 +802,7 @@
 			
 			/**
 			 * used on ui template.
+			 *
 			 * @return void
 			 */
 			final public function display_settings_messages() {
@@ -844,7 +863,6 @@
 				$data = $this->get_tab();
 				
 				return ! empty( $data[ 'buttons' ] );
-				
 			}
 			
 			final public function has_sidebar(): bool {

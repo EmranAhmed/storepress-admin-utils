@@ -285,7 +285,8 @@ class Settings extends AdminSettings {
 <?php
 /**
  * Plugin Name: Plugin A
- * Update URI: http://localhost/updater-api
+ * Tested up to: 6.4.1
+ * Update URI: https://update.example.com/
 */
 ```
 ### Plugin `Updater.php` file
@@ -309,7 +310,6 @@ class Updater extends \StorePress\AdminUtils\Updater {
         return self::$instance;
     }
     
-    
     public function plugin_file(): string {
         return plugin_a()->get_plugin_file();
     }
@@ -330,8 +330,9 @@ class Updater extends \StorePress\AdminUtils\Updater {
         return 000;
     }
     
-    public function update_server_api(): string {
-        return 'http://localhost/updater-api/wp-json/plugin-updater/v1/check-update';
+    // Without hostname. Host name will prepend from Update URI 
+    public function update_server_path(): string {
+        return '/updater-api/wp-json/plugin-updater/v1/check-update';
     }
     
     public function plugin_icons(): array {

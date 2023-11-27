@@ -1,20 +1,36 @@
 {
   "name" : "storepress/admin-utils",
-  "description" : "Utility Functions for StorePress WordPress Plugin Projects.",
+  "description" : "Utility Classes for WordPress Plugin Projects.",
   "type" : "library",
+  "keywords" : [
+    "wordpress",
+    "storepress",
+    "plugin"
+  ],
+  "authors" : [
+    {
+      "name" : "Emran Ahmed",
+      "email" : "emran.bd.08@gmail.com"
+    }
+  ],
   "minimum-stability" : "dev",
   "require" : {
     "php" : ">=7.4"
+  },
+  "require-dev" : {
+    "phpcompatibility/phpcompatibility-wp" : "^2.1.4",
+    "wp-coding-standards/wpcs" : "^3.0.1"
   },
   "autoload" : {
     "psr-4" : {
       "StorePress\\AdminUtils\\" : "includes/"
     }
   },
-  "authors" : [
-    {
-      "name" : "Emran Ahmed",
-      "email" : "emran.bd.08@gmail.com"
+  "config" : {
+    "optimize-autoloader" : true,
+    "sort-packages" : true,
+    "allow-plugins" : {
+      "dealerdirect/phpcodesniffer-composer-installer" : true
     }
-  ]
+  }
 }
