@@ -29,6 +29,17 @@ namespace Plugin_A;
 
 class AdminPage extends \StorePress\AdminUtils\Settings {
     
+    public function localize_strings(): array {
+        return array(
+            'unsaved_warning_text'          => 'The changes you made will be lost if you navigate away from this page.',
+            'reset_warning_text'            => 'Are you sure to reset?',
+            'reset_button_text'             => 'Reset All',
+            'settings_link_text'            => 'Settings',
+            'settings_updated_message_text' => 'Settings Saved',
+            'settings_deleted_message_text' => 'Settings Reset',
+        );
+    }
+
     public function parent_menu_title(): string {
         return 'StorePress';
     }
@@ -260,21 +271,18 @@ class AdminSettings extends \Plugin_A\AdminPage {
 namespace Plugin_A;
 
 class Settings extends AdminSettings {
-		/**
-		 * @var object|null
-		 */
-		protected static $instance = null;
-		
-		/**
-		 * @return self
-		 */
-		public static function instance() {
-			if ( is_null( self::$instance ) ) {
-				self::$instance = new self();
-			}
-			
-			return self::$instance;
-		}
+        /**
+         * @return self
+         */
+        public static function instance() {
+            static $instance = null;
+            
+            if ( is_null( $instance ) ) {
+                $instance = new self();
+            }
+            
+            return $instance;
+        }
 	}
 ```
 - Now use `Settings::instance();` on `Plugin::init()`
@@ -293,21 +301,17 @@ class Settings extends AdminSettings {
 ```php
 namespace Plugin_A;
 class Updater extends \StorePress\AdminUtils\Updater {
-    
-    /**
-     * @var object|null $instance
-     */
-    protected static ?object $instance = null;
-    
     /**
      * @return self
      */
     public static function instance() {
-        if ( is_null( self::$instance ) ) {
-            self::$instance = new self();
+        static $instance = null;
+        
+        if ( is_null( $instance ) ) {
+            $instance = new self();
         }
         
-        return self::$instance;
+        return $instance;
     }
     
     public function plugin_file(): string {

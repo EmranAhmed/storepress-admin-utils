@@ -60,7 +60,7 @@
 				return true;
 			}
 			
-			public function settings_init() {
+			final public function settings_init() {
 				add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
 				
 				// GET: /wp-json/<page-id>/v1/settings
@@ -74,9 +74,22 @@
 				add_action( 'plugin_action_links_' . plugin_basename( $this->get_plugin_file() ), array( $this, 'plugin_action_links' ) );
 			}
 			
+			final public function settings_actions() {
+				
+				$plugin_page    = sanitize_text_field( wp_unslash( $_GET[ 'page' ] ?? false ) );
+				$current_action = sanitize_text_field( wp_unslash( $_REQUEST[ 'action' ] ?? false ) );
+				
+				if ( $plugin_page && $current_action && $plugin_page === $this->get_current_page_slug() ) {
+					$this->process_actions( $current_action );
+				}
+			}
+			
 			public function plugin_action_links( $links ): array {
+				
+				$strings = $this->localize_strings();
+				
 				$action_links = array(
-					'settings' => sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $this->get_settings_uri() ), esc_html( $this->i18n_setting_link_text() ) ),
+					'settings' => sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $this->get_settings_uri() ), esc_html( $strings[ 'settings_link_text' ] ) ),
 				);
 				
 				return array_merge( $action_links, $links );
@@ -100,43 +113,47 @@
 					
 					wp_register_script( 'storepress-admin-settings', $script_src_url, $script_assets[ 'dependencies' ], $script_assets[ 'version' ], true );
 					wp_register_style( 'storepress-admin-settings', $style_src_url, array(), $script_assets[ 'version' ] );
-					wp_localize_script( 'storepress-admin-settings', 'StorePressAdminUtilsSettingsParams', $this->i18n_script_params() );
+					wp_localize_script( 'storepress-admin-settings', 'StorePressAdminUtilsSettingsParams', $this->localize_strings() );
 				}
 			}
 			
 			/**
 			 * @return void
 			 */
-			public function enqueue_admin_scripts() {
+			public function enqueue_scripts() {
 				wp_enqueue_script( 'storepress-admin-settings' );
 				wp_enqueue_style( 'storepress-admin-settings' );
 			}
 			
 			/**
-			 * @return array
+			 * Translated Strings
+			 * @abstract
+			 * @return array{
+			 *     unsaved_warning_text: string,
+			 *     reset_warning_text: string,
+			 *     reset_button_text: string,
+			 *     settings_link_text: string,
+			 *     settings_updated_message_text: string,
+			 *     settings_deleted_message_text:string
+			 *     }
 			 */
-			public function i18n_script_params(): array {
+			public function localize_strings(): array {
+				
+				$message = esc_html__( 'not implemented. Must be overridden in subclass.' );
+				$this->trigger_error( __METHOD__, $message );
+				
 				return array(
-					'unsaved_warning_text' => esc_html__( 'The changes you made will be lost if you navigate away from this page.' ),
-					'reset_warning_text'   => esc_html__( 'Are you sure to reset?' ),
+					'unsaved_warning_text'          => 'The changes you made will be lost if you navigate away from this page.',
+					'reset_warning_text'            => 'Are you sure to reset?',
+					'reset_button_text'             => 'Reset All',
+					'settings_link_text'            => 'Settings',
+					'settings_updated_message_text' => 'Settings Saved',
+					'settings_deleted_message_text' => 'Settings Reset',
 				);
 			}
 			
 			/**
-			 * @return string
-			 */
-			public function i18n_reset_button_text(): string {
-				return esc_html__( 'Reset All' );
-			}
-			
-			/**
-			 * @return string
-			 */
-			public function i18n_setting_link_text(): string {
-				return esc_html__( 'Settings' );
-			}
-			
-			/**
+			 * @abstract
 			 * @return array
 			 */
 			public function add_settings(): array {
@@ -180,6 +197,7 @@
 			}
 			
 			/**
+			 * @abstract
 			 * @return void
 			 */
 			public function get_default_sidebar() {
@@ -242,7 +260,9 @@
 					return '';
 				}
 				
-				return sprintf( '<a href="%s" class="storepress-settings-reset-action-link button-link-delete">%s</a>', esc_url( $this->get_reset_uri() ), esc_html( $this->i18n_reset_button_text() ) );
+				$strings = $this->localize_strings();
+				
+				return sprintf( '<a href="%s" class="storepress-settings-reset-action-link button-link-delete">%s</a>', esc_url( $this->get_reset_uri() ), esc_html( $strings[ 'reset_button_text' ] ) );
 			}
 			
 			/**
@@ -462,7 +482,8 @@
 			 * @return string
 			 */
 			final public function get_reset_uri(): string {
-				return wp_nonce_url( $this->get_settings_uri( array( $this->action_query_args() => 'reset' ) ), $this->get_nonce() );
+				// return wp_nonce_url( $this->get_settings_uri( array( $this->action_query_args() => 'reset' ) ), $this->get_nonce() );
+				return wp_nonce_url( $this->get_settings_uri( array( 'action' => 'reset' ) ), $this->get_nonce() );
 			}
 			
 			/**
@@ -508,32 +529,62 @@
 				include __DIR__ . '/templates/classic-template.php';
 			}
 			
-			/**
-			 * @return bool
-			 */
-			final public function is_valid_save(): bool {
-				return isset( $_POST[ 'option_page' ] ) && ( $_POST[ 'option_page' ] === $this->get_option_group_name() );
+			
+			public function process_actions( $current_action ) {
+				
+				if ( 'update' === $current_action ) {
+					$this->process_action_update();
+				}
+				
+				if ( 'reset' === $current_action ) {
+					$this->process_action_reset();
+				}
 			}
 			
 			/**
-			 * @return bool
+			 * @return void
 			 */
-			final public function is_valid_action(): bool {
+			public function process_action_update() {
 				
-				$action_query = $this->action_query_args();
-				$nonce        = $_REQUEST[ '_wpnonce' ] ?? null;
+				check_admin_referer( $this->get_nonce() );
 				
-				return isset( $_REQUEST[ $action_query ] ) && wp_verify_nonce( $nonce, $this->get_nonce() );
+				$_post = $_POST[ $this->get_settings_id() ];
+				
+				$data = $this->sanitize_fields( $_post );
+				
+				$this->update_options( $data );
+				
+				wp_safe_redirect( add_query_arg( 'message', 'updated', $this->get_action_uri() ) );
+				exit;
 			}
 			
 			/**
-			 * @return string
+			 * @return void
 			 */
-			final public function get_current_action(): string {
-				$action_query = $this->action_query_args();
+			public function process_action_reset() {
 				
-				return empty( $_REQUEST[ $action_query ] ) ? '' : sanitize_title( wp_unslash( $_REQUEST[ $action_query ] ) ); // WPCS: input var okay, CSRF ok.
+				check_admin_referer( $this->get_nonce() );
+				
+				$this->delete_options();
+				
+				wp_safe_redirect( add_query_arg( 'message', 'deleted', $this->get_action_uri() ) );
+				exit;
 			}
+			
+			/**
+			 * @return void
+			 */
+			public function settings_messages() {
+				$strings = $this->localize_strings();
+				$message = sanitize_text_field( wp_slash( $_GET[ 'message' ] ?? '' ) );
+				if ( 'updated' === $message ) {
+					$this->add_settings_message( esc_html( $strings[ 'settings_updated_message_text' ] ) );
+				}
+				if ( 'deleted' === $message ) {
+					$this->add_settings_message( esc_html( $strings[ 'settings_deleted_message_text' ] ) );
+				}
+			}
+			
 			
 			/**
 			 * @return false|mixed|null
@@ -560,9 +611,10 @@
 			 *
 			 * @return void
 			 */
-			final public function save_options( array $data ) {
+			final private function update_options( array $data ) {
 				
 				$old_data = $this->get_options();
+				
 				if ( ! empty( $old_data ) ) {
 					$current_data = array_merge( $old_data, $data[ 'public' ] );
 				} else {
@@ -643,7 +695,7 @@
 			 *
 			 * @return Field|null
 			 */
-			private function get_field( $field_id ): ?Field {
+			private function get_field( string $field_id ): ?Field {
 				$fields = $this->get_all_fields();
 				
 				return $fields[ $field_id ] ?? null;
@@ -743,62 +795,15 @@
 				);
 			}
 			
-			/**
-			 * @return void
-			 */
-			public function save_settings_page() {
-				if ( $this->is_valid_save() ) {
-					
-					check_admin_referer( $this->get_nonce() );
-					
-					$_post = $_POST[ $this->get_settings_id() ];
-					
-					$data = $this->sanitize_fields( $_post );
-					
-					$this->save_options( $data );
-					
-					wp_safe_redirect( add_query_arg( 'settings-updated', 'true', $this->get_action_uri() ) );
-					exit;
-				}
-			}
-			
-			/**
-			 * @return void
-			 */
-			public function action_settings_page() {
-				if ( $this->is_valid_action() ) {
-					switch ( $this->get_current_action() ) {
-						case 'reset':
-							$this->delete_options();
-							break;
-					}
-					
-					wp_safe_redirect( add_query_arg( 'deleted', 'true', $this->get_action_uri() ) );
-					exit;
-				}
-			}
 			
 			/**
 			 * @return void
 			 */
 			public function settings_page_init() {
-				$this->enqueue_admin_scripts();
-				$this->action_settings_page();
-				$this->save_settings_page();
+				$this->enqueue_scripts();
 				$this->settings_messages();
 			}
 			
-			/**
-			 * @return void
-			 */
-			public function settings_messages() {
-				if ( isset( $_GET[ 'settings-updated' ] ) ) {
-					$this->add_settings_message( __( 'Settings Saved' ) );
-				}
-				if ( isset( $_GET[ 'deleted' ] ) ) {
-					$this->add_settings_message( __( 'Settings Reset' ) );
-				}
-			}
 			
 			/**
 			 * used on ui template.
