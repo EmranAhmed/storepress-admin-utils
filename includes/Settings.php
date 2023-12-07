@@ -587,14 +587,16 @@
 			
 			
 			/**
-			 * @return false|mixed|null
+			 * @param array $default . Default: empty array
+			 *
+			 * @return array|false|mixed|null
 			 */
-			public function get_options() {
+			public function get_options( array $default = array() ) {
 				
 				if ( ! empty( $this->options ) ) {
 					return $this->options;
 				}
-				$this->options = get_option( $this->get_settings_id(), array() );
+				$this->options = get_option( $this->get_settings_id(), $default );
 				
 				return $this->options;
 			}
@@ -602,7 +604,7 @@
 			/**
 			 * @return bool
 			 */
-			public function delete_options(): bool {
+			final public function delete_options(): bool {
 				return delete_option( $this->get_settings_id() );
 			}
 			
@@ -706,7 +708,8 @@
 			 * @param array $_post
 			 *
 			 * @return array{ public: array, private: array }
-			 * @todo Add Fields Sanitization
+			 * @TODO : Add Fields Sanitization HERE
+			 * @TODO : We should move sanitization to Field
 			 */
 			private function sanitize_fields( array $_post ): array {
 				
@@ -715,7 +718,6 @@
 				$public_data  = array();
 				$private_data = array();
 				
-				// @TODO: We should move sanitization to Field
 				foreach ( $fields as $key => $field ) {
 					
 					if ( $field->is_private() ) {

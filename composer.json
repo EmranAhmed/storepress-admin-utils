@@ -1,6 +1,8 @@
 {
   "name" : "storepress/admin-utils",
   "description" : "Utility Classes for WordPress Plugin Projects.",
+  "version" : "1.3.0",
+  "license" : "GPL-3.0-or-later",
   "type" : "library",
   "keywords" : [
     "wordpress",

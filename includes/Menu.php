@@ -121,6 +121,8 @@
 			
 			abstract public function settings_init();
 			
+			abstract public function settings_page_init();
+			
 			abstract public function settings_actions();
 			
 			abstract public function process_actions( $current_action );
