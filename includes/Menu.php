@@ -117,7 +117,14 @@
 					// Settings Init
 					$this->settings_init();
 				} );
+				
+				add_action( 'rest_api_init', function () {
+					// Settings REST Init
+					$this->rest_api_init();
+				} );
 			}
+			
+			abstract public function rest_api_init();
 			
 			abstract public function settings_init();
 			

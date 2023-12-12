@@ -43,12 +43,20 @@
 			abstract public function plugin_file(): string;
 			
 			/**
-			 * Show Settings in REST
+			 * Show Settings in REST. If empty rest api will disable.
 			 *
-			 * @return true
+			 * @return string
 			 */
-			public function show_in_rest(): bool {
-				return true;
+			public function show_in_rest(): string {
+				return sprintf( '%s/%s', $this->get_page_id(), $this->rest_api_version() );
+			}
+			
+			/**
+			 * Rest API version
+			 * @return string
+			 */
+			public function rest_api_version(): string {
+				return 'v1';
 			}
 			
 			/**
@@ -62,15 +70,6 @@
 			
 			final public function settings_init() {
 				add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
-				
-				// GET: /wp-json/<page-id>/v1/settings
-				if ( $this->show_in_rest() ) {
-					add_action( 'rest_api_init', function () {
-						// Settings.
-						( new REST_API( $this ) )->register_routes();
-					} );
-				}
-				
 				add_action( 'plugin_action_links_' . plugin_basename( $this->get_plugin_file() ), array( $this, 'plugin_action_links' ) );
 			}
 			
@@ -82,6 +81,11 @@
 				if ( $plugin_page && $current_action && $plugin_page === $this->get_current_page_slug() ) {
 					$this->process_actions( $current_action );
 				}
+			}
+			
+			// GET: /wp-json/<page-id>/<rest-api-version>/settings
+			public function rest_api_init() {
+				( new REST_API( $this ) )->register_routes();
 			}
 			
 			public function plugin_action_links( $links ): array {

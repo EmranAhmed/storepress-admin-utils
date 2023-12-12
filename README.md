@@ -12,6 +12,8 @@ composer require storepress/admin-utils
 
 ### Plugin Class
 ```php
+<?php
+
 add_action( 'plugins_loaded', function () {
 
     $settings = Settings::instance();
@@ -25,6 +27,8 @@ add_action( 'plugins_loaded', function () {
 
 ### Plugin `AdminPage.php`
 ```php
+<?php
+
 namespace Plugin_A;
 
 class AdminPage extends \StorePress\AdminUtils\Settings {
@@ -49,15 +53,16 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     }
     
     /*
-    * public function parent_menu() {
-    *    return 'edit.php?post_type=wporg_product';
-    * }
+     public function parent_menu() {
+        return 'edit.php?post_type=wporg_product';
+     }
     */
     
-    /**
-     * public function capability(){
-     *   return 'edit_posts';
-    }*/
+    /*
+      public function capability(){
+        return 'edit_posts';
+    }
+    */
     
     public function menu_title(): string {
         return 'Plugin A Menu';
@@ -84,10 +89,13 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
 ### Plugin `AdminSettings.php`
 
 ```php
+<?php
+
 namespace Plugin_A;
 
 class AdminSettings extends \Plugin_A\AdminPage {
     
+    // Settings Tabs
     public function add_settings(): array {
         return array(
             'general' => 'General',
@@ -102,10 +110,12 @@ class AdminSettings extends \Plugin_A\AdminPage {
         );
     }
     
+    // Naming Convention: add_<TAB ID>_settings_sidebar()
     public function add_general_settings_sidebar() {
         echo 'Hello from general sidebar';
     }
     
+    // Naming Convention: add_<TAB ID>_settings_fields()
     public function add_general_settings_fields() {
         return array(
             array(
@@ -223,6 +233,7 @@ class AdminSettings extends \Plugin_A\AdminPage {
         );
     }
     
+    // Naming Convention: add_<TAB ID>_settings_fields()
     public function add_advance_settings_fields() {
         return array(
             array(
@@ -251,7 +262,6 @@ class AdminSettings extends \Plugin_A\AdminPage {
             
             
             array(
-                //'id'          => 'section2',
                 'type'        => 'section',
                 'title'       => 'Section 02',
                 'description' => 'Section of 02',
@@ -259,6 +269,7 @@ class AdminSettings extends \Plugin_A\AdminPage {
         );
     }
     
+    // Naming Convention: add_<TAB ID>_settings_page()
     public function add_basic_settings_page() {
         echo 'custom page ui';
     }
@@ -268,22 +279,23 @@ class AdminSettings extends \Plugin_A\AdminPage {
 ### Plugin `Settings.php` file
 
 ```php
+<?php
 namespace Plugin_A;
 
 class Settings extends AdminSettings {
-        /**
-         * @return self
-         */
-        public static function instance() {
-            static $instance = null;
-            
-            if ( is_null( $instance ) ) {
-                $instance = new self();
-            }
-            
-            return $instance;
+    /**
+     * @return self
+     */
+    public static function instance() {
+        static $instance = null;
+        
+        if ( is_null( $instance ) ) {
+            $instance = new self();
         }
-	}
+        
+        return $instance;
+    }
+}
 ```
 - Now use `Settings::instance();` on `Plugin::init()`
 
@@ -299,6 +311,8 @@ class Settings extends AdminSettings {
 ```
 ### Plugin `Updater.php` file
 ```php
+<?php
+
 namespace Plugin_A;
 class Updater extends \StorePress\AdminUtils\Updater {
     /**
@@ -346,7 +360,91 @@ class Updater extends \StorePress\AdminUtils\Updater {
     public function plugin_banners(): array {
         return [ '2x' => '', '1x' => '' ];
     }
+    
+    // If you need to send additional arguments to update server.
+    public function additional_request_args(): array {
+        return array(
+            'domain'=> wp_parse_url( sanitize_url( site_url() ), PHP_URL_HOST );
+        );
+    }
 }
 ```
 
 - Now use `Updater::instance();` on `Plugin::init()`
+
+## Update Server:
+
+```php
+<?php
+
+// Based on Update URI:  
+// https://update.example.com/wp-json/plugin-updater/v1/check-update
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'plugin-updater/v1', '/check-update', [
+        'methods'             => WP_REST_Server::READABLE,
+        'callback'            => 'updater_get_plugin',
+        'permission_callback' => '__return_true',
+    ] );
+} );
+
+/**
+ * @param WP_REST_Request $request REST request instance.
+ *
+ * @return WP_REST_Response|WP_Error WP_REST_Response instance if the plugin was found,
+ *                                    WP_Error if the plugin isn't found.
+ */
+function updater_get_plugin( WP_REST_Request $request ) {
+    
+    $params = $request->get_params();
+            
+    $type        = $request->get_param( 'type' ); // plugins
+    $plugin_name = $request->get_param( 'name' ); // plugin-dir/plugin-name.php
+    $license_key = $request->get_param( 'license_key' ); // plugin
+    $product_id  = $request->get_param( 'product_id' ); // plugin
+    $args        = (array) $request->get_param( 'args' ); // plugin additional arguments.
+    
+    
+    /**
+     *
+     * @var $data [
+     *
+     *     'description'=>'',
+     *
+     *     'changelog'=>'',
+     *
+     *            
+     *     'version'=>'x.x.x',
+     *
+     *      OR
+     *
+     *     'new_version'=>'x.x.x',
+     *
+     *
+     *     'last_updated'=>'2023-11-11 3:24pm GMT+6',
+     *
+     *     'upgrade_notice'=>'',
+     *
+     *     'download_link'=>'plugin.zip', // After verifying license data
+     *
+     *      OR
+     *
+     *     'package'=>'plugin.zip', // After verifying license data
+     *
+     *     'tested'=>'x.x.x', // WP testes Version
+     *
+     *     'requires'=>'x.x.x', // Minimum Required WP
+     *
+     *     'requires_php'=>'x.x.x', // Minimum Required PHP
+     *
+     * ]
+     */
+    
+    $data = array(
+        'version'        => '1.3.4',
+        'last_updated'   => '2023-12-12 09:58pm GMT+6',
+        //'upgrade_notice' => 'Its Fine',
+    );
+    
+    return rest_ensure_response( $data );
+}
+```
