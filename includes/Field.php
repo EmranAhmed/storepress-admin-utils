@@ -185,6 +185,43 @@
 			/**
 			 * @return bool
 			 */
+			public function has_sanitize_callback(): bool {
+				return $this->has_attribute( 'sanitize_callback' );
+			}
+			
+			/**
+			 * @return string
+			 */
+			public function get_sanitize_callback(): string {
+				
+				$type = $this->get_type();
+				
+				if ( $this->has_sanitize_callback() ) {
+					return $this->get_attribute( 'sanitize_callback' );
+				}
+				
+				switch ( $type ) {
+					case 'email':
+						return 'sanitize_email';
+						break;
+					case 'url':
+						return 'sanitize_url';
+						break;
+					case 'textarea':
+						return 'sanitize_textarea_field';
+						break;
+					case 'color':
+						return 'sanitize_hex_color';
+						break;
+					default:
+						return 'sanitize_text_field';
+						break;
+				}
+			}
+			
+			/**
+			 * @return bool
+			 */
 			public function is_type_group(): bool {
 				return 'group' === $this->get_type();
 			}
@@ -319,7 +356,15 @@
 			}
 			
 			public function custom_input(): string {
-				$id = $this->get_id();
+				
+				$type = $this->get_type();
+				
+				if ( method_exists( $this->get_settings(), 'custom_field' ) ) {
+					return $this->get_settings()->custom_field( $this );
+				}
+				
+				$message = sprintf( 'Field: "%s" not implemented. Please add "Settings::custom_field" method to implement.', $type );
+				$this->get_settings()->trigger_error( '', $message );
 				
 				return '';
 			}
@@ -352,6 +397,35 @@
 				}
 				
 				return sprintf( '<input %s> %s', $this->get_html_attributes( $attributes, $additional_attributes ), $this->get_suffix() );
+			}
+			
+			public function textarea_input( $css_class = 'regular-text' ): string {
+				
+				$id                    = $this->get_id();
+				$class                 = $this->get_css_class();
+				$type                  = $this->get_type();
+				$additional_attributes = $this->get_attribute( 'html_attributes', array() );
+				
+				$attributes = array(
+					'id'    => $id,
+					'type'  => $type,
+					'class' => $this->prepare_classes( $class, $css_class ),
+					'name'  => $this->get_name()
+				);
+				
+				if ( $this->has_attribute( 'description' ) ) {
+					$attributes[ 'aria-describedby' ] = sprintf( '%s-description', $id );
+				}
+				
+				if ( $this->has_attribute( 'required' ) ) {
+					$attributes[ 'required' ] = true;
+				}
+				
+				if ( $this->has_attribute( 'placeholder' ) ) {
+					$attributes[ 'placeholder' ] = $this->get_attribute( 'placeholder' );
+				}
+				
+				return sprintf( '<textarea %s>%s</textarea>', $this->get_html_attributes( $attributes, $additional_attributes ), esc_textarea( $this->get_value() ) );
 			}
 			
 			public function check_input(): string {
@@ -550,7 +624,7 @@
 						}
 						
 						// Checkbox and Radio
-						$inputs[] = '<ul>';
+						$inputs[] = '<ul class="input-wrapper">';
 						foreach ( $field_options as $option_key => $option_value ) {
 							$uniq_id                 = sprintf( '%s-%s-%s__group', $id, $field_id, $option_key );
 							$attributes[ 'value' ]   = $option_key;
@@ -562,11 +636,17 @@
 						
 					} else {
 						// Input
-						$inputs[] = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <input %s /> %s</p>', $uniq_id, esc_attr( $field_title ), $this->get_html_attributes( $attributes, $field_attributes ), $field_suffix );
+						
+						if ( 'textarea' === $field_type ) {
+							$attributes[ 'value' ] = false;
+							$inputs[]              = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <textarea %s>%s</textarea></p>', $uniq_id, esc_attr( $field_title ), $this->get_html_attributes( $attributes, $field_attributes ), esc_textarea( $field_value ) );
+						} else {
+							$inputs[] = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <input %s /> %s</p>', $uniq_id, esc_attr( $field_title ), $this->get_html_attributes( $attributes, $field_attributes ), $field_suffix );
+						}
 					}
 				}
 				
-				return sprintf( '<fieldset><legend class="screen-reader-text">%s</legend>%s</fieldset>', $title, implode( '', $inputs ) );
+				return sprintf( '<fieldset class="group-input-wrapper"><legend class="screen-reader-text">%s</legend>%s</fieldset>', $title, implode( '', $inputs ) );
 			}
 			
 			public function get_rest_type(): ?string {
@@ -597,6 +677,7 @@
 					case 'checkbox';
 						return $is_single ? 'string' : 'array';
 						break;
+					case 'select2';
 					case 'select';
 						return $is_multiple ? 'array' : 'string';
 						break;
@@ -621,8 +702,12 @@
 				if ( in_array( $type, $this->group_inputs() ) ) {
 					return $title;
 				}
+				$required_markup = '';
+				if ( $this->has_attribute( 'required' ) ) {
+					$required_markup = '<span class="required">*</span>';
+				}
 				
-				return sprintf( '<label for="%s">%s</label>', $id, $title );
+				return sprintf( '<label for="%s">%s %s</label>', $id, $title, $required_markup );
 			}
 			
 			/***
@@ -632,7 +717,7 @@
 			 */
 			public function get_input_markup(): string {
 				$type = $this->get_type();
-				// input, regular-text, small-text, tiny-text, large-text, color
+				// input, textarea, select, regular-text, small-text, tiny-text, large-text, color
 				
 				switch ( $type ) {
 					case 'text';
@@ -655,14 +740,19 @@
 						return $this->check_input();
 						break;
 					case 'select';
+					case 'select2';
 						return $this->select_input();
 						break;
 					case 'group';
 						return $this->group_input();
 						break;
+					case 'textarea';
+						return $this->textarea_input();
+						break;
+					default:
+						return $this->custom_input();
+						break;
 				}
-				
-				return $this->custom_input();
 			}
 			
 			/**

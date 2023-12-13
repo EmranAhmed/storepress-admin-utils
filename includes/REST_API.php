@@ -189,13 +189,6 @@
 						$default_schema[ 'format' ] = 'email';
 					}
 					
-					/*
-						if ( 'array' === $field->get_rest_type() ) {
-						$default_schema[ 'items' ] = array(
-							'type' => 'string',
-						);
-					}*/
-					
 					if ( $field->is_type_group() ) {
 						$group_fields          = $field->get_group_fields();
 						$default_properties    = array();

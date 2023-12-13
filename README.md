@@ -53,25 +53,23 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     }
     
     /*
+     // Parent menu id.
      public function parent_menu() {
         return 'edit.php?post_type=wporg_product';
      }
     */
-    
-    /*
-      public function capability(){
-        return 'edit_posts';
-    }
-    */
+   
     
     public function menu_title(): string {
         return 'Plugin A Menu';
     }
     
+    // Settings page slug.
     public function page_id(): string {
         return 'plugin-a';
     }
     
+    // Option name to save data.
     public function settings_id(): string {
         return 'plugin_a_option';
     }
@@ -83,6 +81,28 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     public function get_default_sidebar() {
         echo 'Default sidebar';
     }
+    
+    // To Disable rest api.
+    // URL will be: `/wp-json/<page_id>/<rest_api_version>/settings`
+    public function show_in_rest(): ?string {
+		return false;
+	}
+	// NOTE: You have to create and proper access to get REST API response.
+	// Create: "Application Passwords" from "WP Admin -> Users -> Profile" to use.
+	// Will return: /wp-json/my-custom-uri/settings
+	public function show_in_rest(): ?string {
+		return 'my-custom-uri';
+	}
+	
+	// Settings and Rest API Display Capability. Default is: manage_options
+	public function capability(): string {
+		return 'edit_posts';
+	}
+	
+	// Change rest api version. Default is: v1
+	public function rest_api_version(): string {
+		return 'v2';
+	}
 }
 ```
 
@@ -275,6 +295,48 @@ class AdminSettings extends \Plugin_A\AdminPage {
     }
 }
 ```
+### Section data structure.
+```php
+array(
+    'type'        => 'section',
+    'title'       => 'Section Title',
+    'description' => 'Section Description',
+)
+```
+### Field data structure.
+```php
+array(
+    'id'          => 'input3', // Field ID.
+    'type'        => 'text', // text, small-text, tiny-text, large-text, textarea, email, url, number, color, select, radio, checkbox
+    'title'       => 'Input Label',
+    
+    // Optional.
+    'full_width' => true, // To make field full width.
+    'description' => 'Input field description',
+    
+    'default'       => 'Hello World', //  default value can be string or array
+    'default'       => array('x','y'), //  default value can be string or array
+    
+    'placeholder' => '' // Placeholder
+    'suffix'      => '' // Field suffix.
+    'html_attributes' => array('min'=>10) // Field suffix.
+    'required'    => true, // If field is required and cannot be empty.
+    'private'     => true, // Private field does not delete from db during reset all action trigger.
+    'multiple'    => true, // for select box 
+    'class'       => array( 'large-text', 'code', 'custom-class' ),
+
+    'sanitize_callback'=>'absint', // Use custom sanitize function. Default is: sanitize_text_field.
+    'show_in_rest'    => false, // Hide from rest api field. Default is: true
+    'show_in_rest'    => array('name'=>'custom_rest_id'), // Change field id on rest api.
+    // Options array for select, radio and checkbox [key=>value]
+    // If checkbox have no options or value, default will be yes|no
+    'options' => array(
+        'x' => 'Home X',
+        'y' => 'Home Y',
+        'z' => 'Home Z',
+    )
+),
+```
 
 ### Plugin `Settings.php` file
 
@@ -298,6 +360,10 @@ class Settings extends AdminSettings {
 }
 ```
 - Now use `Settings::instance();` on `Plugin::init()`
+
+### REST API
+
+- URL will be: `/wp-json/<page_id>/<rest_api_version>/settings`
 
 ### Plugin Update:
 - You must add `Update URI:` on plugin file header to perform update.

@@ -45,9 +45,9 @@
 			/**
 			 * Show Settings in REST. If empty rest api will disable.
 			 *
-			 * @return string
+			 * @return string|bool
 			 */
-			public function show_in_rest(): string {
+			public function show_in_rest(): ?string {
 				return sprintf( '%s/%s', $this->get_page_id(), $this->rest_api_version() );
 			}
 			
@@ -552,7 +552,7 @@
 				
 				check_admin_referer( $this->get_nonce() );
 				
-				$_post = $_POST[ $this->get_settings_id() ];
+				$_post = wp_unslash( $_POST[ $this->get_settings_id() ] );
 				
 				$data = $this->sanitize_fields( $_post );
 				
@@ -712,8 +712,6 @@
 			 * @param array $_post
 			 *
 			 * @return array{ public: array, private: array }
-			 * @TODO : Add Fields Sanitization HERE
-			 * @TODO : We should move sanitization to Field
 			 */
 			private function sanitize_fields( array $_post ): array {
 				
@@ -724,51 +722,37 @@
 				
 				foreach ( $fields as $key => $field ) {
 					
+					$sanitize_callback = $field->get_sanitize_callback();
+					
 					if ( $field->is_private() ) {
 						$id                  = $field->get_private_name();
-						$private_data[ $id ] = sanitize_text_field( $_post[ $key ] );
+						$private_data[ $id ] = call_user_func( $sanitize_callback, $_post[ $key ] );
 						continue;
 					}
 					
 					$type = $field->get_type();
 					
 					switch ( $type ) {
-						case 'text':
-						case 'number':
-						case 'regular-text':
-						case 'small-text':
-						case 'tiny-text':
-						case 'large-text':
-						case 'radio':
-							$public_data[ $key ] = sanitize_text_field( $_post[ $key ] );
-							break;
-						case 'email':
-							$public_data[ $key ] = sanitize_email( $_post[ $key ] );
-							break;
-						case 'url':
-							$public_data[ $key ] = sanitize_url( $_post[ $key ] );
-							break;
-						case 'color':
-							$public_data[ $key ] = sanitize_hex_color( $_post[ $key ] );
-							break;
 						case 'checkbox':
 							$options = $field->get_options();
 							
+							if ( ! isset( $_post[ $key ] ) ) {
+								$_post[ $key ] = ( count( $options ) > 1 ) ? array() : 'no';
+							}
+							
 							if ( count( $options ) > 1 ) {
-								$public_data[ $key ] = map_deep( $_post[ $key ], 'sanitize_text_field' );
-							} elseif ( isset( $_post[ $key ] ) ) {
-								$public_data[ $key ] = sanitize_text_field( $_post[ $key ] );
+								$public_data[ $key ] = map_deep( $_post[ $key ], $sanitize_callback );
 							} else {
-								$public_data[ $key ] = 'no';
+								$public_data[ $key ] = call_user_func( $sanitize_callback, $_post[ $key ] );
 							}
 							break;
 						case 'select':
 							$is_multiple = $field->has_attribute( 'multiple' );
 							
 							if ( $is_multiple ) {
-								$public_data[ $key ] = map_deep( $_post[ $key ], 'sanitize_text_field' );
+								$public_data[ $key ] = map_deep( $_post[ $key ], $sanitize_callback );
 							} else {
-								$public_data[ $key ] = sanitize_text_field( $_post[ $key ] );
+								$public_data[ $key ] = call_user_func( $sanitize_callback, $_post[ $key ] );
 							}
 							break;
 						case 'group':
@@ -779,18 +763,37 @@
 								$group_field_type        = $group_field->get_type();
 								$group_field_options     = $group_field->get_options();
 								$group_field_is_multiple = $group_field->has_attribute( 'multiple' );
+								$group_sanitize_callback = $field->get_sanitize_callback();
 								
-								if ( 'checkbox' === $group_field_type && ! isset( $_post[ $key ][ $group_field_id ] ) ) {
-									$_post[ $key ][ $group_field_id ] = ( count( $group_field_options ) > 1 ) ? array() : 'no';
-								}
-								
-								if ( 'select' === $group_field_type && ! isset( $_post[ $key ][ $group_field_id ] ) ) {
-									$_post[ $key ][ $group_field_id ] = $group_field_is_multiple ? array() : '';
+								switch ( $group_field_type ) {
+									case 'checkbox':
+										if ( ! isset( $_post[ $key ][ $group_field_id ] ) ) {
+											$public_data[ $key ][ $group_field_id ] = ( count( $group_field_options ) > 1 ) ? array() : 'no';
+										}
+										
+										if ( count( $group_field_options ) > 1 ) {
+											$public_data[ $key ][ $group_field_id ] = map_deep( $_post[ $key ][ $group_field_id ], $group_sanitize_callback );
+										} else {
+											$public_data[ $key ][ $group_field_id ] = call_user_func( $group_sanitize_callback, $_post[ $key ][ $group_field_id ] );
+										}
+										break;
+									
+									case 'select':
+										if ( $group_field_is_multiple ) {
+											$public_data[ $key ][ $group_field_id ] = map_deep( $_post[ $key ][ $group_field_id ], $group_sanitize_callback );
+										} else {
+											$public_data[ $key ][ $group_field_id ] = call_user_func( $group_sanitize_callback, $_post[ $key ][ $group_field_id ] );
+										}
+										break;
+									
+									default:
+										$public_data[ $key ][ $group_field_id ] = call_user_func( $group_sanitize_callback, $_post[ $key ][ $group_field_id ] );
+										break;
 								}
 							}
-							
-							$public_data[ $key ] = map_deep( $_post[ $key ], 'sanitize_text_field' );
-							
+							break;
+						default:
+							$public_data[ $key ] = call_user_func( $sanitize_callback, $_post[ $key ] );
 							break;
 					}
 				}
