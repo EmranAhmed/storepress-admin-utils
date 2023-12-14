@@ -242,7 +242,7 @@
 					if ( $field->is_type_group() ) {
 						$rest_args[ 'value' ] = $field->get_rest_group_values();
 					} else {
-						$rest_args[ 'value' ] = $field->get_value();
+						$rest_args[ 'value' ] = $field->get_rest_value();
 					}
 					
 					// Skip over settings that don't have a defined type in the schema.

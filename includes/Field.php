@@ -176,10 +176,25 @@
 			}
 			
 			/**
-			 * @return string|null
+			 * @return string
 			 */
-			public function get_type(): ?string {
-				return $this->get_attribute( 'type' );
+			public function get_type(): string {
+				$type  = $this->get_raw_type();
+				$alias = $this->get_type_alias();
+				$keys  = array_keys( $alias );
+				
+				if ( in_array( $type, $keys ) ) {
+					return $alias[ $type ];
+				}
+				
+				return $type;
+			}
+			
+			/**
+			 * @return string
+			 */
+			public function get_raw_type(): string {
+				return $this->get_attribute( 'type', 'text' );
 			}
 			
 			/**
@@ -190,6 +205,14 @@
 			}
 			
 			/**
+			 * @return bool
+			 */
+			public function has_escape_callback(): bool {
+				return $this->has_attribute( 'escape_callback' );
+			}
+			
+			/**
+			 * Sanitize data before insert to database. Clean incoming data.
 			 * @return string
 			 */
 			public function get_sanitize_callback(): string {
@@ -213,8 +236,45 @@
 					case 'color':
 						return 'sanitize_hex_color';
 						break;
+					case 'number':
+						return 'absint';
+						break;
 					default:
 						return 'sanitize_text_field';
+						break;
+				}
+			}
+			
+			/**
+			 * Escape data before display from database. Escape data on output.
+			 * @return string
+			 */
+			public function get_escape_callback(): string {
+				
+				$type = $this->get_type();
+				
+				if ( $this->has_escape_callback() ) {
+					return $this->get_attribute( 'escape_callback' );
+				}
+				
+				switch ( $type ) {
+					case 'email':
+						return 'sanitize_email';
+						break;
+					case 'url':
+						return 'esc_url';
+						break;
+					case 'textarea':
+						return 'esc_textarea';
+						break;
+					case 'color':
+						return 'sanitize_hex_color';
+						break;
+					case 'number':
+						return 'absint';
+						break;
+					default:
+						return 'esc_html';
 						break;
 				}
 			}
@@ -245,29 +305,26 @@
 			 */
 			public function prepare_classes( $classes, $default = '' ): array {
 				
-				if ( ! empty( $classes ) && is_string( $classes ) ) {
-					$split_classes = array_unique( explode( ' ', $classes ) );
-					foreach ( $split_classes as $cls ) {
-						if ( in_array( $cls, $this->get_field_size_css_classes() ) ) {
-							return $split_classes;
-						}
+				$default_classnames = is_array( $default ) ? $default : explode( ' ', $default );
+				$setting_classnames = is_array( $classes ) ? $classes : explode( ' ', $classes );
+				
+				$classnames                = array();
+				$remove_default_size_class = false;
+				
+				foreach ( $setting_classnames as $setting_classname ) {
+					if ( in_array( $setting_classname, $this->get_field_size_css_classes() ) ) {
+						$remove_default_size_class = true;
 					}
-					
-					return is_array( $default ) ? array_merge( $split_classes, $default ) : array_merge( $split_classes, array( $default ) );
 				}
 				
-				if ( ! empty( $classes ) && is_array( $classes ) ) {
-					$split_classes = array_unique( $classes );
-					foreach ( $split_classes as $cls ) {
-						if ( in_array( $cls, $this->get_field_size_css_classes() ) ) {
-							return $split_classes;
-						}
+				foreach ( $default_classnames as $default_classname ) {
+					if ( $remove_default_size_class && in_array( $default_classname, $this->get_field_size_css_classes() ) ) {
+						continue;
 					}
-					
-					return is_array( $default ) ? array_merge( $split_classes, $default ) : array_merge( $split_classes, array( $default ) );
+					$classnames[] = $default_classname;
 				}
 				
-				return is_array( $default ) ? $default : array( $default );
+				return array_unique( array_merge( $setting_classnames, $classnames ) );
 			}
 			
 			/**
@@ -347,6 +404,7 @@
 					if ( in_array( $key, array( 'class' ) ) ) {
 						
 						if ( is_array( $attributes[ $key ] ) ) {
+							// Class name sanitized.
 							$value = implode( ' ', array_unique( $attributes[ $key ] ) );
 						}
 					}
@@ -375,13 +433,21 @@
 				$class                 = $this->get_css_class();
 				$type                  = $this->get_type();
 				$additional_attributes = $this->get_attribute( 'html_attributes', array() );
+				$escape_callback       = $this->get_escape_callback();
+				$value                 = map_deep( $this->get_value(), $escape_callback );
+				$raw_type              = $this->get_raw_type();
+				$system_class          = array( $css_class );
+				
+				if ( 'code' === $raw_type ) {
+					$system_class[] = 'code';
+				}
 				
 				$attributes = array(
 					'id'    => $id,
 					'type'  => $type,
-					'class' => $this->prepare_classes( $class, $css_class ),
+					'class' => $this->prepare_classes( $class, $system_class ),
 					'name'  => $this->get_name(),
-					'value' => $this->get_value(),
+					'value' => $value,
 				);
 				
 				if ( $this->has_attribute( 'description' ) ) {
@@ -406,6 +472,9 @@
 				$type                  = $this->get_type();
 				$additional_attributes = $this->get_attribute( 'html_attributes', array() );
 				
+				$escape_callback = $this->get_escape_callback();
+				$value           = map_deep( $this->get_value(), $escape_callback );
+				
 				$attributes = array(
 					'id'    => $id,
 					'type'  => $type,
@@ -425,7 +494,7 @@
 					$attributes[ 'placeholder' ] = $this->get_attribute( 'placeholder' );
 				}
 				
-				return sprintf( '<textarea %s>%s</textarea>', $this->get_html_attributes( $attributes, $additional_attributes ), esc_textarea( $this->get_value() ) );
+				return sprintf( '<textarea %s>%s</textarea>', $this->get_html_attributes( $attributes, $additional_attributes ), $value );
 			}
 			
 			public function check_input(): string {
@@ -464,11 +533,11 @@
 						'id'      => $uniq_id,
 						'type'    => $type,
 						'name'    => $name,
-						'value'   => $option_key,
+						'value'   => esc_attr( $option_key ),
 						'checked' => ( 'checkbox' === $type ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ) ) : $value === $option_key,
 					);
 					
-					$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label>', $uniq_id, $this->get_html_attributes( $attributes ), esc_attr( $option_value ) );
+					$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label>', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $option_value ) );
 				}
 				
 				return sprintf( '<fieldset><legend class="screen-reader-text">%s</legend>%s</fieldset>', $title, implode( '<br />', $inputs ) );
@@ -476,32 +545,52 @@
 			
 			public function select_input(): string {
 				
-				$id          = $this->get_id();
-				$type        = $this->get_type();
-				$title       = $this->get_title();
-				$value       = $this->get_value();
-				$is_multiple = $this->has_attribute( 'multiple' );
-				$options     = $this->get_options();
-				$class       = $this->get_css_class();
-				$name        = $this->get_name( $is_multiple );
+				$id                    = $this->get_id();
+				$type                  = $this->get_type();
+				$title                 = $this->get_title();
+				$value                 = $this->get_value();
+				$is_multiple           = $this->has_attribute( 'multiple' );
+				$options               = $this->get_options();
+				$class                 = $this->get_css_class();
+				$name                  = $this->get_name( $is_multiple );
+				$additional_attributes = $this->get_attribute( 'html_attributes', array() );
 				
+				
+				$raw_type     = $this->get_raw_type();
+				$system_class = array( 'regular-text' );
+				
+				if ( 'select2' === $raw_type ) {
+					$system_class[] = 'select2';
+				}
 				
 				$attributes = array(
 					'id'       => $id,
-					'type'     => $type,
+					'type'     => 'select',
 					'name'     => $name,
-					'class'    => $this->prepare_classes( $class, 'regular-text' ),
+					'class'    => $this->prepare_classes( $class, $system_class ),
 					'multiple' => $is_multiple,
 				);
+				
+				if ( $this->has_attribute( 'description' ) ) {
+					$attributes[ 'aria-describedby' ] = sprintf( '%s-description', $id );
+				}
+				
+				if ( $this->has_attribute( 'required' ) ) {
+					$attributes[ 'required' ] = true;
+				}
+				
+				if ( $this->has_attribute( 'placeholder' ) ) {
+					$attributes[ 'placeholder' ] = $this->get_attribute( 'placeholder' );
+				}
 				
 				$inputs = array();
 				
 				foreach ( $options as $option_key => $option_value ) {
 					$selected = ( $is_multiple ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ) ) : $value === $option_key;
-					$inputs[] = sprintf( '<option %s value="%s"><span>%s</span></option>', $this->get_html_attributes( array( 'selected' => $selected ) ), esc_attr( $option_key ), esc_attr( $option_value ) );
+					$inputs[] = sprintf( '<option %s value="%s"><span>%s</span></option>', $this->get_html_attributes( array( 'selected' => $selected ) ), esc_attr( $option_key ), esc_html( $option_value ) );
 				}
 				
-				return sprintf( '<select %s>%s</select>', $this->get_html_attributes( $attributes ), implode( '', $inputs ) );
+				return sprintf( '<select %s>%s</select>', $this->get_html_attributes( $attributes, $additional_attributes ), implode( '', $inputs ) );
 			}
 			
 			/**
@@ -532,12 +621,20 @@
 						continue;
 					}
 					
-					$id            = $field->get_id();
-					$value         = $field->get_value();
+					$id              = $field->get_id();
+					$escape_callback = $this->get_escape_callback();
+					$value           = map_deep( $field->get_value(), $escape_callback );
+					
 					$values[ $id ] = $value;
 				}
 				
 				return $values;
+			}
+			
+			public function get_rest_value() {
+				$escape_callback = $this->get_escape_callback();
+				
+				return map_deep( $this->get_value(), $escape_callback );
 			}
 			
 			public function get_group_values(): array {
@@ -591,7 +688,8 @@
 					$field_required    = $field->has_attribute( 'required' );
 					$field_suffix      = $field->get_suffix();
 					$field_classes     = $this->prepare_classes( $field->get_css_class(), $css_class );
-					$field_value       = $field->get_value();
+					$escape_callback   = $this->get_escape_callback();
+					$field_value       = map_deep( $field->get_value(), $escape_callback );
 					$field_attributes  = $field->get_attribute( 'html_attributes', array() );
 					
 					$attributes = array(
@@ -618,7 +716,7 @@
 							$attributes[ 'value' ]   = 'yes';
 							$attributes[ 'checked' ] = 'yes' === $field_value;
 							
-							$inputs[] = sprintf( '<p class="input-wrapper"><label for="%s"><input %s /><span>%s</span></label></p>', $uniq_id, $this->get_html_attributes( $attributes ), esc_attr( $field_title ) );
+							$inputs[] = sprintf( '<p class="input-wrapper"><label for="%s"><input %s /><span>%s</span></label></p>', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $field_title ) );
 							
 							continue;
 						}
@@ -627,10 +725,10 @@
 						$inputs[] = '<ul class="input-wrapper">';
 						foreach ( $field_options as $option_key => $option_value ) {
 							$uniq_id                 = sprintf( '%s-%s-%s__group', $id, $field_id, $option_key );
-							$attributes[ 'value' ]   = $option_key;
-							$attributes[ 'checked' ] = ! is_array( $field_value ) ? in_array( $option_key, array( $field_value ) ) : in_array( $option_key, $field_value );
+							$attributes[ 'value' ]   = esc_attr( $option_key );
+							$attributes[ 'checked' ] = is_array( $field_value ) ? in_array( $option_key, $field_value ) : $option_key == $field_value;
 							$attributes[ 'id' ]      = $uniq_id;
-							$inputs[]                = sprintf( '<li><label for="%s"><input %s /><span>%s</span></label></li>', $uniq_id, $this->get_html_attributes( $attributes ), esc_attr( $option_value ) );
+							$inputs[]                = sprintf( '<li><label for="%s"><input %s /><span>%s</span></label></li>', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $option_value ) );
 						}
 						$inputs[] = '</ul>';
 						
@@ -639,14 +737,14 @@
 						
 						if ( 'textarea' === $field_type ) {
 							$attributes[ 'value' ] = false;
-							$inputs[]              = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <textarea %s>%s</textarea></p>', $uniq_id, esc_attr( $field_title ), $this->get_html_attributes( $attributes, $field_attributes ), esc_textarea( $field_value ) );
+							$inputs[]              = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <textarea %s>%s</textarea></p>', esc_attr( $uniq_id ), esc_html( $field_title ), $this->get_html_attributes( $attributes, $field_attributes ), $field_value );
 						} else {
-							$inputs[] = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <input %s /> %s</p>', $uniq_id, esc_attr( $field_title ), $this->get_html_attributes( $attributes, $field_attributes ), $field_suffix );
+							$inputs[] = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <input %s /> %s</p>', esc_attr( $uniq_id ), esc_html( $field_title ), $this->get_html_attributes( $attributes, $field_attributes ), esc_html( $field_suffix ) );
 						}
 					}
 				}
 				
-				return sprintf( '<fieldset class="group-input-wrapper"><legend class="screen-reader-text">%s</legend>%s</fieldset>', $title, implode( '', $inputs ) );
+				return sprintf( '<fieldset class="group-input-wrapper"><legend class="screen-reader-text">%s</legend>%s</fieldset>', esc_html( $title ), implode( '', $inputs ) );
 			}
 			
 			public function get_rest_type(): ?string {
@@ -669,6 +767,7 @@
 					case 'tiny-text';
 					case 'large-text';
 					case 'radio';
+					case 'code';
 						return 'string';
 						break;
 					case 'number';
@@ -707,7 +806,22 @@
 					$required_markup = '<span class="required">*</span>';
 				}
 				
-				return sprintf( '<label for="%s">%s %s</label>', $id, $title, $required_markup );
+				return sprintf( '<label for="%s">%s %s</label>', esc_attr( $id ), esc_html( $title ), $required_markup );
+			}
+			
+			/**
+			 * @return string[]
+			 */
+			public function get_type_alias(): array {
+				
+				return array(
+					'tiny-text'    => 'text',
+					'small-text'   => 'text',
+					'regular-text' => 'text',
+					'large-text'   => 'text',
+					'code'         => 'text',
+					'select2'      => 'select',
+				);
 			}
 			
 			/***
@@ -717,11 +831,12 @@
 			 */
 			public function get_input_markup(): string {
 				$type = $this->get_type();
-				// input, textarea, select, regular-text, small-text, tiny-text, large-text, color
+				// input, code, textarea, select, select2, regular-text, small-text, tiny-text, large-text, color
 				
 				switch ( $type ) {
 					case 'text';
 					case 'regular-text';
+					case 'code';
 						return $this->text_input();
 						break;
 					case 'color';
@@ -761,7 +876,7 @@
 			public function get_description_markup(): string {
 				$id = $this->get_id();
 				
-				return $this->has_attribute( 'description' ) ? sprintf( '<p class="description" id="%s-description">%s</p>', $id, $this->get_attribute( 'description' ) ) : '';
+				return $this->has_attribute( 'description' ) ? sprintf( '<p class="description" id="%s-description">%s</p>', esc_attr( $id ), wp_kses_post( $this->get_attribute( 'description' ) ) ) : '';
 			}
 			
 			/**

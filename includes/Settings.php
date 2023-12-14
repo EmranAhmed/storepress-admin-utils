@@ -723,37 +723,25 @@
 				foreach ( $fields as $key => $field ) {
 					
 					$sanitize_callback = $field->get_sanitize_callback();
+					$type              = $field->get_type();
+					$options           = $field->get_options();
 					
 					if ( $field->is_private() ) {
 						$id                  = $field->get_private_name();
-						$private_data[ $id ] = call_user_func( $sanitize_callback, $_post[ $key ] );
+						$private_data[ $id ] = map_deep( $_post[ $key ], $sanitize_callback );
 						continue;
 					}
 					
-					$type = $field->get_type();
-					
 					switch ( $type ) {
 						case 'checkbox':
-							$options = $field->get_options();
 							
+							// Add default checkbox value
 							if ( ! isset( $_post[ $key ] ) ) {
-								$_post[ $key ] = ( count( $options ) > 1 ) ? array() : 'no';
+								$_post[ $key ] = ( count( $options ) > 0 ) ? array() : 'no';
 							}
 							
-							if ( count( $options ) > 1 ) {
-								$public_data[ $key ] = map_deep( $_post[ $key ], $sanitize_callback );
-							} else {
-								$public_data[ $key ] = call_user_func( $sanitize_callback, $_post[ $key ] );
-							}
-							break;
-						case 'select':
-							$is_multiple = $field->has_attribute( 'multiple' );
+							$public_data[ $key ] = map_deep( $_post[ $key ], $sanitize_callback );
 							
-							if ( $is_multiple ) {
-								$public_data[ $key ] = map_deep( $_post[ $key ], $sanitize_callback );
-							} else {
-								$public_data[ $key ] = call_user_func( $sanitize_callback, $_post[ $key ] );
-							}
 							break;
 						case 'group':
 							$group_fields = $field->get_group_fields();
@@ -762,38 +750,21 @@
 								$group_field_id          = $group_field->get_id();
 								$group_field_type        = $group_field->get_type();
 								$group_field_options     = $group_field->get_options();
-								$group_field_is_multiple = $group_field->has_attribute( 'multiple' );
 								$group_sanitize_callback = $field->get_sanitize_callback();
 								
-								switch ( $group_field_type ) {
-									case 'checkbox':
-										if ( ! isset( $_post[ $key ][ $group_field_id ] ) ) {
-											$public_data[ $key ][ $group_field_id ] = ( count( $group_field_options ) > 1 ) ? array() : 'no';
-										}
-										
-										if ( count( $group_field_options ) > 1 ) {
-											$public_data[ $key ][ $group_field_id ] = map_deep( $_post[ $key ][ $group_field_id ], $group_sanitize_callback );
-										} else {
-											$public_data[ $key ][ $group_field_id ] = call_user_func( $group_sanitize_callback, $_post[ $key ][ $group_field_id ] );
-										}
-										break;
-									
-									case 'select':
-										if ( $group_field_is_multiple ) {
-											$public_data[ $key ][ $group_field_id ] = map_deep( $_post[ $key ][ $group_field_id ], $group_sanitize_callback );
-										} else {
-											$public_data[ $key ][ $group_field_id ] = call_user_func( $group_sanitize_callback, $_post[ $key ][ $group_field_id ] );
-										}
-										break;
-									
-									default:
-										$public_data[ $key ][ $group_field_id ] = call_user_func( $group_sanitize_callback, $_post[ $key ][ $group_field_id ] );
-										break;
+								// Add default checkbox value
+								if ( 'checkbox' === $group_field_type ) {
+									if ( ! isset( $_post[ $key ][ $group_field_id ] ) ) {
+										$_post[ $key ][ $group_field_id ] = ( count( $group_field_options ) > 0 ) ? array() : 'no';
+									}
 								}
+								
+								$public_data[ $key ][ $group_field_id ] = map_deep( $_post[ $key ][ $group_field_id ], $group_sanitize_callback );
 							}
 							break;
+						
 						default:
-							$public_data[ $key ] = call_user_func( $sanitize_callback, $_post[ $key ] );
+							$public_data[ $key ] = map_deep( $_post[ $key ], $sanitize_callback );
 							break;
 					}
 				}
@@ -804,7 +775,6 @@
 				);
 			}
 			
-			
 			/**
 			 * @return void
 			 */
@@ -812,7 +782,6 @@
 				$this->enqueue_scripts();
 				$this->settings_messages();
 			}
-			
 			
 			/**
 			 * used on ui template.

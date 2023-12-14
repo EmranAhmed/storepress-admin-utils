@@ -307,7 +307,7 @@ array(
 ```php
 array(
     'id'          => 'input3', // Field ID.
-    'type'        => 'text', // text, small-text, tiny-text, large-text, textarea, email, url, number, color, select, radio, checkbox
+    'type'        => 'text', // text, code, small-text, tiny-text, large-text, textarea, email, url, number, color, select, select2, radio, checkbox
     'title'       => 'Input Label',
     
     // Optional.
