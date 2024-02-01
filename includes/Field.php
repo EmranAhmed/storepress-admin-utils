@@ -331,7 +331,7 @@
 			 * @return string|array
 			 */
 			public function get_css_class() {
-				return $this->get_attribute( 'class' );
+				return $this->get_attribute( 'class', '' );
 			}
 			
 			/**
