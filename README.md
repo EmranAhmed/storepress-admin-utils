@@ -365,6 +365,50 @@ class Settings extends AdminSettings {
 
 - URL will be: `/wp-json/<page_id>/<rest_api_version>/settings`
 
+### Upgrade Notice:
+- Show notice for incompatible extended plugin.
+```php
+namespace Plugin_A;
+class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
+    /**
+     * @return self
+     */
+    public static function instance() {
+        static $instance = null;
+        
+        if ( is_null( $instance ) ) {
+            $instance = new self();
+        }
+        
+        return $instance;
+    }
+    
+    public function plugin_file(): string {
+        return plugin_a()->get_pro_plugin_file();
+    }
+   
+    
+    public function compatible_version(): string {
+        return '3.0.0'; // passed from parent plugin
+    }
+    
+    public function localize_notice_format(): string {
+        return __( 'You are using an incompatible version of <strong>%1$s - (%2$s)</strong>. Please upgrade to version <strong>%3$s</strong> or upper.', 'plugin-x');
+    }
+    
+    public function show_admin_notice(): bool {
+		return true;
+	}
+	
+	public function show_plugin_row_notice(): bool {
+		return true;
+	}
+}
+```
+
+- Now use `Upgrade_Notice::instance();` on `Plugin::init()`
+- Check compatibility: `Upgrade_Notice::instance()->is_compatible()`
+
 ### Plugin Update:
 - You must add `Update URI:` on plugin file header to perform update.
 ```php

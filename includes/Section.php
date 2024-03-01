@@ -7,8 +7,7 @@
 	/**
 	 * Admin Settings
 	 *
-	 * @package    StorePress
-	 * @subpackage AdminUtils
+	 * @package    StorePress/AdminUtils
 	 * @name Section
 	 * @version    1.0
 	 */

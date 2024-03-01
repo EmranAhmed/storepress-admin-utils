@@ -4,12 +4,10 @@
 	
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
-	
 	/**
 	 * Admin Menu
 	 *
-	 * @package    StorePress
-	 * @subpackage AdminUtils
+	 * @package    StorePress/AdminUtils
 	 * @name Menu
 	 * @version    1.0
 	 */

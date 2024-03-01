@@ -7,8 +7,7 @@
 	/**
 	 * Settings REST API
 	 *
-	 * @package    StorePress
-	 * @subpackage AdminUtils
+	 * @package    StorePress/AdminUtils
 	 * @name REST_API
 	 * @see        WP_REST_Controller
 	 * @example    Default REST URL /wp-json/<plugin-page-id>/v1/settings
