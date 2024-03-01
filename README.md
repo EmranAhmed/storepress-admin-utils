@@ -396,10 +396,12 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
         return __( 'You are using an incompatible version of <strong>%1$s - (%2$s)</strong>. Please upgrade to version <strong>%3$s</strong> or upper.', 'plugin-x');
     }
     
+    // Optional
     public function show_admin_notice(): bool {
 		return true;
 	}
 	
+	// Optional
 	public function show_plugin_row_notice(): bool {
 		return true;
 	}
@@ -407,7 +409,6 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
 ```
 
 - Now use `Upgrade_Notice::instance();` on `Plugin::init()`
-- Check compatibility: `Upgrade_Notice::instance()->is_compatible()`
 
 ### Plugin Update:
 - You must add `Update URI:` on plugin file header to perform update.

@@ -28,7 +28,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 */
 		protected function __construct() {
 
-			add_action( 'admin_init', array( $this, 'init', 9 ) );
+			add_action( 'admin_init', array( $this, 'init' ), 9 );
 		}
 
 		/**
