@@ -129,6 +129,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 				return;
 			}
 
+			// Inactive plugin should not display any admin notice.
 			if ( is_plugin_inactive( $this->plugin ) ) {
 				return;
 			}
@@ -210,7 +211,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 			$current_version  = sanitize_text_field( $this->data['Version'] );
 			$required_version = $this->compatible_version();
 
-			return version_compare( $current_version, $required_version ) >= 0;
+			return version_compare( $current_version, $required_version, '>=' );
 		}
 
 		/**
