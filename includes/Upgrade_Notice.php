@@ -22,12 +22,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 * @var array
 		 */
 		private array $data = array();
-		/**
-		 * Absolute Plugin file.
-		 *
-		 * @var string
-		 */
-		private string $absolute_file;
+
 		/**
 		 * Relative Plugin file.
 		 *
@@ -73,14 +68,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 				return;
 			}
 
-			$this->absolute_file = $this->get_absolute_plugin_file( $this->plugin_file() );
+			$plugin_file = $this->get_absolute_plugin_file( $this->plugin_file() );
 
-			if ( ! file_exists( $this->absolute_file ) ) {
+			if ( ! file_exists( $plugin_file ) ) {
 				return;
 			}
 
-			$this->data   = get_plugin_data( $this->absolute_file );
-			$this->plugin = plugin_basename( $this->absolute_file );
+			$this->data   = get_plugin_data( $plugin_file );
+			$this->plugin = plugin_basename( $plugin_file );
 
 			if ( $this->is_compatible() ) {
 				return;
@@ -98,7 +93,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 */
 		public function deactivate() {
 
-			if ( ! file_exists( $this->absolute_file ) ) {
+			if ( ! current_user_can( 'update_plugins' ) ) {
+				return;
+			}
+
+			if ( ! function_exists( 'get_plugin_data' ) ) {
+				return;
+			}
+
+			$plugin_file = $this->get_absolute_plugin_file( $this->plugin_file() );
+
+			if ( ! file_exists( $plugin_file ) ) {
 				return;
 			}
 
