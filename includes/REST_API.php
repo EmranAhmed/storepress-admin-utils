@@ -1,31 +1,61 @@
 <?php
+	/**
+	 * Admin Settings Rest API Class File.
+	 *
+	 * @package    StorePress/AdminUtils
+	 * @since      1.0.0
+	 * @version    1.0.0
+	 */
 
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	/**
-	 * Settings REST API
-	 *
-	 * @package    StorePress/AdminUtils
-	 * @name REST_API
-	 * @see        WP_REST_Controller
-	 * @example    Default REST URL /wp-json/<plugin-page-id>/v1/settings
-	 * @version    1.0
-	 */
 
 if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
+	/**
+	 * Admin Settings REST API Class.
+	 *
+	 * @name REST_API
+	 * @extends    \WP_REST_Controller
+	 * @example    Default REST URL /wp-json/<plugin-page-id>/v1/settings
+	 */
 	class REST_API extends \WP_REST_Controller {
 
+		use Common;
+
 		/**
-		 * Constructor.
+		 * Settings Object.
+		 *
+		 * @var Settings
 		 */
 		protected Settings $settings;
+		/**
+		 * API Display Permission.
+		 *
+		 * @var string
+		 */
 		protected string $permission;
 
+		/**
+		 * API Namespace.
+		 *
+		 * @var bool|string|null
+		 */
 		protected $namespace;
+
+		/**
+		 * Rest base.
+		 *
+		 * @var string
+		 */
 		protected $rest_base = 'settings';
 
+		/**
+		 * Construct.
+		 *
+		 * @param Settings $settings Setting Class Instance.
+		 */
 		public function __construct( Settings $settings ) {
 			$this->settings   = $settings;
 			$this->permission = $this->get_settings()->get_capability();
@@ -33,6 +63,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		}
 
 		/**
+		 * Get Settings Object.
+		 *
 		 * @return Settings
 		 */
 		public function get_settings(): Settings {
@@ -50,7 +82,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				return;
 			}
 
-			// See: https://developer.wordpress.org/rest-api/extending-the-rest-api/adding-custom-endpoints/
+			// @see: https://developer.wordpress.org/rest-api/extending-the-rest-api/adding-custom-endpoints/
 			register_rest_route(
 				$this->namespace,
 				'/' . $this->rest_base,
@@ -84,10 +116,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 * @param \WP_REST_Request $request Full details about the request.
 		 *
 		 * @return \WP_REST_Response|\WP_Error Array on success, or WP_Error object on failure.
+		 * @see \WP_REST_Settings_Controller::get_item()
 		 */
 		public function get_item( $request ) {
-			$options = $this->get_registered_options();
-			$page_id = $this->get_settings()->get_page_id();
+			$options  = $this->get_registered_options();
+			$page_id  = $this->get_settings()->get_page_id();
 			$response = array();
 
 			foreach ( $options as $name => $args ) {
@@ -102,11 +135,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				 *                       follow the default get_option() behavior.
 				 * @param string $name   Setting name (as shown in REST API responses).
 				 * @param array  $args   Custom field array with value.
+				 * @since 1.0.0
 				 */
-				$response[ $name ] = apply_filters( "rest_pre_get_{$page_id}_setting", null, $name, $args );
+				$response[ $name ] = apply_filters( "storepress_rest_pre_get_{$page_id}_setting", null, $name, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
 
 				if ( is_null( $response[ $name ] ) ) {
-					// Set value
+					// Set value.
 					$response[ $name ] = $args['value'];
 				}
 
@@ -116,9 +150,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				 */
 				$response[ $name ] = $this->prepare_value( $response[ $name ], $args['schema'] );
 			}
-			
+
 			return new \WP_REST_Response( $response, 200 );
-			// return $response;
 		}
 
 		/**
@@ -129,7 +162,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 *
 		 * @return mixed The prepared value.
 		 */
-		protected function prepare_value( $value, $schema ) {
+		protected function prepare_value( $value, array $schema ) {
 			/*
 			 * If the value is not valid by the schema, set the value to null.
 			 * Null values are specifically non-destructive, so this will not cause
@@ -146,11 +179,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 * Retrieves all the registered options for the Settings API.
 		 *
 		 * @return array Array of registered options.
+		 * @see https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/
 		 */
 		protected function get_registered_options(): array {
 			$rest_options = array();
-
-			// See: https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/ .
 
 			foreach ( $this->get_settings()->get_all_fields() as $name => $field ) {
 
@@ -165,7 +197,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				}
 
 				$defaults = array(
-					'name'   => ! empty( $rest_args['name'] ) ? $rest_args['name'] : $field->get_id(),
+					'name'   => $rest_args['name'] ?? $field->get_id(),
 					'schema' => array(),
 				);
 
@@ -174,9 +206,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				$default_schema = array(
 					'type'        => $field->get_rest_type(),
 					'description' => $field->get_title(),
-					// 'readonly'    => true,
+					/** 'readonly'    => true,
 					// 'context'     => array( 'view' ),
 					// 'default'     => $field->get_default_value(),
+					*/
 				);
 
 				if ( $field->has_attribute( 'required' ) ) {
@@ -190,7 +223,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				if ( 'url' === $field->get_type() ) {
 					$default_schema['format'] = 'uri';
 				}
-				
+
 				if ( 'email' === $field->get_type() ) {
 					$default_schema['format'] = 'email';
 				}
@@ -316,7 +349,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 *
 		 * @return mixed|\WP_Error
 		 */
-		public function sanitize_callback( $value, $request, $param ) {
+		public function sanitize_callback( $value, \WP_REST_Request $request, string $param ) {
 			if ( is_null( $value ) ) {
 				return $value;
 			}

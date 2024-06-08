@@ -1,9 +1,10 @@
 <?php
 	/**
-	 * Upgrade Notice
+	 * Plugin Upgrade Notice Class File.
 	 *
 	 * @package    StorePress/AdminUtils
-	 * @version    1.0
+	 * @since      1.0.0
+	 * @version    1.0.0
 	 */
 
 	namespace StorePress\AdminUtils;
@@ -12,7 +13,7 @@
 
 if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 	/**
-	 * Upgrade Notice
+	 * Plugin Upgrade Notice Class.
 	 */
 	abstract class Upgrade_Notice {
 
@@ -31,7 +32,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		private string $plugin;
 
 		/**
-		 * Upgrade notice.
+		 * Class construct.
 		 */
 		protected function __construct() {
 
@@ -40,7 +41,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		}
 
 		/**
-		 * Get absolute file path
+		 * Get absolute file path.
 		 *
 		 * @param string $plugin_file relative or absolute path.
 		 *
@@ -236,54 +237,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		/**
 		 * Notice string format.
 		 *
+		 * @abstract
 		 * @return string
 		 */
 		public function localize_notice_format(): string {
 
-			$message = esc_html__( 'not implemented. Must be overridden in subclass.' );
-			$this->trigger_error( __METHOD__, $message );
+			/* translators: %s: Method name. */
+			$message = sprintf( esc_html__( "Method '%s' not implemented. Must be overridden in subclass." ), __METHOD__ );
+			wp_trigger_error( __METHOD__, $message );
 
 			// translators: 1: Extended Plugin Name. 2: Extended Plugin Version. 3: Extended Plugin Compatible Version.
 			return 'You are using an incompatible version of <strong>%1$s - (%2$s)</strong>. Please upgrade to version <strong>%3$s</strong> or upper.';
-		}
-
-		/**
-		 * Trigger user error.
-		 *
-		 * @param string $function_name Function name.
-		 * @param string $message       Message.
-		 *
-		 * @return void
-		 */
-		final public function trigger_error( string $function_name, string $message ) {
-
-			// Bail out if WP_DEBUG is not turned on.
-			if ( ! WP_DEBUG ) {
-				return;
-			}
-
-			if ( function_exists( 'wp_trigger_error' ) ) {
-				wp_trigger_error( $function_name, $message );
-			} else {
-
-				if ( ! empty( $function_name ) ) {
-					$message = sprintf( '%s(): %s', $function_name, $message );
-				}
-
-				$message = wp_kses(
-					$message,
-					array(
-						'a' => array( 'href' ),
-						'br',
-						'code',
-						'em',
-						'strong',
-					),
-					array( 'http', 'https' )
-				);
-
-				trigger_error( $message ); // phpcs:ignore.
-			}
 		}
 	}
 }

@@ -1,31 +1,44 @@
 <?php
+	/**
+	 * Admin Settings Fields Class File.
+	 *
+	 * @package    StorePress/AdminUtils
+	 * @since      1.0.0
+	 * @version    1.0.0
+	 */
 
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	/**
-	 * Admin Settings
-	 *
-	 * @package    StorePress/AdminUtils
-	 * @name Fields
-	 * @version    1.0
-	 */
-
 if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
+	/**
+	 * Admin Settings Fields Class.
+	 *
+	 * @name Fields
+	 */
 	class Fields {
+
+		use Common;
+
 		/**
+		 * Sections.
+		 *
 		 * @var array
 		 */
 		private array $sections = array();
 		/**
+		 * Last section ID.
+		 *
 		 * @var string
 		 */
 		private string $last_section_id = '';
 
 		/**
-		 * @param array    $fields
-		 * @param Settings $settings
+		 * Class Construct.
+		 *
+		 * @param array    $fields Field list.
+		 * @param Settings $settings Settings Class Instance.
 		 */
 		public function __construct( array $fields, Settings $settings ) {
 
@@ -57,15 +70,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 				}
 
 				if ( $this->is_field( $field ) ) {
-					// $value = $this->get_saved_value( $_field );
-					// $f     = $_field->add_value( $value )->add_settings_id( $this->get_settings()->get_settings_id() );
 					$this->sections[ $this->last_section_id ]->add_field( $_field );
 				}
 			}
 		}
 
 		/**
-		 * @param array $field
+		 * Check is section or not.
+		 *
+		 * @param array $field Single field.
 		 *
 		 * @return bool
 		 */
@@ -74,7 +87,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		}
 
 		/**
-		 * @param array $field
+		 * Check is field or not.
+		 *
+		 * @param array $field Field array.
 		 *
 		 * @return bool
 		 */
@@ -83,6 +98,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		}
 
 		/**
+		 * Get section id.
+		 *
 		 * @return string
 		 */
 		public function get_section_id(): string {
@@ -90,7 +107,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		}
 
 		/**
-		 * @param array $field
+		 * Get Field ID.
+		 *
+		 * @param array $field Field array.
 		 *
 		 * @return mixed
 		 */
@@ -99,6 +118,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		}
 
 		/**
+		 * Get Sections.
+		 *
 		 * @return array
 		 */
 		public function get_sections(): array {
@@ -106,26 +127,33 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		}
 
 		/**
+		 * Display fields with section wrapped.
+		 *
 		 * @return void
 		 */
 		public function display() {
 			/**
+			 * Section Instance.
+			 *
 			 * @var Section $section
 			 */
+			$allowed_input_html = $this->get_kses_allowed_input_html();
 			foreach ( $this->get_sections() as $section ) {
-				echo $section->display();
+				echo wp_kses_post( $section->display() );
 
 				if ( $section->has_fields() ) {
 
-					echo $section->before_display_fields();
+					echo wp_kses_post( $section->before_display_fields() );
 					/**
+					 * Field Instance.
+					 *
 					 * @var Field $field
 					 */
 					foreach ( $section->get_fields() as $field ) {
-						echo $field->display();
+						echo wp_kses( $field->display(), $allowed_input_html );
 					}
 
-					echo $section->after_display_fields();
+					echo wp_kses_post( $section->after_display_fields() );
 				}
 			}
 		}

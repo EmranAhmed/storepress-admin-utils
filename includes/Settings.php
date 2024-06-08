@@ -1,42 +1,61 @@
 <?php
+	/**
+	 * Admin Settings Class file.
+	 *
+	 * @package    StorePress/AdminUtils
+	 * @since      1.0.0
+	 * @version    1.0.0
+	 */
 
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	/**
-	 * Admin Settings
-	 *
-	 * @package    StorePress/AdminUtils
-	 * @name Settings
-	 * @version    1.0
-	 */
 if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
+
+	/**
+	 * Admin Settings Class
+	 *
+	 * @name Settings
+	 * @extends Menu
+	 */
 	abstract class Settings extends Menu {
 
 		/**
+		 * Fields callback function name convention.
+		 *
 		 * @var string $fields_callback_fn_name_convention
 		 */
 		private string $fields_callback_fn_name_convention = 'add_%s_settings_fields';
 		/**
+		 * Sidebar callback function name convention.
+		 *
 		 * @var string $sidebar_callback_fn_name_convention
 		 */
 		private string $sidebar_callback_fn_name_convention = 'add_%s_settings_sidebar';
 		/**
+		 * Page callback function name convention.
+		 *
 		 * @var string $page_callback_fn_name_convention
 		 */
 		private string $page_callback_fn_name_convention = 'add_%s_settings_page';
 		/**
-		 * @var array $options Store All Saved Options
+		 * Store All Saved Options
+		 *
+		 * @var array $options
 		 */
 		private array $options = array();
 
 		/**
+		 * Add Setting ID.
+		 *
 		 * @return string
 		 */
 		abstract public function settings_id(): string;
 
 		/**
+		 * Plugin File name.
+		 *
 		 * @return string
 		 */
 		abstract public function plugin_file(): string;
@@ -44,8 +63,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Show Settings in REST. If empty rest api will disable.
 		 *
-		 * @example GET: /wp-json/<page-id>/<rest-api-version>/settings
 		 * @return string|bool
+		 * @example GET: /wp-json/<page-id>/<rest-api-version>/settings
 		 */
 		public function show_in_rest(): ?string {
 			return sprintf( '%s/%s', $this->get_page_id(), $this->rest_api_version() );
@@ -69,12 +88,28 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			return true;
 		}
 
+		/**
+		 * Settings Hook
+		 *
+		 * @return void
+		 */
 		final public function settings_init() {
 			add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
 			add_action( 'plugin_action_links_' . plugin_basename( $this->get_plugin_file() ), array( $this, 'plugin_action_links' ) );
 		}
 
+		/**
+		 * Setting Action
+		 *
+		 * @return void
+		 */
 		final public function settings_actions() {
+
+			if ( empty( $_REQUEST['action'] ) ) {
+				return;
+			}
+
+			check_admin_referer( $this->get_nonce_action() );
 
 			$plugin_page    = sanitize_text_field( wp_unslash( $_GET['page'] ?? false ) );
 			$current_action = sanitize_text_field( wp_unslash( $_REQUEST['action'] ?? false ) );
@@ -84,12 +119,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			}
 		}
 
-		// GET: /wp-json/<page-id>/<rest-api-version>/settings
+		/**
+		 * Init rest api.
+		 *
+		 * @example GET /wp-json/<page-id>/<rest-api-version>/settings
+		 * @return void
+		 */
 		public function rest_api_init() {
 			( new REST_API( $this ) )->register_routes();
 		}
 
-		public function plugin_action_links( $links ): array {
+		/**
+		 * Plugin page plugin action link.
+		 *
+		 * @param array $links Plugin action available links.
+		 *
+		 * @return array
+		 */
+		public function plugin_action_links( array $links ): array {
 
 			$strings = $this->localize_strings();
 
@@ -101,7 +148,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * Admin Scripts
+		 * Register admin Scripts
 		 *
 		 * @return void
 		 */
@@ -111,9 +158,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				$plugin_dir_url  = untrailingslashit( plugin_dir_url( $this->get_plugin_file() ) );
 				$plugin_dir_path = untrailingslashit( plugin_dir_path( $this->get_plugin_file() ) );
 
-				$script_src_url    = $plugin_dir_url . '/vendor/storepress/admin-utils/assets/admin-settings.js';
-				$style_src_url     = $plugin_dir_url . '/vendor/storepress/admin-utils/assets/admin-settings.css';
-				$script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/assets/admin-settings.asset.php';
+				$script_src_url    = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.js';
+				$style_src_url     = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.css';
+				$script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/build/admin-settings.asset.php';
 				$script_assets     = include $script_asset_file;
 
 				wp_register_script( 'storepress-admin-settings', $script_src_url, $script_assets['dependencies'], $script_assets['version'], true );
@@ -123,6 +170,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Enqueue Scripts.
+		 *
 		 * @return void
 		 */
 		public function enqueue_scripts() {
@@ -131,69 +180,93 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * Translated Strings
+		 * Translated Strings.
 		 *
 		 * @abstract
 		 * @return array{
 		 *     unsaved_warning_text: string,
 		 *     reset_warning_text: string,
 		 *     reset_button_text: string,
+		 *     settings_nav_label_text: string,
 		 *     settings_link_text: string,
+		 *     settings_error_message_text: string,
 		 *     settings_updated_message_text: string,
 		 *     settings_deleted_message_text:string
 		 *     }
 		 */
 		public function localize_strings(): array {
 
-			$message = esc_html__( 'not implemented. Must be overridden in subclass.' );
-			$this->trigger_error( __METHOD__, $message );
+			/* translators: %s: Method name. */
+			$message = sprintf( esc_html__( "Method '%s' not implemented. Must be overridden in subclass." ), __METHOD__ );
+			wp_trigger_error( __METHOD__, $message );
 
 			return array(
 				'unsaved_warning_text'          => 'The changes you made will be lost if you navigate away from this page.',
 				'reset_warning_text'            => 'Are you sure to reset?',
 				'reset_button_text'             => 'Reset All',
+				'settings_nav_label_text'       => 'Secondary menu',
 				'settings_link_text'            => 'Settings',
+				'settings_error_message_text'   => 'Settings not saved',
 				'settings_updated_message_text' => 'Settings Saved',
 				'settings_deleted_message_text' => 'Settings Reset',
 			);
 		}
 
 		/**
+		 * Get localize string by string key. Previously added on localize_strings()
+		 *
+		 * @param string $string_key Localized string key.
+		 * @see localize_strings()
+		 * @return string
+		 */
+		public function get_localized_string( string $string_key ): string {
+			$strings = $this->localize_strings();
+
+			return $strings[ $string_key ] ?? '';
+		}
+
+		/**
+		 * Add Settings.
+		 *
 		 * @abstract
 		 * @return array
 		 */
 		public function add_settings(): array {
 
-			$message = esc_html__( 'not implemented. Must be overridden in subclass.' );
-			$this->trigger_error( __METHOD__, $message );
-
+			/* translators: %s: Method name. */
+			$message = sprintf( esc_html__( "Method '%s' not implemented. Must be overridden in subclass." ), __METHOD__ );
+			wp_trigger_error( __METHOD__, $message );
 			return array();
 		}
 
 		/**
+		 * Get settings.
+		 *
 		 * @return array
 		 */
 		final public function get_settings(): array {
 			return $this->add_settings();
 		}
 
-		// used on ui template.
-
 		/**
+		 * Display Sidebar. Used on UI template.
+		 *
 		 * @return void
 		 */
 		final public function display_sidebar() {
 			$tab_sidebar = $this->get_tab_sidebar();
-
+			// Load sidebar based on callback.
 			if ( is_callable( $tab_sidebar ) ) {
 				call_user_func( $tab_sidebar );
 			} else {
-				// load default sidebar
+				// Load default sidebar.
 				$this->get_default_sidebar();
 			}
 		}
 
 		/**
+		 * Get tab sidebar callback.
+		 *
 		 * @return callable|null
 		 */
 		private function get_tab_sidebar(): ?callable {
@@ -203,19 +276,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Get default sidebar.
+		 *
 		 * @abstract
 		 * @return void
 		 */
 		public function get_default_sidebar() {
 			$current_tab       = $this->get_current_tab();
 			$callback_function = sprintf( $this->sidebar_callback_fn_name_convention, $current_tab );
-			$message           = sprintf( __( 'not implemented. Must be overridden in subclass. Create "%1$s" method for "%2$s" tab sidebar.' ), $callback_function, $current_tab );
-			$this->trigger_error( __METHOD__, $message );
+
+			/* translators: %s: Method name. */
+			$message  = sprintf( esc_html__( "Method '%s' not implemented. Must be overridden in subclass." ), __METHOD__ );
+			$message .= sprintf( 'Create "%1$s" method for "%2$s" tab sidebar.', $callback_function, $current_tab );
+			wp_trigger_error( __METHOD__, $message );
 		}
 
-		// used on ui template.
-
 		/**
+		 * Display Fields. Used on UI template.
+		 *
 		 * @return void
 		 */
 		final public function display_fields() {
@@ -245,20 +323,25 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				$fields_fn_name = sprintf( $this->fields_callback_fn_name_convention, $current_tab );
 				$page_fn_name   = sprintf( $this->page_callback_fn_name_convention, $current_tab );
 				$message        = sprintf( 'Should return fields array from "<strong>%s()</strong>". Or For custom page create "<strong>%s()</strong>"', $fields_fn_name, $page_fn_name );
-				$this->trigger_error( '', $message );
+				wp_trigger_error( '', $message );
 			}
 		}
 
 		/**
+		 * Display action buttons.
+		 *
 		 * @return void
 		 */
 		public function display_buttons() {
-			$submit_button = get_submit_button( null, 'primary large', 'submit', false, null );
-			$reset_button  = $this->get_reset_button();
-			printf( '<p class="submit">%s %s</p>', $submit_button, $reset_button );
+			$submit_button      = get_submit_button( null, 'primary large', 'submit', false, null );
+			$reset_button       = $this->get_reset_button();
+			$allowed_input_html = $this->get_kses_allowed_input_html();
+			printf( '<p class="submit">%s %s</p>', wp_kses( $submit_button, $allowed_input_html ), wp_kses_post( $reset_button ) );
 		}
 
 		/**
+		 * Get settings reset button.
+		 *
 		 * @return string
 		 */
 		public function get_reset_button(): string {
@@ -272,6 +355,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Get tab field callable function.
+		 *
 		 * @return callable|null
 		 */
 		private function get_tab_fields_callback(): ?callable {
@@ -281,6 +366,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Get tab page callable function.
+		 *
 		 * @return callable|null
 		 */
 		private function get_tab_page_callback(): ?callable {
@@ -289,9 +376,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			return $data['page_callback'];
 		}
 
-		// used on ui template.
-
 		/**
+		 * Display page. Used on UI Template.
+		 *
 		 * @return void
 		 */
 		final public function display_page() {
@@ -303,6 +390,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Get tabs.
+		 *
 		 * @return array
 		 */
 		final public function get_tabs(): array {
@@ -322,9 +411,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 					'icon'        => null,
 					'css-classes' => array(),
 					'sidebar'     => true,
-					// 'page_callback'    => null,
-					// 'fields_callback'  => null,
-					// 'sidebar_callback' => null,
+					/**
+					 * More item.
+					 *
+					 * @example:
+					 * 'page_callback'    => null,
+					 * 'fields_callback'  => null,
+					 * 'sidebar_callback' => null,
+					 */
 				);
 
 				if ( is_array( $tab ) ) {
@@ -342,13 +436,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				$navs[ $key ]['page_callback']    = is_callable( $page_callback ) ? $page_callback : null;
 				$navs[ $key ]['fields_callback']  = is_callable( $fields_callback ) ? $fields_callback : null;
 				$navs[ $key ]['sidebar_callback'] = is_callable( $sidebar_callback ) ? $sidebar_callback : null;
-
 			}
 
 			return $navs;
 		}
 
 		/***
+		 * Get Fields
+		 *
 		 * @return Field[]
 		 */
 		public function get_all_fields(): array {
@@ -368,7 +463,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 						$_field = ( new Field( $field ) )->add_settings( $this );
 
 						$all_fields[ $field['id'] ] = $_field;
-						// $all_fields[ $field[ 'id' ] ] = $field;
 					}
 				}
 			}
@@ -377,6 +471,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Check unique field ids.
+		 *
 		 * @return void
 		 */
 		private function check_unique_field_ids() {
@@ -391,6 +487,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				if ( is_callable( $fields_callback ) ) {
 					$fields = call_user_func( $fields_callback );
 					/**
+					 * Fields.
+					 *
 					 * @var array $field
 					 */
 					foreach ( $fields as $field ) {
@@ -403,7 +501,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 							$fields_fn_name = sprintf( $this->fields_callback_fn_name_convention, $tab_id );
 							$message        = sprintf( 'Duplicate field id "<strong>%s</strong>" found. Please use unique field id.', $field['id'] );
 
-							$this->trigger_error( $fields_fn_name, $message );
+							wp_trigger_error( $fields_fn_name, $message );
 
 						} else {
 							$_field_keys[] = $field['id'];
@@ -417,13 +515,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		// used on ui template.
 
 		/**
+		 * Display tabs. Used on UI template.
+		 *
 		 * @return void
 		 */
 		final public function display_tabs() {
-			echo implode( '', $this->get_navs() );
+			echo wp_kses_post( implode( '', $this->get_navs() ) );
 		}
 
 		/**
+		 * Get navigations.
+		 *
 		 * @return array
 		 */
 		private function get_navs(): array {
@@ -434,6 +536,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 
 			$navs = array();
 			/**
+			 * Available tabs.
+			 *
 			 * @var array $tab
 			 */
 			foreach ( $tabs as $tab_id => $tab ) {
@@ -479,35 +583,39 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			return $navs;
 		}
 
-		// used on ui template.
-
 		/**
+		 * Get action uri. used on settings form.
+		 *
+		 * @param array $extra Extra arguments.
 		 * @return string
 		 */
-		final public function get_action_uri(): string {
-			return $this->get_settings_uri();
+		final public function get_action_uri( array $extra = array() ): string {
+			return $this->get_settings_uri( $extra );
 		}
 
-		// used on ui template.
-
 		/**
+		 * Get reset uri. used on ui template.
+		 *
 		 * @return string
 		 */
 		final public function get_reset_uri(): string {
-			// return wp_nonce_url( $this->get_settings_uri( array( $this->action_query_args() => 'reset' ) ), $this->get_nonce() );
-			return wp_nonce_url( $this->get_settings_uri( array( 'action' => 'reset' ) ), $this->get_nonce() );
+			return wp_nonce_url( $this->get_settings_uri( array( 'action' => 'reset' ) ), $this->get_nonce_action() );
 		}
 
 		/**
+		 * Get nonce action.
+		 *
 		 * @return string
 		 */
-		final public function get_nonce(): string {
+		final public function get_nonce_action(): string {
 			$group = $this->get_option_group_name();
 
 			return sprintf( '%s-options', $group );
 		}
 
 		/**
+		 * Get option group name for ui template.
+		 *
 		 * @return string
 		 */
 		final public function get_option_group_name(): string {
@@ -518,6 +626,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Get plugin file.
+		 *
 		 * @return string
 		 */
 		public function get_plugin_file(): string {
@@ -525,24 +635,32 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Get settings ID.
+		 *
 		 * @return string
 		 */
 		public function get_settings_id(): string {
 			return $this->settings_id();
 		}
 
-		// override for custom ui page
-
 		/**
+		 * Settings template. Can override for custom ui page.
+		 *
+		 * @see https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/#naming-conventions
 		 * @return void
 		 */
 		public function display_settings_page() {
-			// Follow: https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/#naming-conventions
-			include __DIR__ . '/templates/classic-template.php';
+			include_once __DIR__ . '/templates/classic-template.php';
 		}
 
-
-		public function process_actions( $current_action ) {
+		/**
+		 * Process actions.
+		 *
+		 * @param string $current_action Current requested action.
+		 *
+		 * @return void
+		 */
+		public function process_actions( string $current_action ) {
 
 			if ( 'update' === $current_action ) {
 				$this->process_action_update();
@@ -554,65 +672,110 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Process update settings.
+		 *
+		 * @see wp_removable_query_args()
 		 * @return void
 		 */
 		public function process_action_update() {
 
-			check_admin_referer( $this->get_nonce() );
+			check_admin_referer( $this->get_nonce_action() );
 
-			$_post = wp_unslash( $_POST[ $this->get_settings_id() ] );
+			if ( empty( $_POST[ $this->get_settings_id() ] ) ) {
+				wp_safe_redirect(
+					$this->get_action_uri(
+						array(
+							'message' => 'error',
+						)
+					)
+				);
+				exit;
+			}
+
+			$_post = map_deep( wp_unslash( $_POST[ $this->get_settings_id() ] ), 'sanitize_text_field' );
 
 			$data = $this->sanitize_fields( $_post );
 
 			$this->update_options( $data );
 
-			wp_safe_redirect( add_query_arg( 'message', 'updated', $this->get_action_uri() ) );
+			wp_safe_redirect(
+				$this->get_action_uri(
+					array( 'message' => 'updated' )
+				)
+			);
 			exit;
 		}
 
 		/**
+		 * Process reset action.
+		 *
+		 * @see wp_removable_query_args()
 		 * @return void
 		 */
 		public function process_action_reset() {
 
-			check_admin_referer( $this->get_nonce() );
+			check_admin_referer( $this->get_nonce_action() );
 
 			$this->delete_options();
 
-			wp_safe_redirect( add_query_arg( 'message', 'deleted', $this->get_action_uri() ) );
+			wp_safe_redirect(
+				$this->get_action_uri(
+					array( 'message' => 'deleted' )
+				)
+			);
 			exit;
 		}
 
 		/**
+		 * Settings messages
+		 *
+		 * @see process_action_update()
+		 * @see process_action_reset()
+		 * @see wp_removable_query_args()
 		 * @return void
 		 */
 		public function settings_messages() {
+
+			// We are just checking message request from uri redirect.
+			if ( empty( $_GET['message'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				return;
+			}
+
 			$strings = $this->localize_strings();
-			$message = sanitize_text_field( wp_slash( $_GET['message'] ?? '' ) );
+
+			$message = sanitize_text_field( $_GET['message'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+
 			if ( 'updated' === $message ) {
 				$this->add_settings_message( esc_html( $strings['settings_updated_message_text'] ) );
 			}
 			if ( 'deleted' === $message ) {
 				$this->add_settings_message( esc_html( $strings['settings_deleted_message_text'] ) );
 			}
+			if ( 'error' === $message ) {
+				$this->add_settings_message( esc_html( $strings['settings_error_message_text'] ), 'error' );
+			}
 		}
-		
+
 		/**
-		 * @param array $default . Default: empty array
+		 * Get All Saved Options
+		 *
+		 * @param array $default_value Default Value. Default: empty array.
 		 *
 		 * @return array|false|mixed|null
 		 */
-		public function get_options( array $default = array() ) {
+		public function get_options( array $default_value = array() ) {
 
 			if ( ! empty( $this->options ) ) {
 				return $this->options;
 			}
-			$this->options = get_option( $this->get_settings_id(), $default );
+			$this->options = get_option( $this->get_settings_id(), $default_value );
 
 			return $this->options;
 		}
 
 		/**
+		 * Delete Option
+		 *
 		 * @return bool
 		 */
 		final public function delete_options(): bool {
@@ -620,7 +783,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * @param array $data
+		 * Update Option
+		 *
+		 * @param array $data Updated data.
 		 *
 		 * @return void
 		 */
@@ -642,33 +807,37 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * @param string $field_id
-		 * @param mixed  $default . Default null
+		 * Get Option
+		 *
+		 * @param string $field_id Option field id.
+		 * @param mixed  $default_value Pass default value. Default is null.
 		 *
 		 * @return mixed|null
 		 */
-		public function get_option( string $field_id, $default = null ) {
+		public function get_option( string $field_id, $default_value = null ) {
 			$field = $this->get_field( $field_id );
 
-			return $field->get_value( $default );
+			return $field->get_value( $default_value );
 		}
 
 		/**
-		 * @param string $group_id
-		 * @param string $field_id
-		 * @param mixed  $default . Default: null
+		 * Get Group Option
+		 *
+		 * @param string $group_id Group Id.
+		 * @param string $field_id Field Id.
+		 * @param mixed  $default_value Default: null.
 		 *
 		 * @return mixed|null
 		 */
-		public function get_group_option( string $group_id, string $field_id, $default = null ) {
+		public function get_group_option( string $group_id, string $field_id, $default_value = null ) {
 			$field = $this->get_field( $group_id );
 
-			return $field->get_group_value( $field_id, $default );
+			return $field->get_group_value( $field_id, $default_value );
 		}
 
-		// Current tab fields
-
-		/***
+		/**
+		 * Get Available fields.
+		 *
 		 * @return Field[]
 		 */
 		private function get_available_fields(): array {
@@ -677,6 +846,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			if ( is_callable( $field_cb ) ) {
 				$fields = call_user_func( $field_cb );
 				/**
+				 * Field
+				 *
 				 * @var array $field
 				 */
 				foreach ( $fields as $field ) {
@@ -690,10 +861,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			return $available_fields;
 		}
 
-		// Current tab
-
 		/**
-		 * @param string $field_id
+		 * Get available field.
+		 *
+		 * @param string $field_id Field id.
 		 *
 		 * @return Field|null
 		 */
@@ -704,7 +875,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * @param string $field_id
+		 * Get field.
+		 *
+		 * @param string $field_id Field id.
 		 *
 		 * @return Field|null
 		 */
@@ -715,8 +888,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Sanitize fields.
 		 *
-		 * @param array $_post
+		 * @param array $_post global post.
 		 *
 		 * @return array{ public: array, private: array }
 		 */
@@ -741,7 +915,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 
 				switch ( $type ) {
 					case 'checkbox':
-						// Add default checkbox value
+						// Add default checkbox value.
 						if ( ! isset( $_post[ $key ] ) ) {
 							$_post[ $key ] = ( count( $options ) > 0 ) ? array() : 'no';
 						}
@@ -758,7 +932,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 							$group_field_options     = $group_field->get_options();
 							$group_sanitize_callback = $field->get_sanitize_callback();
 
-							// Add default checkbox value
+							// Add default checkbox value.
 							if ( 'checkbox' === $group_field_type ) {
 								if ( ! isset( $_post[ $key ][ $group_field_id ] ) ) {
 									$_post[ $key ][ $group_field_id ] = ( count( $group_field_options ) > 0 ) ? array() : 'no';
@@ -782,6 +956,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Settings page init.
+		 *
 		 * @return void
 		 */
 		public function settings_page_init() {
@@ -790,7 +966,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * used on ui template.
+		 * Display settings message. Used on ui template.
 		 *
 		 * @return void
 		 */
@@ -799,7 +975,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * @param string $message  Message
+		 * Add settings message.
+		 *
+		 * @param string $message  Message.
 		 * @param string $type     Message type. Optional. Message type, controls HTML class. Possible values include 'error',
 		 *                         'success', 'warning', 'info', 'updated'. Default: 'updated'.
 		 *
@@ -812,28 +990,55 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Parent menu slug.
+		 *
 		 * @return string Parent Menu Slug
 		 */
 		public function parent_menu(): string {
 			return 'storepress';
 		}
 
+		/**
+		 * Get settings capability.
+		 *
+		 * @return string
+		 */
 		public function capability(): string {
 			return 'manage_options';
 		}
 
+		/**
+		 * Menu position.
+		 *
+		 * @return string
+		 */
 		public function menu_position(): string {
 			return '45';
 		}
 
+		/**
+		 * Menu Icon.
+		 *
+		 * @return string
+		 */
 		public function menu_icon(): string {
 			return 'dashicons-admin-settings';
 		}
 
+		/**
+		 * Default tab name.
+		 *
+		 * @return string
+		 */
 		public function default_tab_name(): string {
 			return 'general';
 		}
 
+		/**
+		 * Get current tab.
+		 *
+		 * @return string
+		 */
 		final public function get_current_tab(): string {
 			$default_tab_query_key = $this->default_tab_name();
 
@@ -841,25 +1046,45 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 
 			$tab_query_key = in_array( $default_tab_query_key, $available_tab_keys, true ) ? $default_tab_query_key : $available_tab_keys[0];
 
-			return empty( $_GET['tab'] ) ? $tab_query_key : sanitize_title( wp_unslash( $_GET['tab'] ) ); // WPCS: input var okay, CSRF ok.
+			// Get current tab from Global tab.
+			return empty( $_GET['tab'] ) ? sanitize_title( $tab_query_key ) : sanitize_title( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		}
 
-		final public function get_tab( $tab_id = '' ) {
+		/**
+		 * Get tab.
+		 *
+		 * @param string $tab_id tab id.
+		 *
+		 * @return array
+		 */
+		final public function get_tab( string $tab_id = '' ): array {
 			$tabs = $this->get_tabs();
 
 			$_tab_id = empty( $tab_id ) ? $this->get_current_tab() : $tab_id;
 
-			return $tabs[ $_tab_id ] ?? array('page_callback'=>function(){
-				 echo '<div class="notice error"><p>Settings Tab is not available.</p></div>';
-			});
+			return $tabs[ $_tab_id ] ?? array(
+				'page_callback' => function () {
+					echo '<div class="notice error"><p>Settings Tab is not available.</p></div>';
+				},
+			);
 		}
 
+		/**
+		 * Have save button.
+		 *
+		 * @return bool
+		 */
 		final public function has_save_button(): bool {
 			$data = $this->get_tab();
 
 			return ! empty( $data['buttons'] );
 		}
 
+		/**
+		 * Has sidebar.
+		 *
+		 * @return bool
+		 */
 		final public function has_sidebar(): bool {
 			$data = $this->get_tab();
 
@@ -867,16 +1092,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * @param $tab_id
+		 * Get Tab URI.
+		 *
+		 * @param string $tab_id Tab id.
 		 *
 		 * @return string
 		 */
-		public function get_tab_uri( $tab_id ): string {
+		public function get_tab_uri( string $tab_id ): string {
 			return $this->get_settings_uri( array( 'tab' => $tab_id ) );
 		}
 
 		/**
-		 * @param array $extra
+		 * Get Settings uri.
+		 *
+		 * @param array $extra Extra arguments for uri.
 		 *
 		 * @return string
 		 */
@@ -889,7 +1118,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * @param array $extra
+		 * Get Settings URI Arguments.
+		 *
+		 * @param array $extra Extra arguments.
 		 *
 		 * @return array
 		 */
@@ -909,10 +1140,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Check is admin page.
+		 *
 		 * @return bool
 		 */
 		public function is_admin_page(): bool {
-			return ( is_admin() && isset( $_GET['page'] ) && $this->get_current_page_slug() === $_GET['page'] );
+			// We have to check is valid current page.
+			return ( is_admin() && isset( $_GET['page'] ) && $this->get_current_page_slug() === $_GET['page'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		}
 	}
 }

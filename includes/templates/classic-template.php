@@ -1,22 +1,23 @@
 <?php
-
 	/**
-	 * StorePress Settings Template.
+	 * Admin Settings Template File.
 	 *
+	 * @package StorePress/AdminUtils
 	 * @global \StorePress\AdminUtils\Settings $this - Settings Class Instance.
+	 * @since 1.0.0
+	 * @version 1.0.0
 	 */
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
-
 ?>
 <div class="wrap storepress-settings-wrapper">
 	<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
-	
+
 	<?php
 		$this->display_settings_messages();
 	?>
 
-	<nav class="nav-tab-wrapper storepress-nav-tab-wrapper" aria-label="Secondary menu">
+	<nav class="nav-tab-wrapper storepress-nav-tab-wrapper" aria-label="<?php echo esc_attr( $this->get_localized_string( 'settings_nav_label_text' ) ); ?>">
 		<?php $this->display_tabs(); ?>
 	</nav>
 
@@ -30,7 +31,7 @@
 				<?php $this->display_page(); ?>
 			<?php endif; ?>
 		</div>
-		
+
 		<?php if ( $this->has_sidebar() ) : ?>
 			<div class="storepress-settings-sidebar">
 				<?php $this->display_sidebar(); ?>

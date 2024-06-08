@@ -1,9 +1,10 @@
 <?php
 	/**
-	 * Plugin Updater API
+	 * Plugin Updater API Class File.
 	 *
 	 * @package    StorePress/AdminUtils
-	 * @version    1.0
+	 * @since      1.0.0
+	 * @version    1.0.0
 	 */
 
 	namespace StorePress\AdminUtils;
@@ -13,7 +14,7 @@
 if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 
 	/**
-	 * Plugin Updater API
+	 * Plugin Updater API Class.
 	 *
 	 * @name Updater
 	 */
@@ -55,14 +56,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 
 			if ( empty( $plugin_data['UpdateURI'] ) ) {
 				$msg = 'Plugin "Update URI" is not available. Please add "Update URI" field on plugin file header.';
-				$this->trigger_error( __METHOD__, $msg );
+				wp_trigger_error( __METHOD__, $msg );
 
 				return;
 			}
 
 			if ( empty( $plugin_data['Tested up to'] ) ) {
 				$msg = 'Plugin "Tested up to" is not available. Please add "Tested up to" field on plugin file header.';
-				$this->trigger_error( __METHOD__, $msg );
+				wp_trigger_error( __METHOD__, $msg );
 
 				return;
 			}
@@ -75,10 +76,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			add_filter( 'plugins_api', array( $this, 'plugin_information' ), 10, 3 );
 
 			// Check plugin update information from server.
-			add_filter( "update_plugins_{$plugin_hostname}", array( $this, 'update_check' ), 10, 4 );
+			add_filter( "update_plugins_{$plugin_hostname}", array( $this, 'update_check' ), 10, 3 );
 
 			// Add some info at the end of plugin update notice like: notice to update license data.
-			add_action( "in_plugin_update_message-{$plugin_id}", array( $this, 'update_message' ), 10, 2 );
+			add_action( "in_plugin_update_message-{$plugin_id}", array( $this, 'update_message' ) );
 
 			// Add force update check link.
 			add_filter( 'plugin_row_meta', array( $this, 'check_for_update_link' ), 10, 2 );
@@ -87,16 +88,46 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			add_action( "admin_action_{$action_id}", array( $this, 'force_update_check' ) );
 		}
 
+		/**
+		 * Absolute Plugin File.
+		 *
+		 * @return string
+		 */
 		abstract public function plugin_file(): string;
 
+		/**
+		 * License Key.
+		 *
+		 * @return string
+		 */
 		abstract public function license_key(): string;
 
+		/**
+		 * License key empty message text.
+		 *
+		 * @return string
+		 */
 		abstract public function license_key_empty_message(): string;
 
+		/**
+		 * Check update link text.
+		 *
+		 * @return string
+		 */
 		abstract public function check_update_link_text(): string;
 
+		/**
+		 * Product ID for update server.
+		 *
+		 * @return string
+		 */
 		abstract public function product_id(): string;
 
+		/**
+		 * Get Provided Plugin Data.
+		 *
+		 * @return array
+		 */
 		final private function get_plugin_data(): array {
 
 			if ( ! empty( $this->plugin_data ) ) {
@@ -108,6 +139,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			return $this->plugin_data;
 		}
 
+		/**
+		 * Get Plugin absolute file
+		 *
+		 * @return string
+		 */
 		public function get_plugin_file(): string {
 			return $this->plugin_file();
 		}
@@ -132,14 +168,29 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			return plugin_basename( $this->get_plugin_file() );
 		}
 
+		/**
+		 * Get license key.
+		 *
+		 * @return string
+		 */
 		public function get_license_key(): string {
 			return $this->license_key();
 		}
 
+		/**
+		 * Get Product ID.
+		 *
+		 * @return string
+		 */
 		public function get_product_id(): string {
 			return $this->product_id();
 		}
 
+		/**
+		 * Add additional request for Updater Rest API.
+		 *
+		 * @return array
+		 */
 		public function additional_request_args(): array {
 			return array();
 		}
@@ -156,6 +207,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			return wp_parse_url( sanitize_url( $update_server_hostname ), PHP_URL_HOST );
 		}
 
+		/**
+		 * Get Update server uri.
+		 *
+		 * @return string
+		 */
 		final public function get_update_server_uri(): string {
 
 			$data                   = $this->get_plugin_data();
@@ -207,6 +263,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			return $this->leadingslashit( $this->update_server_path() );
 		}
 
+		/**
+		 * Check plugin update forcefully.
+		 *
+		 * @return void
+		 */
 		final public function force_update_check() {
 			if ( current_user_can( 'update_plugins' ) ) {
 				if ( ! function_exists( 'wp_clean_plugins_cache' ) ) {
@@ -218,16 +279,31 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				wp_clean_plugins_cache();
 
 				wp_safe_redirect( admin_url( 'plugins.php' ) );
+				exit;
 			}
 		}
 
+		/**
+		 * Get check update action id.
+		 *
+		 * @return string
+		 */
 		private function get_action_id(): string {
 			return sprintf( '%s_check_update', $this->get_plugin_dirname() );
 		}
 
-		public function check_for_update_link( $links, $file ): array {
+		/**
+		 * Check for update link.
+		 *
+		 * @param string[] $plugin_meta  An array of the plugin's metadata, including
+		 *                               the version, author, author URI, and plugin URI.
+		 * @param string   $plugin_file  Path to the plugin file relative to the plugins directory.
+		 *
+		 * @return array
+		 */
+		public function check_for_update_link( array $plugin_meta, string $plugin_file ): array {
 
-			if ( $file === $this->get_plugin_slug() && current_user_can( 'update_plugins' ) ) {
+			if ( $plugin_file === $this->get_plugin_slug() && current_user_can( 'update_plugins' ) ) {
 
 				$id   = $this->get_action_id();
 				$url  = wp_nonce_url( add_query_arg( array( 'action' => $id ), admin_url( 'plugins.php' ) ), $this->get_plugin_slug() );
@@ -235,16 +311,28 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 
 				$row_meta[ $id ] = sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $url ), esc_html( $text ) );
 
-				return array_merge( $links, $row_meta );
+				return array_merge( $plugin_meta, $row_meta );
 			}
 
-			return $links;
+			return $plugin_meta;
 		}
 
-		public function add_tested_upto_info( $headers ): array {
+		/**
+		 * Add tested upto support on plugin header.
+		 *
+		 * @param array $headers Available plugin header info.
+		 *
+		 * @return array
+		 */
+		public function add_tested_upto_info( array $headers ): array {
 			return array_merge( $headers, array( 'Tested up to' ) );
 		}
 
+		/**
+		 * Get Plugin Banners.
+		 *
+		 * @return array [ 'high' => '', 'low' => '' ]
+		 */
 		public function get_plugin_info_banners(): array {
 
 			$banners = $this->get_plugin_banners();
@@ -258,20 +346,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		/**
 		 * Add Plugin banners.
 		 *
-		 * @return array [
-		 * '2x' => '',
-		 * '1x' => ''
-		 * ]
+		 * @return array [ '2x' => '', '1x' => '' ]
 		 */
 		abstract public function plugin_banners(): array;
 
 		/**
 		 * Get Plugin Banners.
 		 *
-		 * @return array [
-		 *  '2x' => '',
-		 *  '1x' => ''
-		 *  ]
+		 * @return array [ '2x' => '', '1x' => '' ]
 		 */
 		public function get_plugin_banners(): array {
 			return $this->plugin_banners();
@@ -280,22 +362,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		/**
 		 * Add Plugin Icons.
 		 *
-		 * @return array [
-		 * '2x'  => '',
-		 * '1x'  => '',
-		 * 'svg' => ''
-		 * ] Plugin Icons array.
+		 * @return array [ '2x'  => '', '1x'  => '', 'svg' => '' ]
 		 */
 		abstract public function plugin_icons(): array;
 
 		/**
 		 * Get Plugin Icons.
 		 *
-		 * @return array [
-		 * '2x'  => '',
-		 * '1x'  => '',
-		 * 'svg' => '',
-		 * ]
+		 * @return array [ '2x'  => '', '1x'  => '', 'svg' => '' ]
 		 */
 		public function get_plugin_icons(): array {
 			return $this->plugin_icons();
@@ -320,11 +394,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
+		 * Get request argument for request.
+		 *
 		 * @return array
 		 */
 		protected function get_request_args(): array {
 			return array(
-				'timeout' => 10,
 				'body'    => array(
 					'type'        => 'plugins',
 					'name'        => $this->get_plugin_slug(),
@@ -346,7 +421,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		public function get_remote_plugin_data() {
 			$params = $this->get_request_args();
 
-			$raw_response = wp_remote_get( $this->get_update_server_uri(), $params );
+			$raw_response = wp_safe_remote_get( $this->get_update_server_uri(), $params );
 
 			if ( is_wp_error( $raw_response ) || 200 !== wp_remote_retrieve_response_code( $raw_response ) ) {
 				return false;
@@ -356,16 +431,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
-		 * @param          $update
-		 * @param array    $plugin_data
-		 * @param string   $plugin_file
-		 * @param string[] $locales
+		 * Update check.
+		 *
+		 * @param mixed  $update The plugin update data with the latest details.
+		 * @param array  $plugin_data Plugin headers.
+		 * @param string $plugin_file Plugin filename.
 		 *
 		 * @return array|mixed
 		 * @see     WP_Site_Health::detect_plugin_theme_auto_update_issues()
 		 * @see     wp_update_plugins()
 		 */
-		final public function update_check( $update, array $plugin_data, string $plugin_file, $locales ) {
+		final public function update_check( $update, array $plugin_data, string $plugin_file ) {
 
 			if ( $plugin_file !== $this->get_plugin_slug() ) {
 				return $update;
@@ -387,15 +463,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			$plugin_tested  = $plugin_data['Tested up to'] ?? '';
 			$requires_php   = $plugin_data['RequiresPHP'];
 
-			/**
-			 * @var string $plugin_id plugin unique id. Example: w.org/plugins/xyz-plugin.
-			 */
 			$plugin_id = url_shorten( $plugin_uri, 150 );
 
 			$item = array(
-				'id'            => $plugin_id, // w.org/plugins/xyz-plugin
-				'slug'          => $this->get_plugin_dirname(), // xyz-plugin
-				'plugin'        => $this->get_plugin_slug(), // xyz-plugin/xyz-plugin.php
+				'id'            => $plugin_id, // @example: w.org/plugins/xyz-plugin
+				'slug'          => $this->get_plugin_dirname(), // @example: xyz-plugin
+				'plugin'        => $this->get_plugin_slug(), // @example: xyz-plugin/xyz-plugin.php
 				'version'       => $plugin_version,
 				'url'           => $plugin_uri,
 				'icons'         => $this->get_plugin_icons(),
@@ -412,7 +485,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
-		 * @param array|false $remote_data
+		 * Prepare Remote data to use.
+		 *
+		 * @param mixed $remote_data Remote data.
 		 *
 		 * @return array [
 		 *
@@ -499,18 +574,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
-		 * @param $default
-		 * @param $action
-		 * @param $args
+		 * Plugin Information.
+		 *
+		 * @param false|object|array $result The result object or array. Default false.
+		 * @param string             $action The type of information being requested from the Plugin Installation API.
+		 * @param object             $args   Plugin API arguments.
 		 *
 		 * @return array|mixed
 		 * @see     plugins_api()
 		 * @example https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&slug=hello-dolly
 		 */
-		final public function plugin_information( $default, $action, $args ) {
+		final public function plugin_information( $result, string $action, object $args ) {
 
 			if ( ! ( 'plugin_information' === $action ) ) {
-				return $default;
+				return $result;
 			}
 
 			if ( isset( $args->slug ) && $args->slug === $this->get_plugin_dirname() ) {
@@ -551,10 +628,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				return (object) $data;
 			}
 
-			return $default;
+			return $result;
 		}
 
-		public function update_message( $plugin_data, $response ) {
+		/**
+		 * Plugin Update Message.
+		 *
+		 * @param array $plugin_data An array of plugin metadata.
+		 *
+		 * @return void
+		 */
+		public function update_message( array $plugin_data ) {
 
 			$license_key    = trim( $this->get_license_key() );
 			$upgrade_notice = $plugin_data['upgrade_notice'] ?? false;
@@ -565,43 +649,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 
 			if ( $upgrade_notice ) {
 				printf( ' <br /><br /><strong><em>%s</em></strong>', esc_html( $upgrade_notice ) );
-			}
-		}
-
-		/**
-		 * @param string $function_name
-		 * @param string $message
-		 *
-		 * @return void
-		 */
-		final public function trigger_error( string $function_name, string $message ) {
-
-			// Bail out if WP_DEBUG is not turned on.
-			if ( ! WP_DEBUG ) {
-				return;
-			}
-
-			if ( function_exists( 'wp_trigger_error' ) ) {
-				wp_trigger_error( $function_name, $message );
-			} else {
-
-				if ( ! empty( $function_name ) ) {
-					$message = sprintf( '%s(): %s', $function_name, $message );
-				}
-
-				$message = wp_kses(
-					$message,
-					array(
-						'a' => array( 'href' ),
-						'br',
-						'code',
-						'em',
-						'strong',
-					),
-					array( 'http', 'https' )
-				);
-
-				trigger_error( $message );
 			}
 		}
 	}

@@ -1,26 +1,37 @@
 <?php
+	/**
+	 * Admin Settings Section Class File.
+	 *
+	 * @package    StorePress/AdminUtils
+	 * @since      1.0.0
+	 * @version    1.0.0
+	 */
 
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	/**
-	 * Admin Settings
-	 *
-	 * @package    StorePress/AdminUtils
-	 * @name Section
-	 * @version    1.0
-	 */
 if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
+	/**
+	 * Admin Settings Section Class.
+	 *
+	 * @name Section
+	 */
 	class Section {
 
+		use Common;
+
 		/**
+		 * Section data.
+		 *
 		 * @var array
 		 */
 		private array $section;
 
 		/**
-		 * @param array $section
+		 * Construct section from array.
+		 *
+		 * @param array $section Section array.
 		 */
 		public function __construct( array $section ) {
 			$this->section = wp_parse_args(
@@ -35,6 +46,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		}
 
 		/**
+		 * Get section ID.
+		 *
 		 * @return string
 		 */
 		public function get_id(): string {
@@ -42,28 +55,44 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		}
 
 		/**
+		 * Get Section title.
+		 *
 		 * @return string
 		 */
 		public function get_title(): string {
 			return $this->section['title'] ?? '';
 		}
 
+		/**
+		 * Check section title.
+		 *
+		 * @return string
+		 */
 		public function has_title(): string {
 			return ! empty( $this->section['title'] );
 		}
 
 		/**
+		 * Get section description.
+		 *
 		 * @return string
 		 */
 		public function get_description(): string {
 			return $this->section['description'] ?? '';
 		}
 
+		/**
+		 * Check section has description defined.
+		 *
+		 * @return string
+		 */
 		public function has_description(): string {
 			return ! empty( $this->section['description'] );
 		}
 
 		/**
+		 * Get fields array from section.
+		 *
 		 * @return array
 		 */
 		public function get_fields(): array {
@@ -71,6 +100,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		}
 
 		/**
+		 * Check fields available on section.
+		 *
 		 * @return bool
 		 */
 		public function has_fields(): bool {
@@ -78,7 +109,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		}
 
 		/**
-		 * @param Field $field
+		 * Add field to section.
+		 *
+		 * @param Field $field Field object.
 		 *
 		 * @return self
 		 */
@@ -89,6 +122,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		}
 
 		/**
+		 * Return section display.
+		 *
 		 * @return string
 		 */
 		public function display(): string {
@@ -100,6 +135,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		}
 
 		/**
+		 * Markup before display section fields.
+		 *
 		 * @return string
 		 */
 		public function before_display_fields(): string {
@@ -111,6 +148,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		}
 
 		/**
+		 * Markup after display section fields.
+		 *
 		 * @return string
 		 */
 		public function after_display_fields(): string {
