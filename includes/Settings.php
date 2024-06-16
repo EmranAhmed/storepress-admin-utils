@@ -105,14 +105,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		final public function settings_actions() {
 
-			if ( empty( $_REQUEST['action'] ) ) {
+			if ( empty( $_REQUEST['action'] ) || empty( $_GET['page'] ) || $_GET['page'] !== $this->get_current_page_slug() ) {
 				return;
 			}
 
 			check_admin_referer( $this->get_nonce_action() );
 
-			$plugin_page    = sanitize_text_field( wp_unslash( $_GET['page'] ?? false ) );
-			$current_action = sanitize_text_field( wp_unslash( $_REQUEST['action'] ?? false ) );
+			$plugin_page    = sanitize_text_field( wp_unslash( $_GET['page'] ) );
+			$current_action = sanitize_text_field( wp_unslash( $_REQUEST['action'] ) );
 
 			if ( $plugin_page && $current_action && $plugin_page === $this->get_current_page_slug() ) {
 				$this->process_actions( $current_action );

@@ -171,6 +171,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 					$this->rest_api_init();
 				}
 			);
+
+			add_action(
+				'admin_enqueue_scripts',
+				function () {
+					wp_add_inline_style( 'admin-menu', '#adminmenu li.menu-top.wp-menu-separator { min-height: auto; }' );
+				}
+			);
 		}
 
 		/**
@@ -357,7 +364,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		 * @return void
 		 */
 		private function admin_menu_separator( string $position, string $separator_additional_class = '', string $capability = 'manage_options' ): void {
-			global $menu;
 
 			if ( ! current_user_can( $capability ) ) {
 				return;
@@ -367,17 +373,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 				return;
 			}
 
-			/**
-			 * We have to Override Global Variable name $menu to add menu separator.
-			 */
-			$menu[ $position ] = array( // phpcs:ignore WordPress.WP.GlobalVariablesOverride.Prohibited
-				'',
-				'read',
-				sprintf( 'separator-%s', strtolower( $separator_additional_class ) ),
-				'',
-				sprintf( 'wp-menu-separator %s', strtolower( $separator_additional_class ) ),
-			);
-			ksort( $menu );
+			$menu_slug = sprintf( 'menu_separator_%s wp-menu-separator', strtolower( $separator_additional_class ) );
+
+			add_menu_page( '', '', $capability, $menu_slug, '', 'none', $position );
 		}
 
 		/**

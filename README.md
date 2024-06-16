@@ -10,7 +10,8 @@ composer require storepress/admin-utils
 
 ## Usage
 
-### Plugin Class
+### Plugin instance
+
 ```php
 <?php
 
@@ -26,6 +27,7 @@ add_action( 'plugins_loaded', function () {
 ```
 
 ### Plugin `AdminPage.php`
+
 ```php
 <?php
 
@@ -85,22 +87,22 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     // To Disable rest api.
     // URL will be: `/wp-json/<page_id>/<rest_api_version>/settings`
     public function show_in_rest(): ?string {
-		return false;
-	}
+        return false;
+    }
 	// NOTE: You have to create and proper access to get REST API response.
 	// Create: "Application Passwords" from "WP Admin -> Users -> Profile" to use.
 	// Will return: /wp-json/my-custom-uri/settings
-	public function show_in_rest(): ?string {
-		return 'my-custom-uri';
-	}
+    public function show_in_rest(): ?string {
+        return 'my-custom-uri';
+	  }
 	
 	// Settings and Rest API Display Capability. Default is: manage_options
-	public function capability(): string {
+    public function capability(): string {
 		return 'edit_posts';
 	}
 	
 	// Change rest api version. Default is: v1
-	public function rest_api_version(): string {
+    public function rest_api_version(): string {
 		return 'v2';
 	}
 }
@@ -295,7 +297,9 @@ class AdminSettings extends \Plugin_A\AdminPage {
     }
 }
 ```
-### Section data structure.
+
+### Section data structure
+
 ```php
 array(
     'type'        => 'section',
@@ -303,7 +307,9 @@ array(
     'description' => 'Section Description',
 )
 ```
-### Field data structure.
+
+### Field data structure
+
 ```php
 array(
     'id'          => 'input3', // Field ID.
@@ -359,14 +365,17 @@ class Settings extends AdminSettings {
     }
 }
 ```
+
 - Now use `Settings::instance();` on `Plugin::init()`
 
 ### REST API
 
 - URL will be: `/wp-json/<page_id>/<rest_api_version>/settings`
 
-### Upgrade Notice:
+### Upgrade Notice
+
 - Show notice for incompatible extended plugin.
+
 ```php
 namespace Plugin_A;
 class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
@@ -410,8 +419,10 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
 
 - Now use `Upgrade_Notice::instance();` on `Plugin::init()`
 
-### Plugin Update:
+### Plugin Update
+
 - You must add `Update URI:` on plugin file header to perform update.
+
 ```php
 <?php
 /**
@@ -420,7 +431,9 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
  * Update URI: https://update.example.com/
 */
 ```
+
 ### Plugin `Updater.php` file
+
 ```php
 <?php
 
@@ -483,7 +496,7 @@ class Updater extends \StorePress\AdminUtils\Updater {
 
 - Now use `Updater::instance();` on `Plugin::init()`
 
-## Update Server:
+## Update Server
 
 ```php
 <?php
