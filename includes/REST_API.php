@@ -7,17 +7,18 @@
 	 * @version    1.0.0
 	 */
 
+	declare(strict_types=1);
+
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
-
 
 if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 	/**
 	 * Admin Settings REST API Class.
 	 *
 	 * @name REST_API
-	 * @extends    \WP_REST_Controller
+	 * @see \WP_REST_Controller
 	 * @example    Default REST URL /wp-json/<plugin-page-id>/v1/settings
 	 */
 	class REST_API extends \WP_REST_Controller {
@@ -40,7 +41,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		/**
 		 * API Namespace.
 		 *
-		 * @var bool|string|null
+		 * @var string
 		 */
 		protected $namespace;
 
@@ -74,11 +75,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		/**
 		 * Registers the routes for the StorePress's settings.
 		 *
+		 * @return void
 		 * @see register_rest_route()
 		 */
 		public function register_routes() {
 
-			if ( empty( $this->namespace ) ) {
+			if ( $this->is_empty_string( $this->namespace ) ) {
 				return;
 			}
 
@@ -102,9 +104,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		/**
 		 * Checks if a given request has access to read and manage settings.
 		 *
+		 * @phpstan-param \WP_REST_Request $request
 		 * @param \WP_REST_Request $request Full details about the request.
 		 *
-		 * @return bool True if the request has read access for the item, otherwise false.
+		 * @return bool TRUE if the request has read access for the item, otherwise FALSE.
+		 * @phpstan-ignore missingType.generics, method.childReturnType
 		 */
 		public function get_item_permissions_check( $request ): bool {
 			return current_user_can( $this->permission );
@@ -117,6 +121,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 *
 		 * @return \WP_REST_Response|\WP_Error Array on success, or WP_Error object on failure.
 		 * @see \WP_REST_Settings_Controller::get_item()
+		 * @phpstan-ignore missingType.generics
 		 */
 		public function get_item( $request ) {
 			$options  = $this->get_registered_options();
@@ -137,7 +142,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				 * @param array  $args   Custom field array with value.
 				 * @since 1.0.0
 				 */
-				$response[ $name ] = apply_filters( "storepress_rest_pre_get_{$page_id}_setting", null, $name, $args ); // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedHooknameFound
+				$response[ $name ] = apply_filters( "storepress_rest_pre_get_{$page_id}_setting", null, $name, $args );
 
 				if ( is_null( $response[ $name ] ) ) {
 					// Set value.
@@ -157,8 +162,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		/**
 		 * Prepares a value for output based off a schema array.
 		 *
-		 * @param mixed $value  Value to prepare.
-		 * @param array $schema Schema to match.
+		 * @param mixed                          $value  Value to prepare.
+		 * @param array<string, string|string[]> $schema Schema to match.
 		 *
 		 * @return mixed The prepared value.
 		 */
@@ -178,7 +183,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		/**
 		 * Retrieves all the registered options for the Settings API.
 		 *
-		 * @return array Array of registered options.
+		 * @return array<string, mixed> Array of registered options.
 		 * @see https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/
 		 */
 		protected function get_registered_options(): array {
@@ -186,7 +191,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 
 			foreach ( $this->get_settings()->get_all_fields() as $name => $field ) {
 
-				if ( empty( $field->get_attribute( 'show_in_rest' ) ) ) {
+				if ( ! $field->has_show_in_rest() ) {
 					continue;
 				}
 
@@ -238,7 +243,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 
 						$id = $group_field->get_id();
 
-						if ( empty( $group_field->get_attribute( 'show_in_rest' ) ) ) {
+						if ( ! $group_field->has_show_in_rest() ) {
 							continue;
 						}
 
@@ -257,6 +262,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 						}
 
 						if ( 'color' === $group_field->get_type() ) {
+							// @phpstan-ignore offsetAssign.dimType
 							$default_properties[ $id ]['type']['format'] = 'hex-color';
 						}
 
@@ -285,7 +291,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				}
 
 				// Skip over settings that don't have a defined type in the schema.
-				if ( empty( $rest_args['schema']['type'] ) ) {
+				if ( $this->is_empty_string( $rest_args['schema']['type'] ) ) {
 					continue;
 				}
 
@@ -308,10 +314,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		/**
 		 * Retrieves the site setting schema, conforming to JSON Schema.
 		 *
-		 * @return array Item schema data.
+		 * @return array<string, mixed> Item schema data.
 		 */
 		public function get_item_schema(): array {
-			if ( $this->schema ) {
+			if ( $this->is_empty_array( $this->schema ) ) {
 				return $this->add_additional_fields_schema( $this->schema );
 			}
 
@@ -348,6 +354,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 * @param string           $param   The parameter name.
 		 *
 		 * @return mixed|\WP_Error
+		 * @phpstan-ignore missingType.generics
 		 */
 		public function sanitize_callback( $value, \WP_REST_Request $request, string $param ) {
 			if ( is_null( $value ) ) {

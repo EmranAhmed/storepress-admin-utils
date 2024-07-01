@@ -7,6 +7,8 @@
 	 * @version    1.0.0
 	 */
 
+	declare(strict_types=1);
+
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -20,7 +22,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		/**
 		 * Plugin Data.
 		 *
-		 * @var array
+		 * @var array<string, string|bool>
 		 */
 		private array $data = array();
 
@@ -214,7 +216,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 * @return bool
 		 */
 		private function is_compatible(): bool {
-			$current_version  = sanitize_text_field( $this->data['Version'] );
+			$current_version  = sanitize_text_field( (string) $this->data['Version'] );
 			$required_version = $this->compatible_version();
 
 			return version_compare( $current_version, $required_version, '>=' );
@@ -227,8 +229,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 */
 		public function get_notice_content(): string {
 
-			$name               = sanitize_text_field( $this->data['Name'] );
-			$version            = sanitize_text_field( $this->data['Version'] );
+			$name               = sanitize_text_field( (string) $this->data['Name'] );
+			$version            = sanitize_text_field( (string) $this->data['Version'] );
 			$compatible_version = $this->compatible_version();
 
 			return sprintf( $this->localize_notice_format(), $name, $version, $compatible_version );

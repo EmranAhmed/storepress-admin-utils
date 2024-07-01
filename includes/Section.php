@@ -7,6 +7,8 @@
 	 * @version    1.0.0
 	 */
 
+	declare(strict_types=1);
+
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -24,14 +26,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		/**
 		 * Section data.
 		 *
-		 * @var array
+		 * @var array<string, mixed>
 		 */
 		private array $section;
 
 		/**
 		 * Construct section from array.
 		 *
-		 * @param array $section Section array.
+		 * @param array<string, mixed> $section Section array.
 		 */
 		public function __construct( array $section ) {
 			$this->section = wp_parse_args(
@@ -66,10 +68,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		/**
 		 * Check section title.
 		 *
-		 * @return string
+		 * @return bool
 		 */
-		public function has_title(): string {
-			return ! empty( $this->section['title'] );
+		public function has_title(): bool {
+			return ! $this->is_empty_string( $this->section['title'] );
 		}
 
 		/**
@@ -84,16 +86,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		/**
 		 * Check section has description defined.
 		 *
-		 * @return string
+		 * @return bool
 		 */
-		public function has_description(): string {
-			return ! empty( $this->section['description'] );
+		public function has_description(): bool {
+			return ! $this->is_empty_string( $this->section['description'] );
 		}
 
 		/**
 		 * Get fields array from section.
 		 *
-		 * @return array
+		 * @return array<string, mixed>
 		 */
 		public function get_fields(): array {
 			return $this->section['fields'];
@@ -105,7 +107,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 		 * @return bool
 		 */
 		public function has_fields(): bool {
-			return ! empty( $this->section['fields'] );
+			return ! $this->is_empty_array( $this->section['fields'] );
 		}
 
 		/**

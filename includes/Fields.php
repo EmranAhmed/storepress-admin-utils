@@ -7,6 +7,8 @@
 	 * @version    1.0.0
 	 */
 
+	declare(strict_types=1);
+
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -24,7 +26,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		/**
 		 * Sections.
 		 *
-		 * @var array
+		 * @var array<string, object>
 		 */
 		private array $sections = array();
 		/**
@@ -37,11 +39,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		/**
 		 * Class Construct.
 		 *
-		 * @param array    $fields Field list.
-		 * @param Settings $settings Settings Class Instance.
+		 * @param array<string, string|string[]> $fields Field list.
+		 * @param Settings                       $settings Settings Class Instance.
 		 */
 		public function __construct( array $fields, Settings $settings ) {
 
+			/**
+			 * Fields
+			 *
+			 * @var array<string, string|string[]> $fields
+			 */
 			foreach ( $fields as $field ) {
 
 				$_field     = ( new Field( $field ) )->add_settings( $settings );
@@ -60,7 +67,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 				}
 
 				// Generate section id when section not available on a tab.
-				if ( empty( $this->last_section_id ) ) {
+				if ( $this->is_empty_string( $this->last_section_id ) ) {
 					$this->sections[ $section_id ] = new Section(
 						array(
 							'_id' => $section_id,
@@ -78,7 +85,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		/**
 		 * Check is section or not.
 		 *
-		 * @param array $field Single field.
+		 * @param array<string, string> $field Single field.
 		 *
 		 * @return bool
 		 */
@@ -89,7 +96,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		/**
 		 * Check is field or not.
 		 *
-		 * @param array $field Field array.
+		 * @param array<string, string> $field Field array.
 		 *
 		 * @return bool
 		 */
@@ -109,18 +116,18 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		/**
 		 * Get Field ID.
 		 *
-		 * @param array $field Field array.
+		 * @param array<string, string> $field Field array.
 		 *
-		 * @return mixed
+		 * @return string
 		 */
-		public function get_field_id( array $field ) {
+		public function get_field_id( array $field ): string {
 			return $field['id'];
 		}
 
 		/**
 		 * Get Sections.
 		 *
-		 * @return array
+		 * @return array<string, object>
 		 */
 		public function get_sections(): array {
 			return $this->sections;
@@ -132,12 +139,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		 * @return void
 		 */
 		public function display() {
+
+			$allowed_input_html = $this->get_kses_allowed_input_html();
 			/**
 			 * Section Instance.
 			 *
 			 * @var Section $section
 			 */
-			$allowed_input_html = $this->get_kses_allowed_input_html();
 			foreach ( $this->get_sections() as $section ) {
 				echo wp_kses_post( $section->display() );
 

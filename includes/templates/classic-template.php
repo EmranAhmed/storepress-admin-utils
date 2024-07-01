@@ -3,7 +3,7 @@
 	 * Admin Settings Template File.
 	 *
 	 * @package StorePress/AdminUtils
-	 * @global \StorePress\AdminUtils\Settings $this - Settings Class Instance.
+	 * @var \StorePress\AdminUtils\Settings $this - Settings Class Instance.
 	 * @since 1.0.0
 	 * @version 1.0.0
 	 */

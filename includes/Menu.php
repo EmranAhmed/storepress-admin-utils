@@ -7,6 +7,8 @@
 	 * @version    1.0.0
 	 */
 
+	declare(strict_types=1);
+
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -31,7 +33,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		/**
 		 * Used menu slugs.
 		 *
-		 * @var array $slug_usages Slug used in menu.
+		 * @var array<string, int> $slug_usages Slug used in menu.
 		 */
 
 		private static array $slug_usages = array();
@@ -51,28 +53,34 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 			add_action(
 				'admin_menu',
 				function () {
-					global $submenu, $menu;
-
 					// Bail if submenu.
 					if ( $this->is_submenu() ) {
 						return;
 					}
 
-					// Create unique Menu.
-					foreach ( $menu as $m ) {
-						if ( $m[2] === $this->get_parent_slug() ) {
-							return;
-						}
+					// Create Unique Parent Menu.
+					$parent_menu_url = (bool) trim( menu_page_url( $this->get_parent_slug(), false ) );
+
+					if ( $parent_menu_url ) {
+						return;
 					}
 
 					$capability = $this->get_capability();
 
-					$separator_menu_position = sprintf( '%s.%s', $this->get_menu_position(), self::$position );
+					$separator_menu_position = (float) sprintf( '%d.%d', $this->get_menu_position(), self::$position );
 					$this->admin_menu_separator( $separator_menu_position, $this->get_parent_slug(), $capability );
 					self::$position++;
 
-					$menu_position = sprintf( '%s.%s', $this->get_menu_position(), self::$position );
-					add_menu_page( $this->get_parent_menu_title(), $this->get_parent_menu_title(), $capability, $this->get_parent_slug(), '', $this->get_menu_icon(), $menu_position );
+					$menu_position = (float) sprintf( '%d.%d', $this->get_menu_position(), self::$position );
+					add_menu_page(
+						$this->get_parent_menu_title(),
+						$this->get_parent_menu_title(),
+						$capability,
+						$this->get_parent_slug(),
+						'__return_false',
+						$this->get_menu_icon(),
+						$menu_position
+					);
 					self::$position++;
 				},
 				9
@@ -135,19 +143,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 				'admin_menu',
 				function () {
 
-					global $submenu, $menu;
-
 					if ( $this->is_submenu() ) {
 						return;
 					}
 
-					$slug = $this->get_parent_slug();
+					// Remove duplicate menu.
+					$menu_slug = $this->get_parent_slug();
 
-					if ( ! isset( $submenu[ $slug ] ) ) {
-						return;
-					}
-
-					unset( $submenu[ $slug ][0] );
+					remove_submenu_page( $menu_slug, $menu_slug );
 				},
 				60
 			);
@@ -225,6 +228,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		abstract public function parent_menu(): string;
 
 		/**
+		 * Settings template. Can override for custom ui page.
+		 *
+		 * @see https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/#naming-conventions
+		 * @return void
+		 */
+		abstract public function display_settings_page();
+
+		/**
 		 * Get Parent Menu or Main Menu name
 		 *
 		 * @return string
@@ -268,16 +279,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		/**
 		 * Assign Parent Menu Position
 		 *
-		 * @return string
+		 * @return int
 		 */
-		abstract public function menu_position(): string;
+		abstract public function menu_position(): int;
 
 		/**
 		 * Get Main Menu Position
 		 *
-		 * @return string menu position;
+		 * @return int menu position;
 		 */
-		public function get_menu_position(): string {
+		public function get_menu_position(): int {
 			return $this->menu_position();
 		}
 
@@ -357,13 +368,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		/**
 		 * Adding Main Admin Menu Separator
 		 *
-		 * @param numeric-string $position Separator Position.
-		 * @param string         $separator_additional_class Separator Additional Class. Default: empty.
-		 * @param string         $capability                 Menu Separator Capability. Default: manage_options.
+		 * @param float  $position Separator Position.
+		 * @param string $separator_additional_class Separator Additional Class. Default: empty.
+		 * @param string $capability                 Menu Separator Capability. Default: manage_options.
 		 *
 		 * @return void
 		 */
-		private function admin_menu_separator( string $position, string $separator_additional_class = '', string $capability = 'manage_options' ): void {
+		private function admin_menu_separator( float $position, string $separator_additional_class = '', string $capability = 'manage_options' ): void {
 
 			if ( ! current_user_can( $capability ) ) {
 				return;
@@ -375,7 +386,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 
 			$menu_slug = sprintf( 'menu_separator_%s wp-menu-separator', strtolower( $separator_additional_class ) );
 
-			add_menu_page( '', '', $capability, $menu_slug, '', 'none', $position );
+			add_menu_page(
+				'',
+				'',
+				$capability,
+				$menu_slug,
+				'__return_false',
+				'none',
+				$position
+			);
 		}
 
 		/**

@@ -7,6 +7,8 @@
 	 * @version    1.0.0
 	 */
 
+	declare(strict_types=1);
+
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -17,7 +19,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 	 * Admin Settings Class
 	 *
 	 * @name Settings
-	 * @extends Menu
+	 * @see Menu
 	 */
 	abstract class Settings extends Menu {
 
@@ -42,7 +44,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Store All Saved Options
 		 *
-		 * @var array $options
+		 * @var array<string, mixed> $options
 		 */
 		private array $options = array();
 
@@ -61,12 +63,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		abstract public function plugin_file(): string;
 
 		/**
-		 * Show Settings in REST. If empty rest api will disable.
+		 * Show Settings in REST. If empty or false rest api will disable.
 		 *
 		 * @return string|bool
 		 * @example GET: /wp-json/<page-id>/<rest-api-version>/settings
 		 */
-		public function show_in_rest(): ?string {
+		public function show_in_rest() {
 			return sprintf( '%s/%s', $this->get_page_id(), $this->rest_api_version() );
 		}
 
@@ -95,7 +97,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		final public function settings_init() {
 			add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
-			add_action( 'plugin_action_links_' . plugin_basename( $this->get_plugin_file() ), array( $this, 'plugin_action_links' ) );
+			add_filter( 'plugin_action_links_' . plugin_basename( $this->get_plugin_file() ), array( $this, 'plugin_action_links' ) );
 		}
 
 		/**
@@ -105,7 +107,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		final public function settings_actions() {
 
-			if ( empty( $_REQUEST['action'] ) || empty( $_GET['page'] ) || $_GET['page'] !== $this->get_current_page_slug() ) {
+			if ( ! isset( $_REQUEST['action'] ) || ! isset( $_GET['page'] ) || $_GET['page'] !== $this->get_current_page_slug() ) {
 				return;
 			}
 
@@ -114,7 +116,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			$plugin_page    = sanitize_text_field( wp_unslash( $_GET['page'] ) );
 			$current_action = sanitize_text_field( wp_unslash( $_REQUEST['action'] ) );
 
-			if ( $plugin_page && $current_action && $plugin_page === $this->get_current_page_slug() ) {
+			$has_plugin_page = ! $this->is_empty_string( $plugin_page );
+			$has_action      = ! $this->is_empty_string( $current_action );
+
+			if ( $has_plugin_page && $has_action && $plugin_page === $this->get_current_page_slug() ) {
 				$this->process_actions( $current_action );
 			}
 		}
@@ -132,19 +137,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Plugin page plugin action link.
 		 *
-		 * @param array $links Plugin action available links.
+		 * @param string[] $links Plugin action available links.
 		 *
-		 * @return array
+		 * @return string[]
 		 */
 		public function plugin_action_links( array $links ): array {
 
 			$strings = $this->localize_strings();
 
-			$action_links = array(
-				'settings' => sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $this->get_settings_uri() ), esc_html( $strings['settings_link_text'] ) ),
-			);
+			$action_links = sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $this->get_settings_uri() ), esc_html( $strings['settings_link_text'] ) );
 
-			return array_merge( $action_links, $links );
+			$links[] = $action_links;
+
+			return $links;
 		}
 
 		/**
@@ -183,7 +188,18 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * Translated Strings.
 		 *
 		 * @abstract
+		 *
 		 * @return array{
+		 *     'unsaved_warning_text': string,
+		 *     'reset_warning_text': string,
+		 *     'reset_button_text': string,
+		 *     'settings_nav_label_text': string,
+		 *     'settings_link_text': string,
+		 *     'settings_error_message_text': string,
+		 *     'settings_updated_message_text': string,
+		 *     'settings_deleted_message_text': string
+		 * }
+		 * @example array{
 		 *     unsaved_warning_text: string,
 		 *     reset_warning_text: string,
 		 *     reset_button_text: string,
@@ -229,7 +245,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * Add Settings.
 		 *
 		 * @abstract
-		 * @return array
+		 * @return array<string, mixed>
 		 */
 		public function add_settings(): array {
 
@@ -242,7 +258,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Get settings.
 		 *
-		 * @return array
+		 * @return array<string, mixed>
 		 */
 		final public function get_settings(): array {
 			return $this->add_settings();
@@ -333,7 +349,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @return void
 		 */
 		public function display_buttons() {
-			$submit_button      = get_submit_button( null, 'primary large', 'submit', false, null );
+			$submit_button      = get_submit_button( '', 'primary large', 'submit', false, '' );
 			$reset_button       = $this->get_reset_button();
 			$allowed_input_html = $this->get_kses_allowed_input_html();
 			printf( '<p class="submit">%s %s</p>', wp_kses( $submit_button, $allowed_input_html ), wp_kses_post( $reset_button ) );
@@ -392,14 +408,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Get tabs.
 		 *
-		 * @return array
+		 * @return array<int|string, mixed>
 		 */
 		final public function get_tabs(): array {
 			$tabs = $this->get_settings();
 			$navs = array();
 
+			$first_key = array_key_first( $tabs );
+
 			foreach ( $tabs as $key => $tab ) {
-				if ( empty( $key ) ) {
+				if ( is_string( $first_key ) && $this->is_empty_string( $first_key ) ) {
+					$key = $this->default_tab_name();
+				}
+
+				if ( 0 === $first_key ) {
 					$key = $this->default_tab_name();
 				}
 
@@ -441,13 +463,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			return $navs;
 		}
 
-		/***
+		/**
 		 * Get Fields
 		 *
 		 * @return Field[]
 		 */
 		public function get_all_fields(): array {
-			$tabs       = $this->get_tabs();
+			$tabs = $this->get_tabs();
+
 			$all_fields = array();
 
 			foreach ( $tabs as $tab ) {
@@ -489,7 +512,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 					/**
 					 * Fields.
 					 *
-					 * @var array $field
+					 * @var array<string, mixed> $field
 					 */
 					foreach ( $fields as $field ) {
 						if ( 'section' === $field['type'] ) {
@@ -526,7 +549,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Get navigations.
 		 *
-		 * @return array
+		 * @return string[]
 		 */
 		private function get_navs(): array {
 
@@ -538,11 +561,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			/**
 			 * Available tabs.
 			 *
-			 * @var array $tab
+			 * @var array<int|string, mixed> $tab
 			 */
+
+
 			foreach ( $tabs as $tab_id => $tab ) {
 
-				if ( ! empty( $tab['hidden'] ) ) {
+				if ( true === $tab['hidden'] ) {
 					continue;
 				}
 
@@ -553,19 +578,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 					$tab['attributes']['aria-current'] = 'page';
 				}
 
-				$tab_url    = empty( $tab['external'] ) ? $this->get_tab_uri( $tab_id ) : $tab['external'];
-				$tab_target = empty( $tab['external'] ) ? '_self' : '_blank';
-				$icon       = empty( $tab['icon'] ) ? '' : sprintf( '<span class="%s"></span>', $tab['icon'] );
+				$tab_url    = false === $tab['external'] ? $this->get_tab_uri( $tab_id ) : $tab['external'];
+				$tab_target = false === $tab['external'] ? '_self' : '_blank';
+				$icon       = is_null( $tab['icon'] ) ? '' : sprintf( '<span class="%s"></span>', $tab['icon'] );
 				$attributes = $tab['attributes'];
 
 				$attrs = implode(
 					' ',
 					array_map(
 						function ( $key ) use ( $attributes ) {
-
-							if ( in_array( $key, array( 'target', 'href', 'class' ), true ) ) {
-										return '';
-							}
 
 							if ( is_bool( $attributes[ $key ] ) ) {
 									return $attributes[ $key ] ? $key : '';
@@ -586,7 +607,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Get action uri. used on settings form.
 		 *
-		 * @param array $extra Extra arguments.
+		 * @param array<string, mixed> $extra Extra arguments.
 		 * @return string
 		 */
 		final public function get_action_uri( array $extra = array() ): string {
@@ -681,7 +702,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 
 			check_admin_referer( $this->get_nonce_action() );
 
-			if ( empty( $_POST[ $this->get_settings_id() ] ) ) {
+			if ( ! isset( $_POST[ $this->get_settings_id() ] ) ) {
 				wp_safe_redirect(
 					$this->get_action_uri(
 						array(
@@ -737,7 +758,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		public function settings_messages() {
 
 			// We are just checking message request from uri redirect.
-			if ( empty( $_GET['message'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( ! isset( $_GET['message'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 				return;
 			}
 
@@ -746,26 +767,26 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			$message = sanitize_text_field( $_GET['message'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
 			if ( 'updated' === $message ) {
-				$this->add_settings_message( esc_html( $strings['settings_updated_message_text'] ) );
+				$this->add_settings_message( $strings['settings_updated_message_text'] );
 			}
 			if ( 'deleted' === $message ) {
-				$this->add_settings_message( esc_html( $strings['settings_deleted_message_text'] ) );
+				$this->add_settings_message( $strings['settings_deleted_message_text'] );
 			}
 			if ( 'error' === $message ) {
-				$this->add_settings_message( esc_html( $strings['settings_error_message_text'] ), 'error' );
+				$this->add_settings_message( $strings['settings_error_message_text'], 'error' );
 			}
 		}
 
 		/**
 		 * Get All Saved Options
 		 *
-		 * @param array $default_value Default Value. Default: empty array.
+		 * @param array<string, mixed> $default_value Default Value. Default: empty array.
 		 *
-		 * @return array|false|mixed|null
+		 * @return bool|array<string, mixed>|null
 		 */
 		public function get_options( array $default_value = array() ) {
 
-			if ( ! empty( $this->options ) ) {
+			if ( ! $this->is_empty_array( $this->options ) ) {
 				return $this->options;
 			}
 			$this->options = get_option( $this->get_settings_id(), $default_value );
@@ -785,15 +806,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Update Option
 		 *
-		 * @param array $data Updated data.
+		 * @param array<string, mixed> $data Updated data.
 		 *
 		 * @return void
 		 */
-		final private function update_options( array $data ) {
+		private function update_options( array $data ) {
 
 			$old_data = $this->get_options();
 
-			if ( ! empty( $old_data ) ) {
+			if ( ! $this->is_empty_array( $old_data ) ) {
 				$current_data = array_merge( $old_data, $data['public'] );
 			} else {
 				$current_data = $data['public'];
@@ -848,7 +869,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				/**
 				 * Field
 				 *
-				 * @var array $field
+				 * @var array<string, mixed> $field
 				 */
 				foreach ( $fields as $field ) {
 					if ( 'section' !== $field['type'] ) {
@@ -867,6 +888,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @param string $field_id Field id.
 		 *
 		 * @return Field|null
+		 * @phpstan-ignore method.unused
 		 */
 		private function get_available_field( string $field_id ): ?Field {
 			$fields = $this->get_available_fields();
@@ -890,9 +912,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Sanitize fields.
 		 *
-		 * @param array $_post global post.
+		 * @param array<string, mixed> $_post global post.
 		 *
-		 * @return array{ public: array, private: array }
+		 * @return array{ public: array<string, mixed>, private: array<string, mixed> }
 		 */
 		private function sanitize_fields( array $_post ): array {
 
@@ -1010,10 +1032,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Menu position.
 		 *
-		 * @return string
+		 * @return int
 		 */
-		public function menu_position(): string {
-			return '45';
+		public function menu_position(): int {
+			return 45;
 		}
 
 		/**
@@ -1044,10 +1066,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 
 			$available_tab_keys = array_keys( $this->get_tabs() );
 
-			$tab_query_key = in_array( $default_tab_query_key, $available_tab_keys, true ) ? $default_tab_query_key : $available_tab_keys[0];
+			$tab_query_key = in_array( $default_tab_query_key, $available_tab_keys, true ) ? $default_tab_query_key : (string) $available_tab_keys[0];
 
-			// Get current tab from Global tab.
-			return empty( $_GET['tab'] ) ? sanitize_title( $tab_query_key ) : sanitize_title( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return ! isset( $_GET['tab'] ) ? sanitize_title( $tab_query_key ) : sanitize_title( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		}
 
 		/**
@@ -1055,12 +1076,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @param string $tab_id tab id.
 		 *
-		 * @return array
+		 * @return array<string, mixed>
 		 */
 		final public function get_tab( string $tab_id = '' ): array {
 			$tabs = $this->get_tabs();
 
-			$_tab_id = empty( $tab_id ) ? $this->get_current_tab() : $tab_id;
+			$_tab_id = $this->is_empty_string( $tab_id ) ? $this->get_current_tab() : $tab_id;
 
 			return $tabs[ $_tab_id ] ?? array(
 				'page_callback' => function () {
@@ -1077,7 +1098,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		final public function has_save_button(): bool {
 			$data = $this->get_tab();
 
-			return ! empty( $data['buttons'] );
+			return true === $data['buttons'];
 		}
 
 		/**
@@ -1088,7 +1109,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		final public function has_sidebar(): bool {
 			$data = $this->get_tab();
 
-			return ! empty( $data['sidebar'] );
+			return true === $data['sidebar'];
 		}
 
 		/**
@@ -1105,7 +1126,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Get Settings uri.
 		 *
-		 * @param array $extra Extra arguments for uri.
+		 * @param array<string, mixed> $extra Extra arguments for uri.
 		 *
 		 * @return string
 		 */
@@ -1120,9 +1141,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Get Settings URI Arguments.
 		 *
-		 * @param array $extra Extra arguments.
+		 * @param array<string, mixed> $extra Extra arguments.
 		 *
-		 * @return array
+		 * @return array<string, mixed>
 		 */
 		public function get_uri_args( array $extra = array() ): array {
 
@@ -1132,7 +1153,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				'page' => $this->get_current_page_slug(),
 			);
 
-			if ( ! empty( $current_tab ) ) {
+			if ( ! $this->is_empty_string( $current_tab ) ) {
 				$args['tab'] = $current_tab;
 			}
 

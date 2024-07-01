@@ -7,6 +7,8 @@
 	 * @version    1.0.0
 	 */
 
+	declare(strict_types=1);
+
 	namespace StorePress\AdminUtils;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -24,7 +26,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Single field.
 		 *
-		 * @var array
+		 * @var string[]|array<string, mixed>
 		 */
 		private array $field;
 		/**
@@ -44,7 +46,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Construct Field
 		 *
-		 * @param array $field field Array.
+		 * @param string[]|array<string, mixed> $field field Array.
 		 */
 		public function __construct( array $field ) {
 			$this->field = $field;
@@ -53,15 +55,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Add Settings.
 		 *
-		 * @param Settings $settings Settings Object.
-		 * @param array    $values Settings values. Default is: array().
+		 * @param Settings             $settings Settings Object.
+		 * @param array<string, mixed> $values Settings values. Default is: array().
 		 *
 		 * @return self
 		 */
 		public function add_settings( Settings $settings, array $values = array() ): Field {
 			$this->settings = $settings;
 
-			if ( empty( $values ) ) {
+			if ( $this->is_empty_array( $values ) ) {
 				$this->populate_option_values();
 			} else {
 				$this->populate_from_values( $values );
@@ -94,7 +96,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Populate from passed values.
 		 *
-		 * @param array $values Values.
+		 * @param array<string, mixed> $values Values.
 		 *
 		 * @return void
 		 */
@@ -117,7 +119,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Add value.
 		 *
-		 * @param mixed $value Pass value.
+		 * @param string|string[]|numeric|bool|null $value Pass value.
 		 *
 		 * @return self
 		 */
@@ -152,7 +154,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get default value.
 		 *
-		 * @return mixed|null
+		 * @return string|string[]|bool|numeric|null
 		 */
 		public function get_default_value() {
 			return $this->get_attribute( 'default' );
@@ -196,9 +198,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get value
 		 *
-		 * @param mixed $default_value Default value.
+		 * @param bool|string|string[]|null $default_value Default value.
 		 *
-		 * @return mixed|null
+		 * @return bool|string|string[]|null
 		 */
 		public function get_value( $default_value = null ) {
 			return $this->get_attribute( 'value', $default_value ?? $this->get_default_value() );
@@ -207,7 +209,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get available options
 		 *
-		 * @return array
+		 * @return string[]|array<string, string>
 		 */
 		public function get_options(): array {
 			return $this->get_attribute( 'options', array() );
@@ -223,7 +225,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$alias = $this->get_type_alias();
 			$keys  = array_keys( $alias );
 
-			if ( in_array( $type, $keys ) ) {
+			if ( in_array( $type, $keys, true ) ) {
 				return $alias[ $type ];
 			}
 
@@ -345,8 +347,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Prepare field classes.
 		 *
-		 * @param mixed $classes Class names.
-		 * @param mixed $default_value Default value.
+		 * @param string|string[] $classes Class names.
+		 * @param string|string[] $default_value Default value.
 		 *
 		 * @return string[]
 		 */
@@ -358,14 +360,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$classnames                = array();
 			$remove_default_size_class = false;
 
+			/**
+			 * Settings Classes.
+			 *
+			 * @var string[] $setting_classnames
+			 */
 			foreach ( $setting_classnames as $setting_classname ) {
-				if ( in_array( $setting_classname, $this->get_field_size_css_classes() ) ) {
+				if ( in_array( $setting_classname, $this->get_field_size_css_classes(), true ) ) {
 					$remove_default_size_class = true;
 				}
 			}
 
+			/**
+			 * Default Classes.
+			 *
+			 * @var string[] $default_classnames
+			 */
 			foreach ( $default_classnames as $default_classname ) {
-				if ( $remove_default_size_class && in_array( $default_classname, $this->get_field_size_css_classes() ) ) {
+				if ( $remove_default_size_class && in_array( $default_classname, $this->get_field_size_css_classes(), true ) ) {
 					continue;
 				}
 				$classnames[] = $default_classname;
@@ -377,7 +389,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get field class.
 		 *
-		 * @return string|array
+		 * @return string|string[]
 		 */
 		public function get_css_class() {
 			return $this->get_attribute( 'class', '' );
@@ -386,7 +398,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get field suffix.
 		 *
-		 * @return string
+		 * @return string|null
 		 */
 		public function get_suffix(): ?string {
 			return $this->get_attribute( 'suffix' );
@@ -404,7 +416,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get field data.
 		 *
-		 * @return array
+		 * @return string[]|array<string, mixed>
 		 */
 		public function get_field(): array {
 			return $this->field;
@@ -424,12 +436,34 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		}
 
 		/**
+		 * Check field shown in rest api.
+		 *
+		 * @return bool
+		 */
+		public function has_show_in_rest(): bool {
+
+			if ( ! $this->has_attribute( 'show_in_rest' ) ) {
+				return false;
+			}
+
+			if ( false === $this->get_attribute( 'show_in_rest' ) ) {
+				return false;
+			}
+
+			if ( is_string( $this->get_attribute( 'show_in_rest' ) ) && $this->is_empty_string( $this->get_attribute( 'show_in_rest' ) ) ) {
+				return false;
+			}
+
+			return true;
+		}
+
+		/**
 		 * Get attribute.
 		 *
-		 * @param string $attribute Attribute name.
-		 * @param mixed  $default_value Default value. Default null.
+		 * @param string                    $attribute Attribute name.
+		 * @param string|string[]|null|bool $default_value Default value. Default null.
 		 *
-		 * @return mixed|null
+		 * @return string|string[]|null|bool
 		 */
 		public function get_attribute( string $attribute, $default_value = null ) {
 			$field = $this->get_field();
@@ -449,8 +483,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get HTML Attributes.
 		 *
-		 * @param array $attrs Attributes.
-		 * @param array $additional_attrs Additional attributes. Default array().
+		 * @param array<string, mixed> $attrs Attributes.
+		 * @param array<string, mixed> $additional_attrs Additional attributes. Default array().
 		 *
 		 * @return string
 		 */
@@ -578,19 +612,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$value   = $this->get_value();
 			$options = $this->get_options();
 
-			// Group checkbox.
+			// Group checkbox. Options will be an array.
 			if ( 'checkbox' === $type && count( $options ) > 1 ) {
 				$name = $this->get_name( true );
 			}
 
-			// Single checkbox.
-			if ( 'checkbox' === $type && empty( $options ) ) {
+			// Single checkbox. Option will be string.
+			if ( 'checkbox' === $type && $this->is_empty_array( $options ) ) {
 				$options = array( 'yes' => $title );
 			}
 
 			// Check radio input have options declared.
-			if ( 'radio' === $type && empty( $options ) ) {
-				$message = sprintf( 'Input Field: "%s". Title: "%s" need options to choose.', $id, $title );
+			if ( 'radio' === $type && $this->is_empty_array( $options ) ) {
+				$message = sprintf( 'Input Field: "%s". Title: "%s" need options to choose. "option"=>["key"=>"value"]', $id, $title );
 				wp_trigger_error( '', $message );
 
 				return '';
@@ -598,6 +632,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 			$inputs = array();
 
+			/**
+			 * Group Options.
+			 *
+			 * @var array<string, string> $options
+			 */
 			foreach ( $options as $option_key => $option_value ) {
 				$uniq_id = sprintf( '%s-%s', $id, $option_key );
 
@@ -606,7 +645,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					'type'    => $type,
 					'name'    => $name,
 					'value'   => esc_attr( $option_key ),
-					'checked' => ( 'checkbox' === $type ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ) ) : $value === $option_key,
+					'checked' => ( 'checkbox' === $type ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ), true ) : $value === $option_key,
 				);
 
 				$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label>', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $option_value ) );
@@ -662,7 +701,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$inputs = array();
 
 			foreach ( $options as $option_key => $option_value ) {
-				$selected = ( $is_multiple ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ) ) : $value === $option_key;
+				$selected = ( $is_multiple ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ), true ) : $value === $option_key;
 				$inputs[] = sprintf( '<option %s value="%s"><span>%s</span></option>', $this->get_input_attributes( array( 'selected' => $selected ) ), esc_attr( $option_key ), esc_html( $option_value ) );
 			}
 
@@ -672,7 +711,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get group fields.
 		 *
-		 * @return self[]
+		 * @return Field[]
 		 */
 		public function get_group_fields(): array {
 
@@ -681,6 +720,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$group_fields = $this->get_attribute( 'fields', array() );
 
 			$fields = array();
+
+			/**
+			 * Group Filed object array
+			 *
+			 * @var array<string, string|string[]> $group_fields $group_fields
+			 */
 
 			foreach ( $group_fields as $field ) {
 				$fields[] = ( new Field( $field ) )->add_settings( $this->get_settings(), $group_value )->add_settings_id( $name );
@@ -692,7 +737,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get REST API Group values.
 		 *
-		 * @return array
+		 * @return array<string, string|string[]>
 		 */
 		public function get_rest_group_values(): array {
 
@@ -700,7 +745,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 			foreach ( $this->get_group_fields() as $field ) {
 
-				if ( empty( $field->get_attribute( 'show_in_rest' ) ) ) {
+				if ( false === $field->has_show_in_rest() ) {
 					continue;
 				}
 
@@ -728,7 +773,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get Group Values.
 		 *
-		 * @return array
+		 * @return array<string, mixed>
 		 */
 		public function get_group_values(): array {
 
@@ -746,10 +791,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get Group value.
 		 *
-		 * @param string $field_id Field ID.
-		 * @param mixed  $default_value Default group value.
+		 * @param string                    $field_id Field ID.
+		 * @param bool|null|string|string[] $default_value Default group value.
 		 *
-		 * @return mixed|null
+		 * @return bool|null|string|string[]
 		 */
 		public function get_group_value( string $field_id, $default_value = null ) {
 
@@ -805,16 +850,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				);
 
 				// Group checkbox name.
-				if ( 'checkbox' === $field_type && $field_options && count( $field_options ) > 1 ) {
+				if ( 'checkbox' === $field_type && count( $field_options ) > 1 ) {
 					$attributes['name'] = $field->get_name( true );
 				}
 
-				if ( in_array( $field_type, $this->group_inputs() ) ) {
+				if ( in_array( $field_type, $this->group_inputs(), true ) ) {
 
 					$attributes['class'] = array();
 
 					// Single checkbox.
-					if ( 'checkbox' === $field_type && empty( $field_options ) ) {
+					if ( 'checkbox' === $field_type && $this->is_empty_array( $field_options ) ) {
 						$attributes['value']   = 'yes';
 						$attributes['checked'] = 'yes' === $field_value;
 
@@ -825,10 +870,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 					// Checkbox and Radio.
 					$inputs[] = '<ul class="input-wrapper">';
+					/**
+					 * Group Options.
+					 *
+					 * @var array<string, string> $field_options
+					 */
 					foreach ( $field_options as $option_key => $option_value ) {
 						$uniq_id               = sprintf( '%s-%s-%s__group', $id, $field_id, $option_key );
 						$attributes['value']   = esc_attr( $option_key );
-						$attributes['checked'] = is_array( $field_value ) ? in_array( $option_key, $field_value ) : $option_key == $field_value;
+						$attributes['checked'] = is_array( $field_value ) ? in_array( $option_key, $field_value, true ) : $option_key == $field_value;
 						$attributes['id']      = $uniq_id;
 						$inputs[]              = sprintf( '<li><label for="%s"><input %s /><span>%s</span></label></li>', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $option_value ) );
 					}
@@ -849,15 +899,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get REST Type Primitive Types.
 		 *
-		 * @return string|null
+		 * @return string
 		 * @see https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/#primitive-types
 		 * @example array( 'number', 'integer', 'string', 'boolean', 'array', 'object' )
 		 */
-		public function get_rest_type(): ?string {
+		public function get_rest_type(): string {
 
 			$type        = $this->get_type();
 			$options     = $this->get_options();
-			$is_single   = empty( $options );
+			$is_single   = $this->is_empty_array( $options );
 			$is_multiple = $this->has_attribute( 'multiple' );
 
 			switch ( $type ) {
@@ -899,7 +949,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$title = $this->get_title();
 			$type  = $this->get_type();
 
-			if ( in_array( $type, $this->group_inputs() ) ) {
+			if ( in_array( $type, $this->group_inputs(), true ) ) {
 				return $title;
 			}
 			$required_markup = '';
