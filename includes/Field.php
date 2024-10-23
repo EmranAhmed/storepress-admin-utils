@@ -154,7 +154,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get default value.
 		 *
-		 * @return string|string[]|bool|numeric|null
+		 * @return bool|string|numeric|string[]|null
 		 */
 		public function get_default_value() {
 			return $this->get_attribute( 'default' );
@@ -336,6 +336,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		}
 
 		/**
+		 * Get datalist id.
+		 *
+		 * @return string
+		 */
+		public function get_datalist_id(): string {
+			return sprintf( '%s-datalist', $this->get_id() );
+		}
+
+		/**
 		 * Get available field sizes.
 		 *
 		 * @return string[]
@@ -402,6 +411,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 */
 		public function get_suffix(): ?string {
 			return $this->get_attribute( 'suffix' );
+		}
+		/**
+		 * Has field suffix.
+		 *
+		 * @return bool
+		 */
+		public function has_suffix(): bool {
+			return $this->has_attribute( 'suffix' );
 		}
 
 		/**
@@ -477,7 +494,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 * @return string[]
 		 */
 		public function group_inputs(): array {
-			return array( 'radio', 'checkbox', 'group' );
+			return array( 'radio', 'checkbox', 'toggle', 'group' );
 		}
 
 		/**
@@ -489,9 +506,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 * @return string
 		 */
 		public function get_input_attributes( array $attrs, array $additional_attrs = array() ): string {
-
 			$attributes = wp_parse_args( $additional_attrs, $attrs );
-
 			return $this->get_html_attributes( $attributes );
 		}
 
@@ -509,7 +524,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			}
 
 			$message = sprintf( 'Field: "%s" not implemented. Please add "Settings::custom_field" method to implement.', $type );
-			wp_trigger_error( '', $message );
+			wp_trigger_error( __METHOD__, $message );
 
 			return '';
 		}
@@ -536,6 +551,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				$system_class[] = 'code';
 			}
 
+			if ( 'color' === $raw_type ) {
+				$system_class[] = 'color';
+			}
+
 			$attributes = array(
 				'id'    => $id,
 				'type'  => $type,
@@ -543,6 +562,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				'name'  => $this->get_name(),
 				'value' => $value,
 			);
+
+			if ( $this->has_attribute( 'html_datalist' ) ) {
+				$attributes['list'] = $this->get_datalist_id();
+			}
 
 			if ( $this->has_attribute( 'description' ) ) {
 				$attributes['aria-describedby'] = sprintf( '%s-description', $id );
@@ -556,7 +579,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				$attributes['placeholder'] = $this->get_attribute( 'placeholder' );
 			}
 
-			return sprintf( '<input %s /> %s', $this->get_input_attributes( $attributes, $additional_attributes ), $this->get_suffix() );
+			return sprintf( '<div class="input-container %s"><span class="input-field"><input %s /></span><span class="input-suffix">%s</span></div>', ( $this->has_suffix() ? 'has-suffix' : '' ), $this->get_input_attributes( $attributes, $additional_attributes ), $this->get_suffix() );
 		}
 
 		/**
@@ -605,27 +628,31 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 */
 		public function check_input(): string {
 
-			$id      = $this->get_id();
-			$type    = $this->get_type();
-			$title   = $this->get_title();
-			$name    = $this->get_name();
-			$value   = $this->get_value();
-			$options = $this->get_options();
+			$id       = $this->get_id();
+			$type     = $this->get_type();
+			$title    = $this->get_title();
+			$name     = $this->get_name();
+			$value    = $this->get_value();
+			$options  = $this->get_options();
+			$raw_type = $this->get_raw_type();
+
+			$is_toggle   = 'toggle' === $raw_type;
+			$is_checkbox = 'checkbox' === $type;
 
 			// Group checkbox. Options will be an array.
-			if ( 'checkbox' === $type && count( $options ) > 1 ) {
+			if ( $is_checkbox && count( $options ) > 1 ) {
 				$name = $this->get_name( true );
 			}
 
 			// Single checkbox. Option will be string.
-			if ( 'checkbox' === $type && $this->is_empty_array( $options ) ) {
+			if ( $is_checkbox && $this->is_empty_array( $options ) ) {
 				$options = array( 'yes' => $title );
 			}
 
 			// Check radio input have options declared.
 			if ( 'radio' === $type && $this->is_empty_array( $options ) ) {
 				$message = sprintf( 'Input Field: "%s". Title: "%s" need options to choose. "option"=>["key"=>"value"]', $id, $title );
-				wp_trigger_error( '', $message );
+				wp_trigger_error( __METHOD__, $message );
 
 				return '';
 			}
@@ -648,7 +675,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					'checked' => ( 'checkbox' === $type ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ), true ) : $value === $option_key,
 				);
 
-				$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label>', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $option_value ) );
+				$option_description = '';
+				if ( is_array( $option_value ) && isset( $option_value['label'] ) && isset( $option_value['description'] ) ) {
+
+					$option_description = sprintf( '<p class="description" id="%s-description">%s</p>', $uniq_id, $option_value['description'] );
+					$option_value       = $option_value['label'];
+				}
+
+
+
+				if ( $is_toggle ) {
+					$attributes['class'] = array( 'toggle' );
+				}
+
+				$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label> %s', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $option_value ), wp_kses_post( $option_description ) );
 			}
 
 			return sprintf( '<fieldset><legend class="screen-reader-text">%s</legend>%s</fieldset>', $title, implode( '<br />', $inputs ) );
@@ -678,9 +718,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				$system_class[] = 'select2';
 			}
 
+			if ( 'wc-enhanced-select' === $raw_type ) {
+				$system_class[] = 'wc-enhanced-select';
+			}
+
 			$attributes = array(
 				'id'       => $id,
-				'type'     => 'select',
+				// 'type'     => 'select',
 				'name'     => $name,
 				'class'    => $this->prepare_classes( $class, $system_class ),
 				'multiple' => $is_multiple,
@@ -829,6 +873,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				$uniq_id           = sprintf( '%s-%s__group', $id, $field_id );
 				$field_title       = $field->get_title();
 				$field_type        = $field->get_type();
+				$raw_field_type    = $field->get_raw_type();
 				$field_name        = $field->get_name();
 				$field_options     = $field->get_options();
 				$field_placeholder = $field->get_attribute( 'placeholder' );
@@ -849,8 +894,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					'required'    => $field_required,
 				);
 
+				$is_toggle   = 'toggle' === $raw_field_type;
+				$is_checkbox = ( 'checkbox' === $field_type );
+
+				if ( $is_checkbox ) {
+					$attributes['type'] = 'checkbox';
+				}
+
 				// Group checkbox name.
-				if ( 'checkbox' === $field_type && count( $field_options ) > 1 ) {
+				if ( $is_checkbox && count( $field_options ) > 1 ) {
 					$attributes['name'] = $field->get_name( true );
 				}
 
@@ -859,9 +911,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					$attributes['class'] = array();
 
 					// Single checkbox.
-					if ( 'checkbox' === $field_type && $this->is_empty_array( $field_options ) ) {
+					if ( $is_checkbox && $this->is_empty_array( $field_options ) ) {
 						$attributes['value']   = 'yes';
 						$attributes['checked'] = 'yes' === $field_value;
+
+						if ( $is_toggle ) {
+							$attributes['class'][] = 'toggle';
+						}
 
 						$inputs[] = sprintf( '<p class="input-wrapper"><label for="%s"><input %s /><span>%s</span></label></p>', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $field_title ) );
 
@@ -880,16 +936,37 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 						$attributes['value']   = esc_attr( $option_key );
 						$attributes['checked'] = is_array( $field_value ) ? in_array( $option_key, $field_value, true ) : $option_key == $field_value;
 						$attributes['id']      = $uniq_id;
-						$inputs[]              = sprintf( '<li><label for="%s"><input %s /><span>%s</span></label></li>', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $option_value ) );
+
+						if ( $is_toggle ) {
+							$attributes['class'][] = 'toggle';
+						}
+
+						$inputs[] = sprintf( '<li><label for="%s"><input %s /><span>%s</span></label></li>', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $option_value ) );
 					}
 					$inputs[] = '</ul>';
 
 				} elseif ( 'textarea' === $field_type ) {
-					// Input box.
+						// Input box.
 						$attributes['value'] = false;
 						$inputs[]            = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <textarea %s>%s</textarea></p>', esc_attr( $uniq_id ), esc_html( $field_title ), $this->get_input_attributes( $attributes, $field_attributes ), $field_value );
 				} else {
-					$inputs[] = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <input %s /> %s</p>', esc_attr( $uniq_id ), esc_html( $field_title ), $this->get_input_attributes( $attributes, $field_attributes ), esc_html( $field_suffix ) );
+
+					$datalist_markup = '';
+					if ( $field->has_attribute( 'html_datalist' ) ) {
+
+						$datalist_id        = sprintf( '%s-datalist', $uniq_id );
+						$attributes['list'] = $datalist_id;
+
+						$datalist_markup = sprintf( '<datalist id="%s">', $datalist_id );
+						foreach ( $field->get_attribute( 'html_datalist' ) as $value ) {
+							$datalist_markup .= sprintf( '<option value="%s"></option>', $value );
+						}
+						$datalist_markup .= '</datalist>';
+					}
+
+
+					// @todo: add has suffix class
+					$inputs[] = sprintf( '<p class="input-wrapper"><label for="%s"><span>%s</span></label> <span class="input-container %s"><span class="input-field"><input %s /></span><span class="input-suffix">%s</span></span>%s</p>', esc_attr( $uniq_id ), esc_html( $field_title ), ( $field->has_suffix() ? 'has-suffix' : '' ), $this->get_input_attributes( $attributes, $field_attributes ), esc_html( $field_suffix ), $datalist_markup );
 				}
 			}
 
@@ -925,10 +1002,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					return 'string';
 				case 'number':
 					return 'number';
+				case 'toggle':
 				case 'checkbox':
 					return $is_single ? 'string' : 'array';
 				case 'select2':
 				case 'select':
+				case 'wc-enhanced-select':
 					return $is_multiple ? 'array' : 'string';
 				case 'group':
 					return 'object';
@@ -945,19 +1024,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 */
 		public function get_label_markup(): string {
 
-			$id    = $this->get_id();
-			$title = $this->get_title();
-			$type  = $this->get_type();
+			$id             = $this->get_id();
+			$title          = sprintf( '<span class="input-label">%s</span>', $this->get_title() );
+			$type           = $this->get_type();
+			$tooltip_markup = $this->get_tooltip_markup();
 
 			if ( in_array( $type, $this->group_inputs(), true ) ) {
-				return $title;
-			}
-			$required_markup = '';
-			if ( $this->has_attribute( 'required' ) ) {
-				$required_markup = '<span class="required">*</span>';
+				return sprintf( '<span class="input-label-wrapper">%s %s</span>', $title, $tooltip_markup );
 			}
 
-			return sprintf( '<label for="%s">%s %s</label>', esc_attr( $id ), esc_html( $title ), $required_markup );
+			$required_markup = $this->get_required_markup();
+
+
+			return sprintf( '<label for="%s"><span class="input-label-wrapper">%s %s %s</span></label>', esc_attr( $id ), $title, $required_markup, $tooltip_markup );
 		}
 
 		/**
@@ -968,12 +1047,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		public function get_type_alias(): array {
 
 			return array(
-				'tiny-text'    => 'text',
-				'small-text'   => 'text',
-				'regular-text' => 'text',
-				'large-text'   => 'text',
-				'code'         => 'text',
-				'select2'      => 'select',
+				'tiny-text'          => 'text',
+				'small-text'         => 'text',
+				'regular-text'       => 'text',
+				'large-text'         => 'text',
+				'code'               => 'text',
+				'select2'            => 'select',
+				'wc-enhanced-select' => 'select',
+				'toggle'             => 'checkbox',
 			);
 		}
 
@@ -983,7 +1064,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 * @return string
 		 * @todo Add More Fields
 		 * @see  Settings::sanitize_fields()
-		 * @example: input, code, textarea, select, select2, regular-text, small-text, tiny-text, large-text, color
+		 * @example: text, range, search, url, color, number, code, textarea, select, select2, wc-enhanced-select, regular-text, small-text, tiny-text, large-text, color
 		 */
 		public function get_input_markup(): string {
 			$type = $this->get_type();
@@ -992,6 +1073,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				case 'text':
 				case 'regular-text':
 				case 'code':
+				case 'range':
+				case 'search':
+				case 'url':
 					return $this->text_input();
 				case 'color':
 				case 'number':
@@ -1003,9 +1087,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					return $this->text_input( 'large-text' );
 				case 'radio':
 				case 'checkbox':
+				case 'toggle':
 					return $this->check_input();
 				case 'select':
 				case 'select2':
+				case 'wc-enhanced-select':
 					return $this->select_input();
 				case 'group':
 					return $this->group_input();
@@ -1026,6 +1112,49 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 			return $this->has_attribute( 'description' ) ? sprintf( '<p class="description" id="%s-description">%s</p>', esc_attr( $id ), wp_kses_post( $this->get_attribute( 'description' ) ) ) : '';
 		}
+		/**
+		 * Get field tooltip markup.
+		 *
+		 * @return string
+		 */
+		public function get_tooltip_markup(): string {
+			return $this->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $this->get_attribute( 'tooltip' ) ) ) : '';
+		}
+		/**
+		 * Get field required markup.
+		 *
+		 * @return string
+		 */
+		public function get_required_markup(): string {
+			return $this->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
+		}
+		/**
+		 * Get field description markup.
+		 *
+		 * @return string
+		 */
+		public function get_datalist_markup(): string {
+
+			$type = $this->get_type();
+
+			if ( in_array( $type, array( 'select', 'checkbox', 'radio' ), true ) ) {
+				return '';
+			}
+
+			$datalist_id         = $this->get_datalist_id();
+			$datalist_attributes = $this->get_attribute( 'html_datalist', array() );
+
+			$datalist_markup = '';
+			if ( ! $this->is_empty_array( $datalist_attributes ) ) {
+				$datalist_markup = sprintf( '<datalist id="%s">', $datalist_id );
+				foreach ( $datalist_attributes as  $value ) {
+					$datalist_markup .= sprintf( '<option value="%s"></option>', $value );
+				}
+				$datalist_markup .= '</datalist>';
+			}
+
+			return $datalist_markup;
+		}
 
 		/**
 		 * Display generated field
@@ -1036,15 +1165,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$label       = $this->get_label_markup();
 			$description = $this->get_description_markup();
 			$input       = $this->get_input_markup();
+			$full_width  = $this->get_attribute( 'full_width', false );
+			$datalist    = $this->get_datalist_markup();
 
-			$full_width = $this->get_attribute( 'full_width', false );
-
-			// <span class="help-tip"></span>
+			// <span class="help-tooltip"></span>
+			// <span class="help-modal"></span>
 			if ( $full_width ) {
-				return sprintf( '<tr><td colspan="2" class="td-full">%s %s</td></tr>', $input, $description );
+				return sprintf( '<tr><td colspan="2" class="td-full">%s %s %s</td></tr>', $input, $datalist, $description );
 			}
 
-			return sprintf( '<tr><th scope="row">%s </th><td>%s %s</td></tr>', $label, $input, $description );
+			return sprintf( '<tr><th scope="row">%s</th><td>%s %s %s</td></tr>', $label, $input, $datalist, $description );
 		}
 	}
 }

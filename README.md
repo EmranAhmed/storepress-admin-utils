@@ -43,6 +43,7 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
             'settings_link_text'            => 'Settings',
             'settings_updated_message_text' => 'Settings Saved',
             'settings_deleted_message_text' => 'Settings Reset',
+            'settings_error_message_text'   => 'Settings Not saved.',
         );
     }
 
@@ -60,8 +61,6 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
         return 'edit.php?post_type=wporg_product';
      }
     */
-   
-    
     public function menu_title(): string {
         return 'Plugin A Menu';
     }
@@ -105,6 +104,63 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     public function rest_api_version(): string {
 		return 'v2';
 	}
+	
+    // Adding custom scripts.
+    public function enqueue_scripts() {
+        parent::enqueue_scripts();
+        if ( $this->has_field_type( 'wc-enhanced-select' ) ) {
+            wp_enqueue_style( 'woocommerce_admin_styles' );
+            wp_enqueue_script( 'wc-enhanced-select' );
+        }
+    }
+    
+    
+    // Adding Custom TASK: 
+    
+    public function get_custom_action_uri(): string {
+       return wp_nonce_url( $this->get_settings_uri( array( 'action' => 'custom-action' ) ), $this->get_nonce_action() );
+    }
+
+  // Task: 02
+    public function process_actions($current_action){
+    
+        parent::process_actions($current_action);
+      
+        if ( 'custom-action' === $current_action ) {
+          $this->process_action_custom();
+        }
+    }
+
+
+    // Task: 03
+    public function process_action_custom(){
+        check_admin_referer( $this->get_nonce_action() );
+        
+        
+        
+        // Process your task.
+        
+        
+        
+        wp_safe_redirect( $this->get_action_uri( array( 'message' => 'custom-action-done' ) ) ); 
+        exit;
+    }
+
+  // Task: 04
+  public function settings_messages(){
+      
+      parent::settings_messages();
+      
+      $message = $this->get_message_query_arg_value();
+      
+      if ( 'custom-action-done' === $message ) {
+          $this->add_settings_message( 'Custom action done successfully.' );
+      }
+      
+      if ( 'custom-action-fail' === $message ) {
+          $this->add_settings_message( 'Custom action failed.', 'error' );
+      }
+  }
 }
 ```
 
@@ -152,7 +208,8 @@ class AdminSettings extends \Plugin_A\AdminPage {
                 'title'       => 'Input text 01 general',
                 'description' => 'Input desc of 01',
                 'placeholder' => 'Abcd',
-                'default'     => 'ok'
+                'default'     => 'ok',
+                'html_datalist'=>array('yes','no'),
             ),
             array(
                 'id'          => 'license',
@@ -313,7 +370,7 @@ array(
 ```php
 array(
     'id'          => 'input3', // Field ID.
-    'type'        => 'text', // text, code, small-text, tiny-text, large-text, textarea, email, url, number, color, select, select2, radio, checkbox
+    'type'        => 'text', // text, toggle, code, small-text, tiny-text, large-text, textarea, email, url, number, color, select, wc-enhanced-select, radio, checkbox
     'title'       => 'Input Label',
     
     // Optional.
@@ -325,7 +382,8 @@ array(
     
     'placeholder' => '' // Placeholder
     'suffix'      => '' // Field suffix.
-    'html_attributes' => array('min'=>10) // Field suffix.
+    'html_attributes' => array('min' => 10) // Custom html attributes.
+    'html_datalist'   => array('value 1', 'value 2') // HTML Datalist for suggestion.
     'required'    => true, // If field is required and cannot be empty.
     'private'     => true, // Private field does not delete from db during reset all action trigger.
     'multiple'    => true, // for select box 
@@ -340,6 +398,10 @@ array(
         'x' => 'Home X',
         'y' => 'Home Y',
         'z' => 'Home Z',
+        'new'   => array(
+            'label' => 'New',
+            'description' => 'New Item',
+        ),
     )
 ),
 ```

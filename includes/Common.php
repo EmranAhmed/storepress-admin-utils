@@ -34,9 +34,7 @@ trait Common {
 			}
 
 			// Skip if attribute value is blank.
-			if ( is_string( $attribute_value )
-				&& $this->is_empty_string( $attribute_value )
-			) {
+			if ( is_string( $attribute_value ) && $this->is_empty_string( $attribute_value ) ) {
 				continue;
 			}
 
@@ -260,13 +258,14 @@ trait Common {
 
 		$defaults = wp_kses_allowed_html( 'post' );
 
-		$allowed_attributes = array( 'disabled', 'type', 'width', 'size', 'id', 'class', 'style', 'checked', 'selected', 'multiple', 'name', 'required', 'label', 'aria-label', 'aria-describedby', 'value', 'step', 'mix', 'max', 'placeholder' );
+		$allowed_attributes = array( 'list', 'disabled', 'type', 'width', 'size', 'id', 'class', 'style', 'checked', 'selected', 'multiple', 'name', 'required', 'label', 'aria-label', 'aria-describedby', 'value', 'step', 'mix', 'max', 'placeholder' );
 		$tags               = array(
 			'input'    => $allowed_attributes,
 			'textarea' => $allowed_attributes,
 			'optgroup' => $allowed_attributes,
 			'option'   => $allowed_attributes,
 			'select'   => $allowed_attributes,
+			'datalist' => $allowed_attributes,
 		);
 
 		$allowed_args = array_reduce(
@@ -278,7 +277,17 @@ trait Common {
 			array()
 		);
 
-		return array_merge( $defaults, $allowed_args, $args );
+		$extra_args = array_reduce(
+			array_keys( $args ),
+			function ( $carry, $tag ) use ( $args ) {
+				$carry[ $tag ] = array_fill_keys( $args[ $tag ], true );
+				return $carry;
+			},
+			array()
+		);
+
+
+		return array_merge( $defaults, $allowed_args, $extra_args );
 	}
 
 	/**

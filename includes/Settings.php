@@ -159,19 +159,25 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		public function register_admin_scripts() {
 
-			if ( $this->is_admin_page() ) {
-				$plugin_dir_url  = untrailingslashit( plugin_dir_url( $this->get_plugin_file() ) );
-				$plugin_dir_path = untrailingslashit( plugin_dir_path( $this->get_plugin_file() ) );
-
-				$script_src_url    = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.js';
-				$style_src_url     = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.css';
-				$script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/build/admin-settings.asset.php';
-				$script_assets     = include $script_asset_file;
-
-				wp_register_script( 'storepress-admin-settings', $script_src_url, $script_assets['dependencies'], $script_assets['version'], true );
-				wp_register_style( 'storepress-admin-settings', $style_src_url, array(), $script_assets['version'] );
-				wp_localize_script( 'storepress-admin-settings', 'StorePressAdminUtilsSettingsParams', $this->localize_strings() );
+			if ( ! $this->is_admin_page() ) {
+				return;
 			}
+
+			$plugin_dir_url  = untrailingslashit( plugin_dir_url( $this->get_plugin_file() ) );
+			$plugin_dir_path = untrailingslashit( plugin_dir_path( $this->get_plugin_file() ) );
+
+			$admin_settings_script_url        = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.js';
+			$admin_settings_style_url         = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.css';
+			$admin_settings_script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/build/admin-settings.asset.php';
+			$admin_settings_script_assets     = include $admin_settings_script_asset_file;
+
+
+			$storepress_utils_script_url = $plugin_dir_url . '/vendor/storepress/admin-utils/build/storepress-utils.js';
+			wp_register_script( 'storepress-utils', $storepress_utils_script_url, array(), $admin_settings_script_assets['version'], true );
+
+			wp_register_script( 'storepress-admin-settings', $admin_settings_script_url, $admin_settings_script_assets['dependencies'], $admin_settings_script_assets['version'], true );
+			wp_register_style( 'storepress-admin-settings', $admin_settings_style_url, array(), $admin_settings_script_assets['version'] );
+			wp_localize_script( 'storepress-admin-settings', 'StorePressAdminUtilsSettingsParams', $this->localize_strings() );
 		}
 
 		/**
@@ -182,6 +188,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		public function enqueue_scripts() {
 			wp_enqueue_script( 'storepress-admin-settings' );
 			wp_enqueue_style( 'storepress-admin-settings' );
+
+			if ( $this->has_field_type( 'wc-enhanced-select' ) ) {
+				wp_enqueue_style( 'woocommerce_admin_styles' );
+				wp_enqueue_script( 'wc-enhanced-select' );
+			}
 		}
 
 		/**
@@ -339,7 +350,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				$fields_fn_name = sprintf( $this->fields_callback_fn_name_convention, $current_tab );
 				$page_fn_name   = sprintf( $this->page_callback_fn_name_convention, $current_tab );
 				$message        = sprintf( 'Should return fields array from "<strong>%s()</strong>". Or For custom page create "<strong>%s()</strong>"', $fields_fn_name, $page_fn_name );
-				wp_trigger_error( '', $message );
+				wp_trigger_error( __METHOD__, $message );
 			}
 		}
 
@@ -483,6 +494,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 						if ( 'section' === $field['type'] ) {
 							continue;
 						}
+
 						$_field = ( new Field( $field ) )->add_settings( $this );
 
 						$all_fields[ $field['id'] ] = $_field;
@@ -491,6 +503,31 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			}
 
 			return $all_fields;
+		}
+
+		/**
+		 * Get Field Types
+		 *
+		 * @return string[]
+		 */
+		public function get_registered_field_types(): array {
+			$tabs = $this->get_tabs();
+
+			$all_types = array();
+
+			foreach ( $tabs as $tab ) {
+
+				$fields_callback = $tab['fields_callback'];
+
+				if ( is_callable( $fields_callback ) ) {
+					$fields = call_user_func( $fields_callback );
+					foreach ( $fields as $field ) {
+						$all_types[] = $field['type'];
+					}
+				}
+			}
+
+			return array_unique( $all_types );
 		}
 
 		/**
@@ -748,6 +785,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
+		 * Get message query argument value.
+		 *
+		 * @return false|string
+		 */
+		final public function get_message_query_arg_value() {
+			// We are just checking message query args request from uri redirect.
+			if ( ! isset( $_GET['message'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				return false;
+			}
+
+			return sanitize_text_field( $_GET['message'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		}
+
+		/**
 		 * Settings messages
 		 *
 		 * @see process_action_update()
@@ -758,13 +809,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		public function settings_messages() {
 
 			// We are just checking message request from uri redirect.
-			if ( ! isset( $_GET['message'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( ! $this->get_message_query_arg_value() ) {
 				return;
 			}
 
 			$strings = $this->localize_strings();
 
-			$message = sanitize_text_field( $_GET['message'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$message = $this->get_message_query_arg_value();
 
 			if ( 'updated' === $message ) {
 				$this->add_settings_message( $strings['settings_updated_message_text'] );
@@ -903,10 +954,22 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return Field|null
 		 */
-		private function get_field( string $field_id ): ?Field {
+		public function get_field( string $field_id ): ?Field {
 			$fields = $this->get_all_fields();
 
 			return $fields[ $field_id ] ?? null;
+		}
+
+		/**
+		 * Get field.
+		 *
+		 * @param string $field_type Field Type.
+		 *
+		 * @return bool
+		 */
+		public function has_field_type( string $field_type ): bool {
+			$types = $this->get_registered_field_types();
+			return in_array( $field_type, $types, true );
 		}
 
 		/**
@@ -1168,6 +1231,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		public function is_admin_page(): bool {
 			// We have to check is valid current page.
 			return ( is_admin() && isset( $_GET['page'] ) && $this->get_current_page_slug() === $_GET['page'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		}
+
+		/**
+		 * Add new allowed tag on Fields markup
+		 *
+		 * @return array<string, mixed>
+		 */
+		public function allowed_tags(): array {
+			return array();
 		}
 	}
 }

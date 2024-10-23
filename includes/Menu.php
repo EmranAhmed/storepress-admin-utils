@@ -131,7 +131,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 							if ( ! current_user_can( $this->get_capability() ) ) {
 								return;
 							}
-
 							$this->settings_page_init();
 						}
 					);
@@ -158,7 +157,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 			add_action(
 				'admin_init',
 				function () {
-
 					// Process Settings Actions.
 					$this->settings_actions();
 

@@ -24,6 +24,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		use Common;
 
 		/**
+		 * Setting.
+		 *
+		 * @var Settings
+		 */
+		private Settings $settings;
+
+		/**
 		 * Sections.
 		 *
 		 * @var array<string, object>
@@ -43,6 +50,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		 * @param Settings                       $settings Settings Class Instance.
 		 */
 		public function __construct( array $fields, Settings $settings ) {
+
+			$this->settings = $settings;
 
 			/**
 			 * Fields
@@ -80,6 +89,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 					$this->sections[ $this->last_section_id ]->add_field( $_field );
 				}
 			}
+		}
+
+		/**
+		 * Get Settings
+		 *
+		 * @return Settings
+		 */
+		public function get_settings(): Settings {
+			return $this->settings;
 		}
 
 		/**
@@ -140,7 +158,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		 */
 		public function display() {
 
-			$allowed_input_html = $this->get_kses_allowed_input_html();
+			$allowed_input_html = $this->get_kses_allowed_input_html( $this->get_settings()->allowed_tags() );
+
 			/**
 			 * Section Instance.
 			 *

@@ -9,8 +9,10 @@
 	 */
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+
+	$storepress_rtl_class = is_rtl() ? 'has-rtl' : '';
 ?>
-<div class="wrap storepress-settings-wrapper">
+<div class="wrap storepress-settings-wrapper <?php echo esc_attr( $storepress_rtl_class ); ?>">
 	<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
 	<?php
