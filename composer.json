@@ -1,7 +1,7 @@
 {
 	"name" : "storepress/admin-utils",
 	"description" : "Utility Classes for WordPress Plugin Projects.",
-	"version" : "1.8.9",
+	"version" : "1.8.10",
 	"license" : "GPL-2.0-or-later",
 	"type" : "library",
 	"keywords" : [
@@ -20,14 +20,14 @@
 		}
 	],
 	"homepage" : "https://github.com/EmranAhmed/storepress-admin-utils#readme",
-	"minimum-stability" : "dev",
+	"minimum-stability" : "stable",
 	"require-dev" : {
-		"automattic/vipwpcs" : "^3.0",
+		"automattic/vipwpcs" : "^3.0.1",
 		"phpcompatibility/phpcompatibility-wp" : "^2.1.5",
 		"woocommerce/woocommerce-sniffs" : "^1.0.0",
 		"wp-cli/i18n-command" : "^v2.6.3",
 		"wp-coding-standards/wpcs" : "^3.1.0",
-		"php-stubs/woocommerce-stubs" : "^v9.1.0",
+		"php-stubs/woocommerce-stubs" : "^v9.5.0",
 		"phpstan/extension-installer" : "^1.4.3",
 		"phpstan/phpstan-strict-rules" : "^1.6.1",
 		"szepeviktor/phpstan-wordpress" : "^v1.3.5"
@@ -38,6 +38,7 @@
 		}
 	},
 	"config" : {
+		"lock" : false,
 		"optimize-autoloader" : true,
 		"sort-packages" : true,
 		"allow-plugins" : {
@@ -47,8 +48,9 @@
 	},
 	"scripts" : {
 		"phpstan" : "./vendor/bin/phpstan analyse . --memory-limit=2G -vvv",
-		"phpstan-report" : "./vendor/bin/phpstan analyse . --memory-limit=2G -vvv > phpstan.report.txt",
+		"phpstan-report" : "./vendor/bin/phpstan analyse . --memory-limit=2G -vvv > phpstan-report.txt",
 		"format" : "./vendor/bin/phpcbf --standard=phpcs.xml",
-		"lint" : "./vendor/bin/phpcs --standard=phpcs.xml --warning-severity=6 --report-summary --report-source --ignore-annotations --report-full=phpcs-report.txt"
+		"lint-report" : "./vendor/bin/phpcs --standard=phpcs.xml --warning-severity=6 --report-summary --report-source --ignore-annotations --report-full=phpcs-report.txt",
+		"lint" : "./vendor/bin/phpcs --standard=phpcs.xml --warning-severity=6 --report-summary --report-source"
 	}
 }
