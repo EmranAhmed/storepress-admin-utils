@@ -107,14 +107,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		final public function settings_actions() {
 
-			if ( ! isset( $_REQUEST['action'] ) || ! isset( $_GET['page'] ) || $_GET['page'] !== $this->get_current_page_slug() ) {
+			if ( is_null( $this->http_request_var( 'action' ) ) || $this->http_get_var( 'page' ) !== $this->get_current_page_slug() ) {
 				return;
 			}
 
 			check_admin_referer( $this->get_nonce_action() );
 
-			$plugin_page    = sanitize_text_field( wp_unslash( $_GET['page'] ) );
-			$current_action = sanitize_text_field( wp_unslash( $_REQUEST['action'] ) );
+			$plugin_page    = sanitize_text_field( wp_unslash( $this->http_get_var( 'page' ) ) );
+			$current_action = sanitize_text_field( wp_unslash( $this->http_request_var( 'action' ) ) );
 
 			$has_plugin_page = ! $this->is_empty_string( $plugin_page );
 			$has_action      = ! $this->is_empty_string( $current_action );
@@ -791,11 +791,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		final public function get_message_query_arg_value() {
 			// We are just checking message query args request from uri redirect.
-			if ( ! isset( $_GET['message'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			if ( is_null( $this->http_get_var( 'message' ) ) ) {
 				return false;
 			}
 
-			return sanitize_text_field( $_GET['message'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return sanitize_text_field( $this->http_get_var( 'message' ) );
 		}
 
 		/**
@@ -1131,7 +1131,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 
 			$tab_query_key = in_array( $default_tab_query_key, $available_tab_keys, true ) ? $default_tab_query_key : (string) $available_tab_keys[0];
 
-			return ! isset( $_GET['tab'] ) ? sanitize_title( $tab_query_key ) : sanitize_title( wp_unslash( $_GET['tab'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			$tab = $this->http_get_var( 'tab', sanitize_title( $tab_query_key ) );
+
+			return sanitize_title( wp_unslash( $tab ) );
 		}
 
 		/**
@@ -1230,7 +1232,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		public function is_admin_page(): bool {
 			// We have to check is valid current page.
-			return ( is_admin() && isset( $_GET['page'] ) && $this->get_current_page_slug() === $_GET['page'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return ( is_admin() && $this->get_current_page_slug() === $this->http_get_var( 'page' ) );
 		}
 
 		/**

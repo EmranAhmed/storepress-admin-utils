@@ -724,7 +724,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 			$attributes = array(
 				'id'       => $id,
-				// 'type'     => 'select',
 				'name'     => $name,
 				'class'    => $this->prepare_classes( $class, $system_class ),
 				'multiple' => $is_multiple,
@@ -768,7 +767,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			/**
 			 * Group Filed object array
 			 *
-			 * @var array<string, string|string[]> $group_fields $group_fields
+			 * @var array<string, mixed> $group_fields $group_fields
 			 */
 
 			foreach ( $group_fields as $field ) {
@@ -934,7 +933,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					foreach ( $field_options as $option_key => $option_value ) {
 						$uniq_id               = sprintf( '%s-%s-%s__group', $id, $field_id, $option_key );
 						$attributes['value']   = esc_attr( $option_key );
-						$attributes['checked'] = is_array( $field_value ) ? in_array( $option_key, $field_value, true ) : $option_key == $field_value;
+						$attributes['checked'] = is_array( $field_value ) ? in_array( $option_key, $field_value, true ) : $option_key === $field_value;
 						$attributes['id']      = $uniq_id;
 
 						if ( $is_toggle ) {

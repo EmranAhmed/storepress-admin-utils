@@ -591,30 +591,19 @@ function updater_get_plugin( WP_REST_Request $request ) {
     
     
     /**
-     *
-     * @var $data [
+     * $data [
      *
      *     'description'=>'',
      *
      *     'changelog'=>'',
      *
-     *            
-     *     'version'=>'x.x.x',
-     *
-     *      OR
-     *
-     *     'new_version'=>'x.x.x',
-     *
+     *     'new_version'=>'x.x.x', // * REQUIRED
      *
      *     'last_updated'=>'2023-11-11 3:24pm GMT+6',
      *
      *     'upgrade_notice'=>'',
      *
-     *     'download_link'=>'plugin.zip', // After verifying license data
-     *
-     *      OR
-     *
-     *     'package'=>'plugin.zip', // After verifying license data
+     *     'package'=>'plugin.zip', // * REQUIRED ABSOLUTE URL
      *
      *     'tested'=>'x.x.x', // WP testes Version
      *
@@ -622,13 +611,20 @@ function updater_get_plugin( WP_REST_Request $request ) {
      *
      *     'requires_php'=>'x.x.x', // Minimum Required PHP
      *
+     *     'requires_plugins'=> [], // Requires Plugins
+     *
+     *     'versions'=>[ 'trunk' => '' ], // Available versions
+     *
+     *     'preview_link'=>'', // Plugin Preview Link
+     *
      * ]
      */
     
     $data = array(
-        'version'        => '1.3.4',
+        'new_version'    => '1.3.4',
         'last_updated'   => '2023-12-12 09:58pm GMT+6',
-        //'upgrade_notice' => 'Its Fine',
+        'package'        =>'plugin.zip', // After license verified.
+        'upgrade_notice' => 'Its Fine',
     );
     
     return rest_ensure_response( $data );

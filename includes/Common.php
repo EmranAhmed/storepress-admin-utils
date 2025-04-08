@@ -15,6 +15,72 @@
 
 trait Common {
 
+	/**
+	 * Get data if set, otherwise return a default value or null. Prevents notices when data is not set.
+	 *
+	 * @param mixed $variable      Variable.
+	 * @param mixed $default_value Default value.
+	 *
+	 * @return mixed
+	 * @since  1.0.0
+	 */
+	public function get_var( $variable, $default_value = null ) {
+		return true === isset( $variable ) ? $variable : $default_value;
+	}
+
+	/**
+	 * Get $_REQUEST data if set, otherwise return a default value or null. Prevents notices when data is not set.
+	 *
+	 * @param string $variable      Variable.
+	 * @param mixed  $default_value Default value.
+	 *
+	 * @return mixed
+	 * @since  1.0.0
+	 */
+	public function http_request_var( string $variable = '', $default_value = null ) {
+		$request_data = $_REQUEST; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( $this->is_empty_string( $variable ) ) {
+			return $this->is_empty_array( $request_data ) ? false : $request_data;
+		}
+
+		return $this->get_var( $request_data[ $variable ], $default_value );
+	}
+
+	/**
+	 * Get $_GET data if set, otherwise return a default value or null. Prevents notices when data is not set.
+	 *
+	 * @param string $variable      Variable.
+	 * @param mixed  $default_value Default value.
+	 *
+	 * @return mixed
+	 * @since  1.0.0
+	 */
+	public function http_get_var( string $variable = '', $default_value = null ) {
+		$get_data = $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( $this->is_empty_string( $variable ) ) {
+			return $this->is_empty_array( $get_data ) ? false : $get_data;
+		}
+
+		return $this->get_var( $get_data[ $variable ], $default_value );
+	}
+
+	/**
+	 * Get $_POST data if set, otherwise return a default value or null. Prevents notices when data is not set.
+	 *
+	 * @param string $variable      Variable.
+	 * @param mixed  $default_value Default value.
+	 *
+	 * @return mixed
+	 * @since  1.0.0
+	 */
+	public function http_post_var( string $variable = '', $default_value = null ) {
+		$post_data = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		if ( $this->is_empty_string( $variable ) ) {
+			return $this->is_empty_array( $post_data ) ? false : $post_data;
+		}
+
+		return $this->get_var( $post_data[ $variable ], $default_value );
+	}
 
 	/**
 	 * Create HTML Attributes from given array
@@ -123,9 +189,7 @@ trait Common {
 				continue;
 			}
 
-			if ( is_array( $should_include )
-				&& $this->is_empty_array( $should_include )
-			) {
+			if ( is_array( $should_include ) && $this->is_empty_array( $should_include ) ) {
 				continue;
 			}
 

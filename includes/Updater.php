@@ -77,10 +77,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			$action_id       = $this->get_action_id();
 
 			// Plugin Popup Information When People Click On: View Details or View version x.x.x details link.
-			add_filter( 'plugins_api', array( $this, 'plugin_information' ), 10, 3 );
+			add_filter( 'plugins_api', array( $this, 'plugin_information' ), 11, 3 );
 
 			// Check plugin update information from server.
-			add_filter( "update_plugins_{$plugin_hostname}", array( $this, 'update_check' ), 10, 3 );
+			add_filter( "update_plugins_{$plugin_hostname}", array( $this, 'update_check' ), 11, 3 );
 
 			// Add some info at the end of plugin update notice like: notice to update license data.
 			add_action( "in_plugin_update_message-{$plugin_id}", array( $this, 'update_message' ) );
@@ -408,31 +408,32 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 */
 		protected function get_request_args(): array {
 			return array(
-				'body'    => array(
+				'body'       => array(
 					'type'        => 'plugins',
 					'name'        => $this->get_plugin_slug(),
 					'license_key' => $this->get_license_key(),
 					'product_id'  => $this->get_product_id(),
 					'args'        => $this->additional_request_args(),
 				),
-				'headers' => array(
+				'headers'    => array(
 					'Accept' => 'application/json',
 				),
+				'user-agent' => 'WordPress/' . wp_get_wp_version() . '; ' . home_url( '/' ),
 			);
 		}
 
 		/**
 		 * Remote plugin data.
 		 *
-		 * @return bool|array<string, string>
+		 * @return array<string, string>
 		 */
-		public function get_remote_plugin_data() {
+		public function get_remote_plugin_data(): array {
 			$params = $this->get_request_args();
 
 			$raw_response = wp_safe_remote_get( $this->get_update_server_uri(), $params );
 
 			if ( is_wp_error( $raw_response ) || 200 !== wp_remote_retrieve_response_code( $raw_response ) ) {
-				return false;
+				return array();
 			}
 
 			return json_decode( wp_remote_retrieve_body( $raw_response ), true );
@@ -462,7 +463,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			$remote_data = $this->get_remote_plugin_data();
 			$plugin_data = $this->get_plugin_data();
 
-			if ( false === $remote_data ) {
+			if ( $this->is_empty_array( $remote_data ) ) {
 				return $update;
 			}
 
@@ -474,17 +475,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			$plugin_id = url_shorten( (string) $plugin_uri, 150 );
 
 			$item = array(
-				'id'            => $plugin_id, // @example: w.org/plugins/xyz-plugin
-				'slug'          => $this->get_plugin_dirname(), // @example: xyz-plugin
-				'plugin'        => $this->get_plugin_slug(), // @example: xyz-plugin/xyz-plugin.php
-				'version'       => $plugin_version,
-				'url'           => $plugin_uri,
-				'icons'         => $this->get_plugin_icons(),
-				'banners'       => $this->get_plugin_banners(),
-				'banners_rtl'   => array(),
-				'compatibility' => new \stdClass(),
-				'tested'        => $plugin_tested,
-				'requires_php'  => $requires_php,
+				'id'               => $plugin_id, // @example: w.org/plugins/xyz-plugin
+				'slug'             => $this->get_plugin_dirname(), // @example: xyz-plugin
+				'plugin'           => $this->get_plugin_slug(), // @example: xyz-plugin/xyz-plugin.php
+				'version'          => $plugin_version,
+				'url'              => $plugin_uri,
+				'icons'            => $this->get_plugin_icons(),
+				'banners'          => $this->get_plugin_banners(),
+				'banners_rtl'      => array(),
+				'compatibility'    => array(),
+				'tested'           => $plugin_tested,
+				'requires_php'     => $requires_php,
+				'requires_plugins' => array(),
+				'preview_link'     => '',
 			);
 
 			$remote_item = $this->prepare_remote_data( $remote_data );
@@ -505,21 +508,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 *     'changelog'=>'',
 		 *
-		 *     'version'=>'x.x.x',
-		 *
-		 *      OR
-		 *
-		 *     'new_version'=>'x.x.x',
+		 *     'new_version'=>'x.x.x', // * REQUIRED
 		 *
 		 *     'last_updated'=>'2023-11-11 3:24pm GMT+6',
 		 *
 		 *     'upgrade_notice'=>'',
 		 *
-		 *     'download_link'=>'plugin.zip',
-		 *
-		 *      OR
-		 *
-		 *     'package'=>'plugin.zip',
+		 *     'package'=>'plugin.zip', // * REQUIRED ABSOLUTE URL
 		 *
 		 *     'tested'=>'x.x.x', // WP testes Version
 		 *
@@ -527,29 +522,35 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 *     'requires_php'=>'x.x.x', // Minimum Required PHP
 		 *
+		 *     'requires_plugins'=> [], // Requires Plugins
+		 *
+		 *     'versions'=> [ 'trunk' => '' ], // Available versions
+		 *
+		 *     'preview_link'=>'', // Preview link
+		 *
 		 * ]
 		 */
 		public function prepare_remote_data( $remote_data ): array {
 			$item = array();
 
-			if ( ( is_bool( $remote_data ) && false === $remote_data ) || ( is_array( $remote_data ) && $this->is_empty_array( $remote_data ) ) ) {
+			if ( $this->is_empty_array( $remote_data ) ) {
 				return $item;
 			}
 
 			if ( isset( $remote_data['description'] ) ) {
-				$item['sections']['description'] = $remote_data['description'];
+				$item['sections']['description'] = wp_kses_post( $remote_data['description'] );
 			}
 
 			if ( isset( $remote_data['changelog'] ) ) {
-				$item['sections']['changelog'] = $remote_data['changelog'];
+				$item['sections']['changelog'] = wp_kses_post( $remote_data['changelog'] );
 			}
 
 			if ( isset( $remote_data['version'] ) ) {
-				$item['version'] = $remote_data['version'];
+				$item['new_version'] = $remote_data['version'];
 			}
 
 			if ( isset( $remote_data['new_version'] ) ) {
-				$item['version'] = $remote_data['new_version'];
+				$item['new_version'] = $remote_data['new_version'];
 			}
 
 			if ( isset( $remote_data['last_updated'] ) ) {
@@ -557,15 +558,22 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			}
 
 			if ( isset( $remote_data['upgrade_notice'] ) ) {
-				$item['upgrade_notice'] = $remote_data['upgrade_notice'];
+				$item['upgrade_notice'] = wp_kses_post( $remote_data['upgrade_notice'] );
 			}
+
+			$package_set = false;
 
 			if ( isset( $remote_data['download_link'] ) ) {
-				$item['download_link'] = $remote_data['download_link'];
+				$item['package']           = $remote_data['download_link'];
+				$item['download_link']     = $remote_data['download_link'];
+				$item['versions']['trunk'] = $remote_data['download_link'];
+				$package_set               = true;
 			}
 
-			if ( isset( $remote_data['package'] ) ) {
-				$item['download_link'] = $remote_data['package'];
+			if ( isset( $remote_data['package'] ) && ! $package_set ) {
+				$item['package']           = $remote_data['package'];
+				$item['download_link']     = $remote_data['package'];
+				$item['versions']['trunk'] = $remote_data['package'];
 			}
 
 			if ( isset( $remote_data['tested'] ) ) {
@@ -578,6 +586,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 
 			if ( isset( $remote_data['requires_php'] ) ) {
 				$item['requires_php'] = $remote_data['requires_php'];
+			}
+
+			if ( isset( $remote_data['preview_link'] ) ) {
+				$item['preview_link'] = $remote_data['preview_link'];
 			}
 
 			return $item;
@@ -593,6 +605,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @return false|array<string, mixed>|object
 		 * @see     plugins_api()
 		 * @example https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&slug=hello-dolly
+		 * @example /wp-includes/update.php#460
+		 * @example https://developer.wordpress.org/reference/functions/plugins_api/
 		 */
 		final public function plugin_information( $result, string $action, object $args ) {
 
@@ -614,14 +628,18 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				$description     = '' === $get_description ? $plugin_description : $get_description;
 
 				$item = array(
-					'name'     => $plugin_name,
-					'version'  => $version,
-					'slug'     => $this->get_plugin_dirname(),
-					'banners'  => $this->get_plugin_info_banners(),
-					'author'   => $author,
-					'homepage' => $plugin_homepage,
-					'sections' => array(
+					'name'             => $plugin_name,
+					'version'          => $version,
+					'slug'             => $this->get_plugin_dirname(),
+					'banners'          => $this->get_plugin_info_banners(),
+					'author'           => $author,
+					'homepage'         => $plugin_homepage,
+					'sections'         => array(
 						'description' => $description,
+					),
+					'requires_plugins' => array(),
+					'versions'         => array(
+						'trunk' => '',
 					),
 				);
 
