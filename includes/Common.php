@@ -24,7 +24,7 @@ trait Common {
 	 * @return mixed
 	 * @since  1.0.0
 	 */
-	public function get_var( $variable, $default_value = null ) {
+	public function get_var( &$variable, $default_value = null ) {
 		return true === isset( $variable ) ? $variable : $default_value;
 	}
 
