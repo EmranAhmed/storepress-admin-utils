@@ -1063,7 +1063,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 * @return string
 		 * @todo Add More Fields
 		 * @see  Settings::sanitize_fields()
-		 * @example: text, range, search, url, color, number, code, textarea, select, select2, wc-enhanced-select, regular-text, small-text, tiny-text, large-text, color
+		 * @example: text, code, password, range, search, url, color, number, code, textarea, select, select2, wc-enhanced-select, regular-text, small-text, tiny-text, large-text, color
 		 */
 		public function get_input_markup(): string {
 			$type = $this->get_type();
@@ -1075,6 +1075,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				case 'range':
 				case 'search':
 				case 'url':
+				case 'password':
 					return $this->text_input();
 				case 'color':
 				case 'number':

@@ -458,7 +458,6 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
         return plugin_a()->get_pro_plugin_file();
     }
    
-    
     public function compatible_version(): string {
         return '3.0.0'; // passed from parent plugin
     }
@@ -472,8 +471,8 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
 		return true;
 	}
 	
-	// Optional
-	public function show_plugin_row_notice(): bool {
+	  // Optional
+	  public function show_plugin_row_notice(): bool {
 		return true;
 	}
 }

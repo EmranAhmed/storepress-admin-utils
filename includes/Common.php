@@ -350,42 +350,7 @@ trait Common {
 			array()
 		);
 
-
 		return array_merge( $defaults, $allowed_args, $extra_args );
-	}
-
-	/**
-	 * Checks whether a given array is a list.
-	 * An array is considered a list if its keys consist of consecutive numbers from `0 to count($array)-1`
-	 *
-	 * @param array<int|string, ?mixed> $items Check array.
-	 *
-	 * @return bool
-	 * @example
-	 *             <code>
-	 *             array_is_list([]); // true
-	 *             array_is_list(['apple', 2, 3]); // true
-	 *             array_is_list([0 => 'apple', 'orange']); // true
-	 *
-	 *             // The array does not start at 0
-	 *              array_is_list([1 => 'apple', 'orange']); // false
-	 *
-	 *              // The keys are not in the correct order
-	 *              array_is_list([1 => 'apple', 0 => 'orange']); // false
-	 *
-	 *              // Non-integer keys
-	 *              array_is_list([0 => 'apple', 'foo' => 'bar']); // false
-	 *
-	 *              // Non-consecutive keys
-	 *              array_is_list([0 => 'apple', 2 => 'bar']); // false
-	 *         </code>
-	 */
-	public function array_is_list( array $items ): bool {
-		if ( function_exists( 'array_is_list' ) ) {
-			return array_is_list( $items );
-		}
-
-		return array_values( $items ) === $items;
 	}
 
 	/**
@@ -398,9 +363,7 @@ trait Common {
 	public function is_array_each_empty_value( array $items = array() ): bool {
 		$checked = array_map(
 			function ( $value ) {
-				if ( is_array( $value )
-					&& ! $this->is_array_each_empty_value( $value )
-				) {
+				if ( is_array( $value ) && ! $this->is_array_each_empty_value( $value ) ) {
 					return true;
 				}
 
