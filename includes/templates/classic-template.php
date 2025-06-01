@@ -12,7 +12,7 @@
 
 	$storepress_rtl_class = is_rtl() ? 'has-rtl' : '';
 ?>
-<div class="wrap storepress-settings-wrapper <?php echo esc_attr( $storepress_rtl_class ); ?>">
+<div class="wrap storepress-settings-wrapper <?php echo esc_attr( $storepress_rtl_class ); ?>" style="<?php echo esc_attr( $this->get_sidebar_width_css() ); ?>">
 	<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
 	<?php

@@ -437,13 +437,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				}
 
 				$item = array(
-					'id'          => $key,
-					'name'        => $tab,
-					'hidden'      => false,
-					'external'    => false,
-					'icon'        => null,
-					'css-classes' => array(),
-					'sidebar'     => true,
+					'id'            => $key,
+					'name'          => $tab,
+					'hidden'        => false,
+					'external'      => false,
+					'icon'          => null,
+					'css-classes'   => array(),
+					'sidebar'       => true,
+					'sidebar_width' => 20,
 					/**
 					 * More item.
 					 *
@@ -458,6 +459,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 					$navs[ $key ] = wp_parse_args( $tab, $item );
 				} else {
 					$navs[ $key ] = $item;
+				}
+
+				if ( is_numeric( $navs[ $key ]['sidebar'] ) ) {
+					$navs[ $key ]['sidebar_width'] = absint( $navs[ $key ]['sidebar'] );
+					$navs[ $key ]['sidebar']       = true;
 				}
 
 				$page_callback    = array( $this, sprintf( $this->page_callback_fn_name_convention, $key ) );
@@ -1175,6 +1181,31 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			$data = $this->get_tab();
 
 			return true === $data['sidebar'];
+		}
+
+		/**
+		 * Sidebar width.
+		 *
+		 * @return int
+		 */
+		final public function get_sidebar_width(): int {
+			$data = $this->get_tab();
+
+			return absint( $data['sidebar_width'] );
+		}
+
+		/**
+		 * Sidebar width.
+		 *
+		 * @return string
+		 */
+		final public function get_sidebar_width_css(): string {
+
+			if ( $this->has_sidebar() ) {
+				return sprintf( '--storepress-settings-sidebar-width: %d%%', $this->get_sidebar_width() );
+			}
+
+			return '';
 		}
 
 		/**

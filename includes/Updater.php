@@ -35,7 +35,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * Updater Plugin Admin Init.
 		 */
 		public function __construct() {
-			add_action( 'admin_init', array( $this, 'init' ) );
+			add_action( 'wp_loaded', array( $this, 'init' ) );
 		}
 
 		/**
@@ -222,8 +222,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			$update_server_hostname = untrailingslashit( $data['UpdateURI'] );
 
 			$scheme = wp_parse_url( sanitize_url( $update_server_hostname ), PHP_URL_SCHEME );
-			$host   = $this->get_update_server_hostname();
-			$path   = $this->get_update_server_path();
+
+			$host = $this->get_update_server_hostname();
+			$path = $this->get_update_server_path();
 
 			return sprintf( '%s://%s%s', $scheme, $host, $path );
 		}
@@ -273,6 +274,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @return void
 		 */
 		final public function force_update_check() {
+
 			if ( current_user_can( 'update_plugins' ) ) {
 				if ( ! function_exists( 'wp_clean_plugins_cache' ) ) {
 					require_once ABSPATH . 'wp-admin/includes/plugin.php';
@@ -430,7 +432,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		public function get_remote_plugin_data(): array {
 			$params = $this->get_request_args();
 
-			$raw_response = wp_safe_remote_get( $this->get_update_server_uri(), $params );
+			// DO NOT USE SAME SERVER AS UPDATE RESPONSE SERVER AND UPDATE REQUEST CLIENT.
+			$raw_response = wp_remote_get( $this->get_update_server_uri(), $params ); //phpcs:ignore WordPressVIPMinimum.Functions.RestrictedFunctions.wp_remote_get_wp_remote_get
 
 			if ( is_wp_error( $raw_response ) || 200 !== wp_remote_retrieve_response_code( $raw_response ) ) {
 				return array();
@@ -461,6 +464,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			}
 
 			$remote_data = $this->get_remote_plugin_data();
+
 			$plugin_data = $this->get_plugin_data();
 
 			if ( $this->is_empty_array( $remote_data ) ) {
@@ -483,6 +487,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				'icons'            => $this->get_plugin_icons(),
 				'banners'          => $this->get_plugin_banners(),
 				'banners_rtl'      => array(),
+				'requires'         => '6.4',
 				'compatibility'    => array(),
 				'tested'           => $plugin_tested,
 				'requires_php'     => $requires_php,
@@ -606,6 +611,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @see     plugins_api()
 		 * @example https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&slug=hello-dolly
 		 * @example /wp-includes/update.php#460
+		 * @example /wp-admin/includes/class-wp-plugins-list-table.php#200
+		 *
 		 * @example https://developer.wordpress.org/reference/functions/plugins_api/
 		 */
 		final public function plugin_information( $result, string $action, object $args ) {

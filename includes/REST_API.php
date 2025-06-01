@@ -108,7 +108,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 * @param \WP_REST_Request $request Full details about the request.
 		 *
 		 * @return bool TRUE if the request has read access for the item, otherwise FALSE.
-		 * @phpstan-ignore missingType.generics, method.childReturnType
 		 */
 		public function get_item_permissions_check( $request ): bool {
 			return current_user_can( $this->permission );

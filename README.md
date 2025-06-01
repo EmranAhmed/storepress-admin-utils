@@ -34,7 +34,7 @@ add_action( 'plugins_loaded', function () {
 namespace Plugin_A;
 
 class AdminPage extends \StorePress\AdminUtils\Settings {
-    
+        
     public function localize_strings(): array {
         return array(
             'unsaved_warning_text'          => 'The changes you made will be lost if you navigate away from this page.',
@@ -46,7 +46,7 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
             'settings_error_message_text'   => 'Settings Not saved.',
         );
     }
-
+    
     public function parent_menu_title(): string {
         return 'StorePress';
     }
@@ -88,23 +88,23 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     public function show_in_rest(): ?string {
         return false;
     }
-	// NOTE: You have to create and proper access to get REST API response.
-	// Create: "Application Passwords" from "WP Admin -> Users -> Profile" to use.
-	// Will return: /wp-json/my-custom-uri/settings
+    // NOTE: You have to create and proper access to get REST API response.
+    // Create: "Application Passwords" from "WP Admin -> Users -> Profile" to use.
+    // Will return: /wp-json/my-custom-uri/settings
     public function show_in_rest(): ?string {
         return 'my-custom-uri';
-	  }
-	
-	// Settings and Rest API Display Capability. Default is: manage_options
+    }
+    
+    // Settings and Rest API Display Capability. Default is: manage_options
     public function capability(): string {
-		return 'edit_posts';
-	}
-	
-	// Change rest api version. Default is: v1
+    return 'edit_posts';
+    }
+    
+    // Change rest api version. Default is: v1
     public function rest_api_version(): string {
-		return 'v2';
-	}
-	
+    return 'v2';
+    }
+    
     // Adding custom scripts.
     public function enqueue_scripts() {
         parent::enqueue_scripts();
@@ -114,14 +114,12 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
         }
     }
     
-    
     // Adding Custom TASK: 
-    
     public function get_custom_action_uri(): string {
        return wp_nonce_url( $this->get_settings_uri( array( 'action' => 'custom-action' ) ), $this->get_nonce_action() );
     }
-
-  // Task: 02
+    
+    // Task: 02
     public function process_actions($current_action){
     
         parent::process_actions($current_action);
@@ -130,8 +128,7 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
           $this->process_action_custom();
         }
     }
-
-
+    
     // Task: 03
     public function process_action_custom(){
         check_admin_referer( $this->get_nonce_action() );
@@ -145,9 +142,9 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
         wp_safe_redirect( $this->get_action_uri( array( 'message' => 'custom-action-done' ) ) ); 
         exit;
     }
-
-  // Task: 04
-  public function settings_messages(){
+    
+    // Task: 04
+    public function settings_messages(){
       
       parent::settings_messages();
       
@@ -160,7 +157,7 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
       if ( 'custom-action-fail' === $message ) {
           $this->add_settings_message( 'Custom action failed.', 'error' );
       }
-  }
+    }
 }
 ```
 
@@ -173,11 +170,14 @@ namespace Plugin_A;
 
 class AdminSettings extends \Plugin_A\AdminPage {
     
-    // Settings Tabs
+    // Settings Tabs.
     public function add_settings(): array {
         return array(
             'general' => 'General',
-            'basic'   => 'Basic',
+            'basic'   => array( 
+                    'name' => 'Basic', 
+                    'sidebar' => 30, // Sidebar Width.
+                ),
             'advance' => array( 
                     'name' => 'Advanced', 
                     'icon' => 'dashicons dashicons-analytics', 
@@ -358,6 +358,7 @@ class AdminSettings extends \Plugin_A\AdminPage {
 ### Section data structure
 
 ```php
+<?php
 array(
     'type'        => 'section',
     'title'       => 'Section Title',
@@ -368,9 +369,11 @@ array(
 ### Field data structure
 
 ```php
+<?php
+
 array(
     'id'          => 'input3', // Field ID.
-    'type'        => 'text', // text, toggle, code, small-text, tiny-text, large-text, textarea, email, url, number, color, select, wc-enhanced-select, radio, checkbox
+    'type'        => 'text', // text, password, toggle, code, small-text, tiny-text, large-text, textarea, email, url, number, color, select, wc-enhanced-select, radio, checkbox
     'title'       => 'Input Label',
     
     // Optional.
@@ -482,6 +485,8 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
 
 ### Plugin Update
 
+- NOTE: Update server and client server should not be same WordPress setup.
+
 - You must add `Update URI:` on plugin file header to perform update.
 
 ```php
@@ -530,7 +535,7 @@ class Updater extends \StorePress\AdminUtils\Updater {
     }
     
     public function product_id(): string {
-        return 000;
+        return '000';
     }
     
     // Without hostname. Host name will prepend from Update URI 
@@ -547,6 +552,7 @@ class Updater extends \StorePress\AdminUtils\Updater {
     }
     
     // If you need to send additional arguments to update server.
+    // Check get_request_args() method.
     public function additional_request_args(): array {
         return array(
             'domain'=> wp_parse_url( sanitize_url( site_url() ), PHP_URL_HOST );
@@ -622,7 +628,7 @@ function updater_get_plugin( WP_REST_Request $request ) {
     $data = array(
         'new_version'    => '1.3.4',
         'last_updated'   => '2023-12-12 09:58pm GMT+6',
-        'package'        =>'plugin.zip', // After license verified.
+        'package'        =>'https://updater.example.com/plugin.zip', // After license verified.
         'upgrade_notice' => 'Its Fine',
     );
     
