@@ -382,4 +382,26 @@ trait Common {
 
 		return ! in_array( true, array_unique( $checked ), true );
 	}
+
+	/**
+	 * Merge Array in deep.
+	 *
+	 * @param array<string|int, mixed> $args     Array.
+	 * @param array<string|int, mixed> $defaults Default array.
+	 *
+	 * @return array<string|int, mixed>
+	 */
+	public function array_merge_deep( array $args, array $defaults ): array {
+		$new_args = $defaults;
+
+		foreach ( $args as $key => $value ) {
+			if ( is_array( $value ) && isset( $new_args[ $key ] ) ) {
+				$new_args[ $key ] = $this->array_merge_deep( $value, $new_args[ $key ] );
+			} else {
+				$new_args[ $key ] = $value;
+			}
+		}
+
+		return $new_args;
+	}
 }

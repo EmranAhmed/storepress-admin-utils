@@ -471,13 +471,13 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
     
     // Optional
     public function show_admin_notice(): bool {
-		return true;
-	}
-	
-	  // Optional
-	  public function show_plugin_row_notice(): bool {
-		return true;
-	}
+        return true;
+    }
+    
+    // Optional
+    public function show_plugin_row_notice(): bool {
+        return true;
+    }
 }
 ```
 
@@ -526,17 +526,51 @@ class Updater extends \StorePress\AdminUtils\Updater {
         return plugin_a()->get_option( 'license' );
     }
     
-    public function license_key_empty_message(): string {
-        return 'add license empty message';
+    public function product_id(): int {
+        return 100;
     }
     
-    public function check_update_link_text(): string {
-        return 'check now...';
-    }
-    
-    public function product_id(): string {
-        return '000';
-    }
+    		/**
+		 * Translatable Strings.
+		 *
+		 * @abstract
+		 *
+		 * @return array{
+		 *      'license_key_empty_message': string,
+		 *      'check_update_link_text': string,
+		 *      'rollback_action_running': string,
+		 *      'rollback_action_button': string,
+		 *      'rollback_cancel_button': string,
+		 *      'rollback_current_version': string,
+		 *      'rollback_last_updated': string,
+		 *      'rollback_view_changelog': string,
+		 *      'rollback_page_title': string,
+		 *      'rollback_page_title': string,
+		 *      'rollback_link_text': string,
+		 *      'rollback_failed': string,
+		 *      'rollback_success': string,
+		 *      'rollback_plugin_not_available': string,
+		 *      'rollback_no_access': string,
+		 *  }
+		 */
+		public function localize_strings(): array {
+			return array(
+				'license_key_empty_message'     => 'License key is not available.',
+				'check_update_link_text'        => 'Check Update',
+				'rollback_action_running'       => 'Rolling back',
+				'rollback_action_button'        => 'Rollback',
+				'rollback_cancel_button'        => 'Cancel',
+				'rollback_current_version'      => 'Current version',
+				'rollback_last_updated'         => 'Last updated %s ago.',
+				'rollback_view_changelog'       => 'View Changelog',
+				'rollback_page_title'           => 'Rollback Plugin',
+				'rollback_link_text'            => 'Rollback',
+				'rollback_failed'               => 'Rollback failed.',
+				'rollback_success'              => 'Rollback success: %s rolled back to version %s.',
+				'rollback_plugin_not_available' => 'Plugin is not available.',
+				'rollback_no_access'            => 'Sorry, you are not allowed to rollback plugins for this site.',
+			);
+		}
     
     // Without hostname. Host name will prepend from Update URI 
     public function update_server_path(): string {
@@ -555,7 +589,7 @@ class Updater extends \StorePress\AdminUtils\Updater {
     // Check get_request_args() method.
     public function additional_request_args(): array {
         return array(
-            'domain'=> wp_parse_url( sanitize_url( site_url() ), PHP_URL_HOST );
+            'domain'=> $this->get_client_hostname();
         );
     }
 }
@@ -583,6 +617,8 @@ add_action( 'rest_api_init', function () {
  *
  * @return WP_REST_Response|WP_Error WP_REST_Response instance if the plugin was found,
  *                                    WP_Error if the plugin isn't found.
+ *                                   
+ * @see Updater::prepare_remote_data()
  */
 function updater_get_plugin( WP_REST_Request $request ) {
     
@@ -600,6 +636,8 @@ function updater_get_plugin( WP_REST_Request $request ) {
      *
      *     'description'=>'',
      *
+     *     'faq'=>'',
+     * 
      *     'changelog'=>'',
      *
      *     'new_version'=>'x.x.x', // * REQUIRED
@@ -621,6 +659,8 @@ function updater_get_plugin( WP_REST_Request $request ) {
      *     'versions'=>[ 'trunk' => '' ], // Available versions
      *
      *     'preview_link'=>'', // Plugin Preview Link
+     * 
+     *     'allow_rollback'=>'yes', // yes | no
      *
      * ]
      */

@@ -97,7 +97,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		final public function settings_init() {
 			add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
-			add_filter( 'plugin_action_links_' . plugin_basename( $this->get_plugin_file() ), array( $this, 'plugin_action_links' ) );
+			add_filter( 'plugin_action_links_' . plugin_basename( $this->get_plugin_file() ), array( $this, 'plugin_action_links' ), 15 );
 		}
 
 		/**
@@ -171,10 +171,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			$admin_settings_script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/build/admin-settings.asset.php';
 			$admin_settings_script_assets     = include $admin_settings_script_asset_file;
 
+			// Admin Utils.
+			$storepress_utils_script_url        = $plugin_dir_url . '/vendor/storepress/admin-utils/build/storepress-utils.js';
+			$storepress_utils_script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/build/storepress-utils.asset.php';
+			$storepress_utils_script_assets     = include $storepress_utils_script_asset_file;
+			wp_register_script( 'storepress-utils', $storepress_utils_script_url, $storepress_utils_script_assets['dependencies'], $storepress_utils_script_assets['version'], true );
 
-			$storepress_utils_script_url = $plugin_dir_url . '/vendor/storepress/admin-utils/build/storepress-utils.js';
-			wp_register_script( 'storepress-utils', $storepress_utils_script_url, array(), $admin_settings_script_assets['version'], true );
-
+			// Admin Settings.
 			wp_register_script( 'storepress-admin-settings', $admin_settings_script_url, $admin_settings_script_assets['dependencies'], $admin_settings_script_assets['version'], true );
 			wp_register_style( 'storepress-admin-settings', $admin_settings_style_url, array(), $admin_settings_script_assets['version'] );
 			wp_localize_script( 'storepress-admin-settings', 'StorePressAdminUtilsSettingsParams', $this->localize_strings() );
@@ -196,7 +199,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		}
 
 		/**
-		 * Translated Strings.
+		 * Translatable Strings.
 		 *
 		 * @abstract
 		 *

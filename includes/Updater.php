@@ -36,6 +36,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 */
 		public function __construct() {
 			add_action( 'wp_loaded', array( $this, 'init' ) );
+			add_action( 'wp_loaded', array( $this, 'rollback_init' ) );
 		}
 
 		/**
@@ -59,20 +60,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			$plugin_data = $this->get_plugin_data();
 
 			if ( ! isset( $plugin_data['UpdateURI'] ) ) {
-				$msg = 'Plugin "Update URI" is not available. Please add "Update URI" field on plugin file header.';
-				wp_trigger_error( __METHOD__, $msg );
+				$message = 'Plugin "Update URI" is not available. Please add "Update URI" field on plugin file header.';
+				wp_trigger_error( __METHOD__, $message );
 
 				return;
 			}
 
 			if ( ! isset( $plugin_data['Tested up to'] ) ) {
-				$msg = 'Plugin "Tested up to" is not available. Please add "Tested up to" field on plugin file header.';
-				wp_trigger_error( __METHOD__, $msg );
+				$message = 'Plugin "Tested up to" is not available. Please add "Tested up to" field on plugin file header.';
+				wp_trigger_error( __METHOD__, $message );
 
 				return;
 			}
 
-			$plugin_id       = $this->get_plugin_slug();
+			$plugin_id       = $this->get_plugin_basename();
 			$plugin_hostname = $this->get_update_server_hostname();
 			$action_id       = $this->get_action_id();
 
@@ -93,6 +94,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
+		 * Plugin Rollback.
+		 *
+		 * @return void
+		 */
+		public function rollback_init() {
+			if ( ! current_user_can( 'update_plugins' ) ) {
+				return;
+			}
+
+			if ( ! function_exists( 'get_plugin_data' ) ) {
+				return;
+			}
+
+			// Rollback.
+			new Rollback( $this->get_plugin_file(), $this->localize_strings() );
+		}
+
+		/**
 		 * Absolute Plugin File.
 		 *
 		 * @return string
@@ -107,25 +126,58 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		abstract public function license_key(): string;
 
 		/**
-		 * License key empty message text.
+		 * Translatable Strings.
 		 *
-		 * @return string
+		 * @abstract
+		 *
+		 * @return array{
+		 *      'license_key_empty_message': string,
+		 *      'check_update_link_text': string,
+		 *      'rollback_action_running': string,
+		 *      'rollback_action_button': string,
+		 *      'rollback_cancel_button': string,
+		 *      'rollback_current_version': string,
+		 *      'rollback_last_updated': string,
+		 *      'rollback_view_changelog': string,
+		 *      'rollback_page_title': string,
+		 *      'rollback_page_title': string,
+		 *      'rollback_link_text': string,
+		 *      'rollback_failed': string,
+		 *      'rollback_success': string,
+		 *      'rollback_plugin_not_available': string,
+		 *      'rollback_no_access': string,
+		 *  }
 		 */
-		abstract public function license_key_empty_message(): string;
+		public function localize_strings(): array {
 
-		/**
-		 * Check update link text.
-		 *
-		 * @return string
-		 */
-		abstract public function check_update_link_text(): string;
+			/* translators: %s: Method name. */
+			$message = sprintf( esc_html__( "Method '%s' not implemented. Must be overridden in subclass." ), __METHOD__ );
+			wp_trigger_error( __METHOD__, $message );
+
+			return array(
+				'license_key_empty_message'     => 'License key is not available.',
+				'check_update_link_text'        => 'Check Update',
+				'rollback_action_running'       => 'Rolling back',
+				'rollback_action_button'        => 'Rollback',
+				'rollback_cancel_button'        => 'Cancel',
+				'rollback_current_version'      => 'Current version',
+				'rollback_last_updated'         => 'Last updated %s ago.',
+				'rollback_view_changelog'       => 'View Changelog',
+				'rollback_page_title'           => 'Rollback Plugin',
+				'rollback_link_text'            => 'Rollback',
+				'rollback_failed'               => 'Rollback failed.',
+				'rollback_success'              => 'Rollback success: %s rolled back to version %s.',
+				'rollback_plugin_not_available' => 'Plugin is not available.',
+				'rollback_no_access'            => 'Sorry, you are not allowed to rollback plugins for this site.',
+			);
+		}
 
 		/**
 		 * Product ID for update server.
 		 *
-		 * @return string
+		 * @return int
 		 */
-		abstract public function product_id(): string;
+		abstract public function product_id(): int;
 
 		/**
 		 * Get Provided Plugin Data.
@@ -158,17 +210,27 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @return string
 		 * @example xyz-plugin
 		 */
-		public function get_plugin_dirname(): string {
+		public function get_plugin_dir_path(): string {
+			return plugin_dir_path( $this->get_plugin_file() );
+		}
+
+		/**
+		 * Plugin Slug.
+		 *
+		 * @return string
+		 * @example xyz-plugin
+		 */
+		public function get_plugin_slug(): string {
 			return wp_basename( dirname( $this->get_plugin_file() ) );
 		}
 
 		/**
-		 * Plugin Slug Like "plugin-directory/plugin-file.php"
+		 * Plugin Basename Like "plugin-directory/plugin-file.php"
 		 *
 		 * @return string
 		 * @example xyz-plugin/xyz-plugin.php
 		 */
-		public function get_plugin_slug(): string {
+		public function get_plugin_basename(): string {
 			return plugin_basename( $this->get_plugin_file() );
 		}
 
@@ -184,9 +246,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		/**
 		 * Get Product ID.
 		 *
-		 * @return string
+		 * @return int
 		 */
-		public function get_product_id(): string {
+		public function get_product_id(): int {
 			return $this->product_id();
 		}
 
@@ -197,6 +259,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 */
 		public function additional_request_args(): array {
 			return array();
+		}
+
+		/**
+		 * Get Client Host name.
+		 *
+		 * @return string
+		 */
+		public function get_client_hostname(): string {
+			return wp_parse_url( sanitize_url( site_url() ), PHP_URL_HOST );
 		}
 
 		/**
@@ -212,7 +283,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
-		 * Get Update server uri.
+		 * Get Update Server API URL.
 		 *
 		 * @return string
 		 */
@@ -275,18 +346,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 */
 		final public function force_update_check() {
 
-			if ( current_user_can( 'update_plugins' ) ) {
-				if ( ! function_exists( 'wp_clean_plugins_cache' ) ) {
-					require_once ABSPATH . 'wp-admin/includes/plugin.php';
-				}
-
-				check_admin_referer( $this->get_plugin_slug() );
-
-				wp_clean_plugins_cache();
-
-				wp_safe_redirect( admin_url( 'plugins.php' ) );
-				exit;
+			if ( ! current_user_can( 'update_plugins' ) ) {
+				return;
 			}
+
+			if ( ! function_exists( 'wp_clean_plugins_cache' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			}
+
+			check_admin_referer( $this->get_plugin_basename() );
+
+			wp_clean_plugins_cache();
+
+			wp_safe_redirect( admin_url( 'plugins.php' ) );
+			exit;
 		}
 
 		/**
@@ -295,7 +368,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @return string
 		 */
 		private function get_action_id(): string {
-			return sprintf( '%s_check_update', $this->get_plugin_dirname() );
+			return sprintf( '%s_check_update', $this->get_plugin_slug() );
 		}
 
 		/**
@@ -309,11 +382,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 */
 		public function check_for_update_link( array $plugin_meta, string $plugin_file ): array {
 
-			if ( $plugin_file === $this->get_plugin_slug() && current_user_can( 'update_plugins' ) ) {
-
+			if ( $plugin_file === $this->get_plugin_basename() && current_user_can( 'update_plugins' ) ) {
+				$strings  = $this->localize_strings();
 				$id       = $this->get_action_id();
-				$url      = wp_nonce_url( add_query_arg( array( 'action' => $id ), admin_url( 'plugins.php' ) ), $this->get_plugin_slug() );
-				$text     = $this->check_update_link_text();
+				$url      = wp_nonce_url( add_query_arg( array( 'action' => $id ), admin_url( 'plugins.php' ) ), $this->get_plugin_basename() );
+				$text     = $strings['check_update_link_text'];
 				$row_meta = sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $url ), esc_html( $text ) );
 
 				$plugin_meta[] = $row_meta;
@@ -334,26 +407,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
-		 * Get Plugin Banners.
-		 *
-		 * @return array<string, string>
-		 * @example [ 'high' => '', 'low' => '' ]
-		 */
-		public function get_plugin_info_banners(): array {
-
-			$banners = $this->get_plugin_banners();
-
-			return array(
-				'high' => esc_url( $banners['2x'] ),
-				'low'  => esc_url( $banners['1x'] ),
-			);
-		}
-
-		/**
 		 * Add Plugin banners.
 		 *
 		 * @return array<string, string>
-		 * @example [ '2x' => '', '1x' => '' ]
+		 * @example [ 'high' => '', 'low' => '' ]
 		 */
 		abstract public function plugin_banners(): array;
 
@@ -361,7 +418,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * Get Plugin Banners.
 		 *
 		 * @return array<string, string>
-		 * @example [ '2x' => '', '1x' => '' ]
+		 * @example [ 'high' => '', 'low' => '' ]
 		 */
 		public function get_plugin_banners(): array {
 			return $this->plugin_banners();
@@ -395,15 +452,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
-		 * Add plugin changelog section.
-		 *
-		 * @return string
-		 */
-		public function get_plugin_changelog_section(): string {
-			return '';
-		}
-
-		/**
 		 * Get request argument for request.
 		 *
 		 * @return array<string, mixed>
@@ -412,10 +460,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			return array(
 				'body'       => array(
 					'type'        => 'plugins',
-					'name'        => $this->get_plugin_slug(),
-					'license_key' => $this->get_license_key(),
-					'product_id'  => $this->get_product_id(),
-					'args'        => $this->additional_request_args(),
+					'name'        => $this->get_plugin_basename(),
+					'license_key' => sanitize_text_field( $this->get_license_key() ),
+					'product_id'  => absint( $this->get_product_id() ),
+					'args'        => map_deep( $this->additional_request_args(), 'sanitize_text_field' ),
 				),
 				'headers'    => array(
 					'Accept' => 'application/json',
@@ -450,12 +498,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @param string                    $plugin_file Plugin filename.
 		 *
 		 * @return bool|array<string, mixed>
-		 * @see     WP_Site_Health::detect_plugin_theme_auto_update_issues()
-		 * @see     wp_update_plugins()
+		 * @see:     WP_Site_Health::detect_plugin_theme_auto_update_issues()
+		 * @see:     function: wp_update_plugins() file: wp-includes/update.php
+		 * @example https://example.com/updater-api/wp-json/plugin-updater/v1/check-update
+		 * @see: POST http://api.wordpress.org/plugins/update-check/1.1/
 		 */
 		final public function update_check( $update, array $plugin_data, string $plugin_file ) {
 
-			if ( $plugin_file !== $this->get_plugin_slug() ) {
+			if ( $plugin_file !== $this->get_plugin_basename() ) {
 				return $update;
 			}
 
@@ -474,30 +524,47 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			$plugin_version = $plugin_data['Version'];
 			$plugin_uri     = $plugin_data['PluginURI'];
 			$plugin_tested  = $plugin_data['Tested up to'] ?? '';
-			$requires_php   = $plugin_data['RequiresPHP'];
+			$requires_php   = $plugin_data['RequiresPHP'] ?? '7.4';
 
 			$plugin_id = url_shorten( (string) $plugin_uri, 150 );
 
-			$item = array(
+			$default_item = array(
 				'id'               => $plugin_id, // @example: w.org/plugins/xyz-plugin
-				'slug'             => $this->get_plugin_dirname(), // @example: xyz-plugin
-				'plugin'           => $this->get_plugin_slug(), // @example: xyz-plugin/xyz-plugin.php
+				'slug'             => $this->get_plugin_slug(), // @example: xyz-plugin
+				'plugin'           => $this->get_plugin_basename(), // @example: xyz-plugin/xyz-plugin.php
 				'version'          => $plugin_version,
 				'url'              => $plugin_uri,
 				'icons'            => $this->get_plugin_icons(),
 				'banners'          => $this->get_plugin_banners(),
 				'banners_rtl'      => array(),
 				'requires'         => '6.4',
-				'compatibility'    => array(),
 				'tested'           => $plugin_tested,
 				'requires_php'     => $requires_php,
 				'requires_plugins' => array(),
-				'preview_link'     => '',
+				'package'          => '',
+				'allow_rollback'   => false,
 			);
 
 			$remote_item = $this->prepare_remote_data( $remote_data );
 
-			return wp_parse_args( $remote_item, $item );
+			return $this->array_merge_deep( $remote_item, $default_item );
+		}
+
+		/**
+		 * Plugin Info screenshot html.
+		 *
+		 * @param array<string, array<string, string>> $screenshots Screenshot array.
+		 *
+		 * @return false|string
+		 */
+		public function screenshots_html( array $screenshots = array() ) {
+			ob_start();
+			echo '<ol>';
+			foreach ( $screenshots as $screenshot ) {
+				printf( '<li><a target="_blank" href="%1$s"><img src="%1$s" alt="%2$s"></a></li>', esc_url( $screenshot['src'] ), esc_attr( $screenshot['caption'] ) ); // phpcs:ignore PluginCheck.CodeAnalysis.ImageFunctions.NonEnqueuedImage
+			}
+			echo '</ol>';
+			return ob_get_clean();
 		}
 
 		/**
@@ -506,20 +573,33 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @param bool|array<string, mixed> $remote_data Remote data.
 		 *
 		 * @return array<string, mixed>
+		 * @see: GET https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&slug=woocommerce
+		 * @see: GET https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&request[slug]=woocommerce
+		 * @see: POST http://api.wordpress.org/plugins/update-check/1.1/
 		 * @example
 		 * array [
 		 *
 		 *     'description'=>'',
 		 *
+		 *     'installation'=>'',
+		 *
 		 *     'changelog'=>'',
+		 *
+		 *     'faq'=>'',
 		 *
 		 *     'new_version'=>'x.x.x', // * REQUIRED
 		 *
+		 *     'package'=>'http://updater.com/plugin-latest.zip', // * REQUIRED ABSOLUTE URL OR EMPTY
+		 *
 		 *     'last_updated'=>'2023-11-11 3:24pm GMT+6',
+		 *
+		 *     'active_installs'=>'1000',
 		 *
 		 *     'upgrade_notice'=>'',
 		 *
-		 *     'package'=>'plugin.zip', // * REQUIRED ABSOLUTE URL
+		 *     'upgrade_notice'=>['1.1.0'=>'Notice for this version', '1.2.0'=>'Notice for 1.2.0 version'],
+		 *
+		 *     'screenshots'=>[['src'=>'', 'caption'=>'' ], ['src'=>'', 'caption'=>''], ['src'=>'', 'caption'=>'']],
 		 *
 		 *     'tested'=>'x.x.x', // WP testes Version
 		 *
@@ -527,11 +607,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 *     'requires_php'=>'x.x.x', // Minimum Required PHP
 		 *
-		 *     'requires_plugins'=> [], // Requires Plugins
+		 *     'requires_plugins'=> ['woocommerce'], // Requires Plugins
 		 *
-		 *     'versions'=> [ 'trunk' => '' ], // Available versions
+		 *     'versions'=> [ 'trunk' => 'http://updater.com/plugin-latest.zip', '1.1.0'=> 'http://updater.com/plugin-1.1.0.zip' ], // Available versions
 		 *
 		 *     'preview_link'=>'', // Preview link
+		 *
+		 *     'banners'=>['low'=>'https://ps.w.org/marquee-block/assets/banner-772x250.png', 'high'=>'https://ps.w.org/marquee-block/assets/banner-1544x500.png'],
+		 *
+		 *     'banners_rtl'=>['low'=>'https://ps.w.org/marquee-block/assets/banner-772x250.png', 'high'=>'https://ps.w.org/marquee-block/assets/banner-1544x500.png'],
+		 *
+		 *     'icons'=>[ '2x'  => '', '1x'  => '', 'svg' => '' ], // icons.
+		 *
+		 *     'allow_rollback'=>'yes' , // yes | no.
 		 *
 		 * ]
 		 */
@@ -546,8 +634,28 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				$item['sections']['description'] = wp_kses_post( $remote_data['description'] );
 			}
 
+			if ( isset( $remote_data['allow_rollback'] ) ) {
+				$item['allow_rollback'] = $this->string_to_boolean( $remote_data['allow_rollback'] );
+			}
+
+			if ( isset( $remote_data['installation'] ) ) {
+				$item['sections']['installation'] = wp_kses_post( $remote_data['installation'] );
+			}
+
+			if ( isset( $remote_data['faq'] ) ) {
+				$item['sections']['faq'] = wp_kses_post( $remote_data['faq'] );
+			}
+
 			if ( isset( $remote_data['changelog'] ) ) {
 				$item['sections']['changelog'] = wp_kses_post( $remote_data['changelog'] );
+			}
+
+			if ( isset( $remote_data['screenshots'] ) && ! $this->is_empty_array( $remote_data['screenshots'] ) ) {
+				foreach ( $remote_data['screenshots'] as $index => $screenshot ) {
+					$item['screenshots'][ ( $index + 1 ) ] = $screenshot;
+				}
+
+				$item['sections']['screenshots'] = wp_kses_post( $this->screenshots_html( $remote_data['screenshots'] ) );
 			}
 
 			if ( isset( $remote_data['version'] ) ) {
@@ -558,12 +666,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				$item['new_version'] = $remote_data['new_version'];
 			}
 
+			// Unset version we already set it as new version.
+			unset( $remote_data['version'] );
+
 			if ( isset( $remote_data['last_updated'] ) ) {
-				$item['last_updated'] = $remote_data['last_updated'];
+				$item['last_updated'] = $remote_data['last_updated']; // Example: "2025-03-14 7:15pm GMT".
 			}
 
 			if ( isset( $remote_data['upgrade_notice'] ) ) {
-				$item['upgrade_notice'] = wp_kses_post( $remote_data['upgrade_notice'] );
+				$item['upgrade_notice'] = $remote_data['upgrade_notice'];
+			}
+
+			if ( isset( $remote_data['versions'] ) ) {
+				$item['versions'] = $remote_data['versions'];
 			}
 
 			$package_set = false;
@@ -579,6 +694,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				$item['package']           = $remote_data['package'];
 				$item['download_link']     = $remote_data['package'];
 				$item['versions']['trunk'] = $remote_data['package'];
+				$package_set               = true;
+			}
+
+			// Disable all versions if no package file available.
+			if ( ! $package_set ) {
+				$item['versions'] = array();
 			}
 
 			if ( isset( $remote_data['tested'] ) ) {
@@ -597,6 +718,92 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				$item['preview_link'] = $remote_data['preview_link'];
 			}
 
+			if ( isset( $remote_data['requires_plugins'] ) ) {
+				$item['requires_plugins'] = $remote_data['requires_plugins'];
+			}
+
+			if ( isset( $remote_data['active_installs'] ) ) {
+				$item['active_installs'] = absint( $remote_data['active_installs'] );
+			}
+
+			if ( isset( $remote_data['rating'] ) ) {
+				$item['rating'] = absint( $remote_data['rating'] );
+			}
+
+			if ( isset( $remote_data['ratings'] ) ) {
+				$item['ratings'] = $remote_data['ratings'];
+			}
+
+			if ( isset( $remote_data['support_threads'] ) ) {
+				$item['support_threads'] = absint( $remote_data['support_threads'] );
+			}
+
+			if ( isset( $remote_data['support_threads_resolved'] ) ) {
+				$item['support_threads_resolved'] = absint( $remote_data['support_threads_resolved'] );
+			}
+
+			if ( isset( $remote_data['added'] ) ) {
+				$item['added'] = $remote_data['added']; // Example: "2018-05-04".
+			}
+
+			if ( isset( $remote_data['homepage'] ) ) {
+				$item['homepage'] = $remote_data['homepage'];
+			}
+
+			if ( isset( $remote_data['num_ratings'] ) ) {
+				$item['num_ratings'] = $remote_data['num_ratings'];
+			}
+
+			if ( isset( $remote_data['business_model'] ) ) {
+				$business_model         = $this->string_to_boolean( $remote_data['business_model'] ) ? 'commercial' : '';
+				$item['business_model'] = $business_model;
+			}
+
+			if ( isset( $remote_data['commercial_support_url'] ) ) {
+				$item['commercial_support_url'] = $remote_data['commercial_support_url'];
+			}
+
+			if ( isset( $remote_data['support_url'] ) ) {
+				$item['support_url'] = $remote_data['support_url'];
+			}
+
+			if ( isset( $remote_data['banners'] ) ) {
+				$item['banners'] = $remote_data['banners'];
+			}
+
+			if ( isset( $remote_data['banners_rtl'] ) ) {
+				$item['banners_rtl'] = $remote_data['banners_rtl'];
+			}
+
+			if ( isset( $remote_data['icons'] ) ) {
+				$item['icons'] = $remote_data['icons'];
+			}
+
+			if ( isset( $remote_data['preview_link'] ) ) {
+				$item['preview_link'] = $remote_data['preview_link'];
+			}
+
+			if ( isset( $remote_data['author_profile'] ) ) {
+				$item['author_profile'] = $remote_data['author_profile'];
+			}
+
+			if ( isset( $remote_data['author'] ) ) {
+				$item['author'] = $remote_data['author'];
+
+				if ( isset( $remote_data['author_profile'] ) ) {
+					$item['author'] = sprintf( '<a target="_blank" href="%s">%s</a>', esc_url( $remote_data['author_profile'] ), esc_html( $remote_data['author'] ) );
+				}
+			}
+
+			if ( isset( $remote_data['tags'] ) ) {
+				/**
+				 * Example.
+				 *
+				 * @example ["payment-gateway": "payment gateway", "ecommerce": "ecommerce"].
+				 */
+				$item['tags'] = $remote_data['tags'];
+			}
+
 			return $item;
 		}
 
@@ -608,8 +815,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @param object                            $args   Plugin API arguments.
 		 *
 		 * @return false|array<string, mixed>|object
-		 * @see     plugins_api()
-		 * @example https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&slug=hello-dolly
+		 * @see:     function: plugins_api() file: wp-admin/includes/plugin-install.php
+		 * @example GET https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&slug=hello-dolly
+		 * @example GET https://api.wordpress.org/plugins/info/1.2/?action=plugin_information&request[slug]=hello-dolly
 		 * @example /wp-includes/update.php#460
 		 * @example /wp-admin/includes/class-wp-plugins-list-table.php#200
 		 *
@@ -621,44 +829,50 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				return $result;
 			}
 
-			if ( isset( $args->slug ) && $args->slug === $this->get_plugin_dirname() ) {
+			if ( isset( $args->slug ) && $args->slug === $this->get_plugin_slug() ) {
 
 				$plugin_data        = $this->get_plugin_data();
 				$plugin_name        = $plugin_data['Name'];
 				$plugin_description = $plugin_data['Description'];
-				$plugin_homepage    = $plugin_data['PluginURI'];
+				$plugin_uri         = $plugin_data['PluginURI'];
 				$author             = $plugin_data['Author'];
+				$author_uri         = $plugin_data['AuthorURI'];
 				$version            = $plugin_data['Version'];
+				$plugin_tested      = $plugin_data['Tested up to'] ?? '';
+				$requires_php       = $plugin_data['RequiresPHP'] ?? '7.4';
 
 				$get_description = trim( $this->get_plugin_description_section() );
-				$get_changelog   = trim( $this->get_plugin_changelog_section() );
 				$description     = '' === $get_description ? $plugin_description : $get_description;
 
-				$item = array(
+				$default_item = array(
 					'name'             => $plugin_name,
 					'version'          => $version,
-					'slug'             => $this->get_plugin_dirname(),
-					'banners'          => $this->get_plugin_info_banners(),
+					'slug'             => $this->get_plugin_slug(),
+					'banners'          => $this->get_plugin_banners(),
+					'banners_rtl'      => array(),
+					'icons'            => $this->get_plugin_icons(),
 					'author'           => $author,
-					'homepage'         => $plugin_homepage,
+					'homepage'         => $plugin_uri,
+					'requires_php'     => $requires_php,
 					'sections'         => array(
 						'description' => $description,
 					),
 					'requires_plugins' => array(),
-					'versions'         => array(
-						'trunk' => '',
-					),
+					'versions'         => array(),
+					'allow_rollback'   => false,
 				);
 
-				if ( strlen( $get_changelog ) > 0 ) {
-					$item['sections']['changelog'] = $get_changelog;
+				if ( ! $this->is_empty_string( $plugin_tested ) ) {
+					$default_item['tested'] = $plugin_tested;
 				}
 
-				$remote_data = $this->get_remote_plugin_data();
+				$remote_item = $this->prepare_remote_data( $this->get_remote_plugin_data() );
 
-				$remote_item = $this->prepare_remote_data( $remote_data );
+				$data = $this->array_merge_deep( $remote_item, $default_item );
 
-				$data = wp_parse_args( $remote_item, $item );
+				if ( false === $data['allow_rollback'] ) {
+					unset( $data['versions'] );
+				}
 
 				return (object) $data;
 			}
@@ -678,11 +892,25 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			$license_key    = $this->get_license_key();
 			$upgrade_notice = $plugin_data['upgrade_notice'] ?? '';
 
+			$strings = $this->localize_strings();
+
 			if ( $this->is_empty_string( $license_key ) ) {
-				printf( ' <strong>%s</strong>', esc_html( $this->license_key_empty_message() ) );
+				printf( ' <strong>%s</strong>', esc_html( $strings['license_key_empty_message'] ) );
 			}
 
-			if ( ! $this->is_empty_string( $upgrade_notice ) ) {
+			// Get Notice from notice array.
+			if ( is_array( $upgrade_notice ) && ! $this->is_empty_array( $upgrade_notice ) ) {
+				$new_version = sanitize_text_field( $plugin_data['new_version'] );
+
+				$notice = $this->get_var( $upgrade_notice[ $new_version ], false );
+
+				if ( $notice && ! $this->is_empty_string( $notice ) ) {
+					printf( ' <br /><br /><strong><em>%s</em></strong>', esc_html( $notice ) );
+				}
+			}
+
+			// Get Notice from notice string.
+			if ( is_string( $upgrade_notice ) && ! $this->is_empty_string( $upgrade_notice ) ) {
 				printf( ' <br /><br /><strong><em>%s</em></strong>', esc_html( $upgrade_notice ) );
 			}
 		}
