@@ -26,12 +26,12 @@
 		<div class="plugin-details">
 			<div class="plugin-header">
 			<div class="plugin-banner">
-				<img alt="<?php echo esc_attr( $plugin_info['name'] ); ?>" src="<?php echo esc_url( $plugin_info['banners']['low'] ); ?>" />
+				<img alt="<?php echo esc_attr( $plugin_info['name'] ); ?>" src="<?php echo esc_url( $this->get_image_url( $plugin_info['banners'] ) ); ?>" />
 			</div>
 			<div class="plugin-data">
 				<div class="plugin-info">
 					<div class="icon-wrapper">
-						<img alt="<?php echo esc_attr( $plugin_info['name'] ); ?>" src="<?php echo esc_url( $plugin_info['icons']['svg'] ); ?>" />
+						<img alt="<?php echo esc_attr( $plugin_info['name'] ); ?>" src="<?php echo esc_url( $this->get_image_url( $plugin_info['icons'] ) ); ?>" />
 					</div>
 					<div class="data-wrapper">
 						<h2>

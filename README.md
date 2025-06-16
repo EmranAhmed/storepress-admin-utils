@@ -578,11 +578,11 @@ class Updater extends \StorePress\AdminUtils\Updater {
     }
     
     public function plugin_icons(): array {
-        return [ '2x' => '', '1x' => '', 'svg' => '', ];
+        return [ 'svg' => '' ];
     }
     
     public function plugin_banners(): array {
-        return [ '2x' => '', '1x' => '' ];
+        return [ 'high' => '', 'low' => '' ];
     }
     
     // If you need to send additional arguments to update server.
@@ -635,18 +635,32 @@ function updater_get_plugin( WP_REST_Request $request ) {
      * $data [
      *
      *     'description'=>'',
+     * 
+     *     'active_installs'=>'1000',
      *
      *     'faq'=>'',
      * 
      *     'changelog'=>'',
      *
      *     'new_version'=>'x.x.x', // * REQUIRED
+     * 
+		 *     'banners'=>['low'=>'https://ps.w.org/woocommerce/assets/banner-772x250.png', 'high'=>'https://ps.w.org/woocommerce/assets/banner-1544x500.png'],
+		 *
+		 *     'banners_rtl'=>[],
+		 *
+		 *     Using SVG Icon Recommended.
+		 *
+		 *     'icons'=>[ 'svg' => 'https://ps.w.org/woocommerce/assets/icon.svg', '2x'  => 'https://ps.w.org/woocommerce/assets/icon-256x256.png', '1x'  => 'https://ps.w.org/woocommerce/assets/icon-128x128.png' ], // icons.
+		 *  
+		 *     'screenshots'=>[['src'=>'', 'caption'=>'' ], ['src'=>'', 'caption'=>''], ['src'=>'', 'caption'=>'']],
      *
      *     'last_updated'=>'2023-11-11 3:24pm GMT+6',
      *
      *     'upgrade_notice'=>'',
+     * 
+     *     'upgrade_notice'=>['1.1.0'=>'Notice for this version', '1.2.0'=>'Notice for 1.2.0 version'],
      *
-     *     'package'=>'plugin.zip', // * REQUIRED ABSOLUTE URL
+     *     'package'=>'https://plugin-server.com/plugin-2.0.0.zip', // * REQUIRED ABSOLUTE URL
      *
      *     'tested'=>'x.x.x', // WP testes Version
      *
@@ -654,13 +668,13 @@ function updater_get_plugin( WP_REST_Request $request ) {
      *
      *     'requires_php'=>'x.x.x', // Minimum Required PHP
      *
-     *     'requires_plugins'=> [], // Requires Plugins
+     *     'requires_plugins'=> ['woocommerce'], // Requires Plugins
      *
-     *     'versions'=>[ 'trunk' => '' ], // Available versions
+     *     'versions'=> [  '1.0.0' => 'https://plugin-server.com/plugin-1.0.0.zip', '2.0.0' => 'https://plugin-server.com/plugin-2.0.0.zip' ], // Available versions
      *
      *     'preview_link'=>'', // Plugin Preview Link
      * 
-     *     'allow_rollback'=>'yes', // yes | no
+     *     'allow_rollback'=>'yes', // yes | no // * REQUIRED for ROLLBACK
      *
      * ]
      */

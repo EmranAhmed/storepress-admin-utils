@@ -113,7 +113,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		 *
 		 * @return string
 		 */
-		private function main_menu_slug(): string {
+		public function main_menu_slug(): string {
 			return 'storepress-plugin-rollback-main';
 		}
 
@@ -122,7 +122,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		 *
 		 * @return string
 		 */
-		private function menu_slug(): string {
+		public function menu_slug(): string {
 			return 'storepress-plugin-rollback';
 		}
 
@@ -343,6 +343,23 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		}
 
 		/**
+		 * Image for banner or icons.
+		 *
+		 * @param string[] $images Images.
+		 *
+		 * @return string
+		 */
+		public function get_image_url( array $images ): string {
+			foreach ( $images as $image ) {
+				if ( ! $this->is_empty_string( $image ) ) {
+					return $image;
+				}
+			}
+
+			return '';
+		}
+
+		/**
 		 * Plugin BaseName Like "plugin-directory/plugin-file.php"
 		 *
 		 * @return string
@@ -395,7 +412,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 
 			$data = $this->get_plugin_transient_data( $this->get_plugin_basename() );
 
-			$allow_rollback = $this->string_to_boolean( $data['allow_rollback'] );
+			$allow_rollback = $this->string_to_boolean( $this->get_var( $data['allow_rollback'], 'no' ) );
 
 			if ( $allow_rollback ) {
 				$links[ $this->menu_slug() ] = $action_links;

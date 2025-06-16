@@ -407,12 +407,33 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
+		 * Fallback image generator.
+		 *
+		 * @param int    $width image width.
+		 * @param int    $height image height.
+		 * @param string $color image color.
+		 *
+		 * @return string
+		 */
+		protected function fallback_image( int $width, int $height, string $color = '#2271b1' ): string {
+			return sprintf( '<svg width="%1$d" height="%2$d" xmlns="http://www.w3.org/2000/svg"><rect width="%1$d" height="%2$d" fill="%3$d"/></svg>', $width, $height, $color );
+		}
+
+		/**
 		 * Add Plugin banners.
 		 *
 		 * @return array<string, string>
 		 * @example [ 'high' => '', 'low' => '' ]
 		 */
-		abstract public function plugin_banners(): array;
+		public function plugin_banners(): array {
+
+			$plugin_dir_url = untrailingslashit( plugin_dir_url( $this->get_plugin_file() ) );
+			$low            = $plugin_dir_url . '/vendor/storepress/admin-utils/images/banner.svg';
+
+			return array(
+				'low' => $low,
+			);
+		}
 
 		/**
 		 * Get Plugin Banners.
@@ -430,7 +451,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @return array<string, string>
 		 * @example [ '2x'  => '', '1x'  => '', 'svg' => '' ]
 		 */
-		abstract public function plugin_icons(): array;
+		public function plugin_icons(): array {
+
+			$plugin_dir_url = untrailingslashit( plugin_dir_url( $this->get_plugin_file() ) );
+			$image          = $plugin_dir_url . '/vendor/storepress/admin-utils/images/icon.svg';
+
+			return array(
+				'svg' => $image,
+			);
+		}
 
 		/**
 		 * Get Plugin Icons.
@@ -591,7 +620,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 *     'package'=>'http://updater.com/plugin-latest.zip', // * REQUIRED ABSOLUTE URL OR EMPTY
 		 *
-		 *     'last_updated'=>'2023-11-11 3:24pm GMT+6',
+		 *     'last_updated'=>'2024-11-11 3:24pm GMT+6',
 		 *
 		 *     'active_installs'=>'1000',
 		 *
@@ -617,9 +646,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 *     'banners_rtl'=>['low'=>'https://ps.w.org/marquee-block/assets/banner-772x250.png', 'high'=>'https://ps.w.org/marquee-block/assets/banner-1544x500.png'],
 		 *
-		 *     'icons'=>[ '2x'  => '', '1x'  => '', 'svg' => '' ], // icons.
+		 *     Using SVG Icon Recommended.
 		 *
-		 *     'allow_rollback'=>'yes' , // yes | no.
+		 *     'icons'=>[ 'svg' => 'https://ps.w.org/woocommerce/assets/icon.svg', '2x'  => 'https://ps.w.org/woocommerce/assets/icon-256x256.png', '1x'  => 'https://ps.w.org/woocommerce/assets/icon-128x128.png' ], // icons.
+		 *
+		 *     'allow_rollback'=>'yes' , // yes | no. // * REQUIRED for ROLLBACK
 		 *
 		 * ]
 		 */
