@@ -576,15 +576,7 @@ class Updater extends \StorePress\AdminUtils\Updater {
     public function update_server_path(): string {
         return '/updater-api/wp-json/plugin-updater/v1/check-update';
     }
-    
-    public function plugin_icons(): array {
-        return [ 'svg' => '' ];
-    }
-    
-    public function plugin_banners(): array {
-        return [ 'high' => '', 'low' => '' ];
-    }
-    
+     
     // If you need to send additional arguments to update server.
     // Check get_request_args() method.
     public function additional_request_args(): array {
