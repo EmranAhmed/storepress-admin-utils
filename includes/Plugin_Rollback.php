@@ -27,17 +27,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Plugin_Rollback' ) ) {
 		/**
 		 * Upgrades a plugin.
 		 *
-		 * @param string $plugin             Path to the plugin file relative to the plugins directory.
-		 * @param string $package            Path to the plugin zip file.
-		 * @param array  $args               {
-		 *    Optional. Other arguments for upgrading a plugin package. Default empty array.
+		 * @param string               $plugin             Path to the plugin file relative to the plugins directory.
+		 * @param string               $package            Path to the plugin zip file.
+		 * @param array<string, mixed> $args               {
+		 *   Optional. Other arguments for upgrading a plugin package. Default empty array.
 		 *
 		 *     @type bool $clear_update_cache Whether to clear the plugin updates cache if successful.
 		 *                                    Default true.
 		 * }
 		 * @return bool|\WP_Error True if the upgrade was successful, false or a WP_Error object otherwise.
 		 * @since 2.8.0
-		 * @since 3.7.0 The `$args` parameter was added, making clearing the plugin update cache optional.
 		 *
 		 * @see bulk_upgrade
 		 */

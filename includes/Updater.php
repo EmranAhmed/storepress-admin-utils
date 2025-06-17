@@ -169,6 +169,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				'rollback_success'              => 'Rollback success: %s rolled back to version %s.',
 				'rollback_plugin_not_available' => 'Plugin is not available.',
 				'rollback_no_access'            => 'Sorry, you are not allowed to rollback plugins for this site.',
+				'rollback_not_available'        => 'Rollback is not available for plugin: %s',
 			);
 		}
 
@@ -407,19 +408,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		}
 
 		/**
-		 * Fallback image generator.
-		 *
-		 * @param int    $width image width.
-		 * @param int    $height image height.
-		 * @param string $color image color.
-		 *
-		 * @return string
-		 */
-		protected function fallback_image( int $width, int $height, string $color = '#2271b1' ): string {
-			return sprintf( '<svg width="%1$d" height="%2$d" xmlns="http://www.w3.org/2000/svg"><rect width="%1$d" height="%2$d" fill="%3$d"/></svg>', $width, $height, $color );
-		}
-
-		/**
 		 * Add Plugin banners.
 		 *
 		 * @return array<string, string>
@@ -654,7 +642,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 * ]
 		 */
-		public function prepare_remote_data( $remote_data ): array {
+		final public function prepare_remote_data( $remote_data ): array {
 			$item = array();
 
 			if ( $this->is_empty_array( $remote_data ) ) {

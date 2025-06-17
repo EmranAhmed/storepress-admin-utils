@@ -48,14 +48,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		/**
 		 * Rollback Plugin Info.
 		 *
-		 * @var array
+		 * @var array<string, mixed>
 		 */
 		private array $plugin_info;
 
 		/**
 		 * Rollback Plugin Data.
 		 *
-		 * @var array
+		 * @var array<string, mixed>
 		 */
 		private array $plugin_data;
 
@@ -84,7 +84,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		/**
 		 * Get Plugin Info after page load.
 		 *
-		 * @return array
+		 * @return array<string, mixed>
 		 */
 		public function get_plugin_info(): array {
 			return $this->plugin_info;
@@ -93,7 +93,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		/**
 		 * Get plugin file data.
 		 *
-		 * @return array
+		 * @return array<string, mixed>
 		 */
 		public function get_plugin_data(): array {
 			return $this->plugin_data;
@@ -200,6 +200,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 			$status['slug']           = $slug;
 			$status['currentVersion'] = $plugin_data['Version'];
 			$status['targetVersion']  = $version;
+			$status['versionID']      = str_replace( '.', '-', $version );
 
 			if ( is_wp_error( $plugin_info ) ) {
 				$status['message'] = $plugin_info->get_error_message();
@@ -503,11 +504,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 			$plugin = isset( $_GET['plugin'] ) ? sanitize_text_field( wp_unslash( $_GET['plugin'] ) ) : '';
 
 			$validate_plugin = validate_plugin( $plugin );
+			$strings         = $this->get_localize_strings();
 
 			if ( is_wp_error( $validate_plugin ) ) {
 				wp_die(
 					esc_html( $validate_plugin->get_error_message() ),
-					'',
+					esc_html( $strings['rollback_page_title'] ),
 					array(
 						'back_link' => true,
 					)
@@ -523,7 +525,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 			if ( is_wp_error( $plugin_info ) ) {
 				wp_die(
 					esc_html( $plugin_info->get_error_message() ),
-					'',
+					esc_html( $strings['rollback_page_title'] ),
 					array(
 						'back_link' => true,
 					)
@@ -537,10 +539,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 			$is_rollback_available = isset( $this->plugin_info['allow_rollback'] );
 			$is_rollback_allowed   = $is_rollback_available && $this->plugin_info['allow_rollback'];
 
+
 			if ( ! $is_rollback_available ) {
 				wp_die(
-					sprintf( 'Rollback is not available for plugin "%s"', esc_html( $this->plugin_info['name'] ) ),
-					'',
+					sprintf( esc_html( $strings['rollback_not_available'] ), esc_html( $this->plugin_info['name'] ) ),
+					esc_html( $strings['rollback_page_title'] ),
 					array(
 						'back_link' => true,
 					)
@@ -549,8 +552,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 
 			if ( ! $is_rollback_allowed ) {
 				wp_die(
-					sprintf( 'Rollback is not allowed for plugin "%s"', esc_html( $this->plugin_info['name'] ) ),
-					'',
+					sprintf( esc_html( $strings['rollback_not_available'] ), esc_html( $this->plugin_info['name'] ) ),
+					esc_html( $strings['rollback_page_title'] ),
 					array(
 						'back_link' => true,
 					)
