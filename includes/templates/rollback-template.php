@@ -10,8 +10,6 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	check_admin_referer( $this->menu_slug() );
-
 	$storepress_rtl_class = is_rtl() ? 'has-rtl' : '';
 
 	$storepress_plugin_info = $this->get_plugin_info();
@@ -42,14 +40,8 @@
 					</div>
 				</div>
 				<div class="plugin-meta">
-					<button id="show-changelog" type="button" class="plugin-changelog button button-secondary"><?php echo esc_html( $storepress_strings['rollback_view_changelog'] ); ?></button>
+					<button id="show-changelog" data-request-storepress-dialog="#changelog-dialog" type="button" class="plugin-changelog button button-secondary"><?php echo esc_html( $storepress_strings['rollback_view_changelog'] ); ?></button>
 					<div class="last-updated"><?php echo wp_kses_post( sprintf( $storepress_strings['rollback_last_updated'], '<span class="dashicon dashicons dashicons-clock"></span>' . human_time_diff( strtotime( $storepress_plugin_info['last_updated'] ) ) ) ); ?></div>
-
-					<dialog id="changelog-contents">
-						<div class="changelog-wrapper">
-							<?php echo wp_kses_post( $storepress_plugin_info['sections']['changelog'] ); ?>
-						</div>
-					</dialog>
 				</div>
 			</div>
 			</div>

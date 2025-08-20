@@ -19,6 +19,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 	 */
 	abstract class Upgrade_Notice {
 
+		use Common;
+		use Plugin;
+
 		/**
 		 * Plugin Data.
 		 *
@@ -27,34 +30,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		private array $data = array();
 
 		/**
-		 * Relative Plugin file.
-		 *
-		 * @var string
-		 */
-		private string $plugin;
-
-		/**
 		 * Class construct.
 		 */
 		protected function __construct() {
-
 			add_action( 'admin_init', array( $this, 'init' ), 9 );
 			add_action( 'admin_init', array( $this, 'deactivate' ), 12 );
 		}
 
 		/**
-		 * Get absolute file path.
-		 *
-		 * @param string $plugin_file relative or absolute path.
+		 * Get required version of Plugin.
 		 *
 		 * @return string
 		 */
-		public function get_absolute_plugin_file( string $plugin_file ): string {
-			$file   = wp_normalize_path( $plugin_file );
-			$plugin = plugin_basename( $file );
-
-			return trailingslashit( WP_PLUGIN_DIR ) . $plugin;
-		}
+		abstract public function compatible_version(): string;
 
 		/**
 		 * Init Plugin Info.
@@ -71,14 +59,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 				return;
 			}
 
-			$plugin_file = $this->get_absolute_plugin_file( $this->plugin_file() );
+			$plugin_file = $this->get_plugin_file();
 
 			if ( ! file_exists( $plugin_file ) ) {
 				return;
 			}
 
-			$this->data   = get_plugin_data( $plugin_file );
-			$this->plugin = plugin_basename( $plugin_file );
+			$this->data = get_plugin_data( $plugin_file );
 
 			if ( $this->is_compatible() ) {
 				return;
@@ -86,7 +73,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 
 			add_action( 'admin_notices', array( $this, 'admin_notice' ), 12 );
 
-			add_action( 'after_plugin_row_' . $this->plugin, array( $this, 'row_notice' ) );
+			add_action( 'after_plugin_row_' . $this->get_plugin_basename(), array( $this, 'row_notice' ) );
 		}
 
 		/**
@@ -104,7 +91,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 				return;
 			}
 
-			$plugin_file = $this->get_absolute_plugin_file( $this->plugin_file() );
+			$plugin_file = $this->get_plugin_file();
 
 			if ( ! file_exists( $plugin_file ) ) {
 				return;
@@ -118,12 +105,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 				return;
 			}
 
-			if ( is_plugin_inactive( $this->plugin ) ) {
+			if ( is_plugin_inactive( $this->get_plugin_basename() ) ) {
 				return;
 			}
 
 			// Deactivate the plugin silently, Prevent deactivation hooks from running.
-			deactivate_plugins( $this->plugin, true );
+			deactivate_plugins( $this->get_plugin_basename(), true );
 		}
 
 		/**
@@ -138,7 +125,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 			}
 
 			// Inactive plugin should not display any admin notice.
-			if ( is_plugin_inactive( $this->plugin ) ) {
+			if ( is_plugin_inactive( $this->get_plugin_basename() ) ) {
 				return;
 			}
 
@@ -195,20 +182,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		public function deactivate_incompatible(): bool {
 			return false;
 		}
-
-		/**
-		 * Get plugin absolute or relative file.
-		 *
-		 * @return string
-		 */
-		abstract public function plugin_file(): string;
-
-		/**
-		 * Get required version of Plugin.
-		 *
-		 * @return string
-		 */
-		abstract public function compatible_version(): string;
 
 		/**
 		 * Check is using compatible version.

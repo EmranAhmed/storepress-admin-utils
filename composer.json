@@ -1,7 +1,7 @@
 {
 	"name" : "storepress/admin-utils",
 	"description" : "Utility Classes for WordPress Plugin Projects.",
-	"version" : "1.9.3",
+	"version" : "1.10.0",
 	"license" : "GPL-2.0-or-later",
 	"type" : "library",
 	"keywords" : [
@@ -26,17 +26,17 @@
 		"phpcompatibility/phpcompatibility-wp" : "^2.1.7",
 		"woocommerce/woocommerce-sniffs" : "^1.0.0",
 		"wp-cli/i18n-command" : "^v2.6.5",
-		"wp-coding-standards/wpcs" : "^3.1.0",
+		"wp-coding-standards/wpcs" : "^3.2.0",
 		"phpstan/extension-installer" : "^1.4.3",
 		"szepeviktor/phpstan-wordpress" : "^v2.0.2",
-		"plugin-check/phpcs-sniffs": "@dev"
+		"plugin-check/phpcs-sniffs" : "@dev"
 	},
-	"repositories": [
+	"repositories" : [
 		{
-			"type": "path",
-			"url": "./wp-plugin-check",
-			"options": {
-				"symlink": true
+			"type" : "path",
+			"url" : "./wp-plugin-check",
+			"options" : {
+				"symlink" : true
 			}
 		}
 	],

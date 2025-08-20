@@ -159,6 +159,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		public function display() {
 
 			$allowed_input_html = $this->get_kses_allowed_input_html( $this->get_settings()->allowed_tags() );
+			$allowed_html       = $this->get_kses_allowed_html( $this->get_settings()->allowed_tags() );
 
 			/**
 			 * Section Instance.
@@ -166,11 +167,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 			 * @var Section $section
 			 */
 			foreach ( $this->get_sections() as $section ) {
-				echo wp_kses_post( $section->display() );
+				echo wp_kses( $section->display(), $allowed_html );
 
 				if ( $section->has_fields() ) {
 
-					echo wp_kses_post( $section->before_display_fields() );
+					echo wp_kses( $section->before_display_fields(), $allowed_html );
 					/**
 					 * Field Instance.
 					 *
@@ -180,7 +181,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 						echo wp_kses( $field->display(), $allowed_input_html );
 					}
 
-					echo wp_kses_post( $section->after_display_fields() );
+					echo wp_kses( $section->after_display_fields(), $allowed_html );
 				}
 			}
 		}

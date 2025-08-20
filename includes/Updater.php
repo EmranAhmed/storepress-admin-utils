@@ -23,6 +23,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 	abstract class Updater {
 
 		use Common;
+		use Plugin;
 
 		/**
 		 * Plugin Data.
@@ -157,6 +158,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			return array(
 				'license_key_empty_message'     => 'License key is not available.',
 				'check_update_link_text'        => 'Check Update',
+				'rollback_changelog_title'      => 'Changelog',
 				'rollback_action_running'       => 'Rolling back',
 				'rollback_action_button'        => 'Rollback',
 				'rollback_cancel_button'        => 'Cancel',
@@ -170,6 +172,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 				'rollback_plugin_not_available' => 'Plugin is not available.',
 				'rollback_no_access'            => 'Sorry, you are not allowed to rollback plugins for this site.',
 				'rollback_not_available'        => 'Rollback is not available for plugin: %s',
+				'rollback_no_target_version'    => 'Plugin version not selected.',
 			);
 		}
 
@@ -194,45 +197,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 			$this->plugin_data = get_plugin_data( $this->get_plugin_file() );
 
 			return $this->plugin_data;
-		}
-
-		/**
-		 * Get Plugin absolute file
-		 *
-		 * @return string
-		 */
-		public function get_plugin_file(): string {
-			return $this->plugin_file();
-		}
-
-		/**
-		 * Plugin Directory Name Only
-		 *
-		 * @return string
-		 * @example xyz-plugin
-		 */
-		public function get_plugin_dir_path(): string {
-			return plugin_dir_path( $this->get_plugin_file() );
-		}
-
-		/**
-		 * Plugin Slug.
-		 *
-		 * @return string
-		 * @example xyz-plugin
-		 */
-		public function get_plugin_slug(): string {
-			return wp_basename( dirname( $this->get_plugin_file() ) );
-		}
-
-		/**
-		 * Plugin Basename Like "plugin-directory/plugin-file.php"
-		 *
-		 * @return string
-		 * @example xyz-plugin/xyz-plugin.php
-		 */
-		public function get_plugin_basename(): string {
-			return plugin_basename( $this->get_plugin_file() );
 		}
 
 		/**

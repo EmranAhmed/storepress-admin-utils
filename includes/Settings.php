@@ -23,6 +23,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 	 */
 	abstract class Settings extends Menu {
 
+
+		use Plugin;
+		use Package;
+
+
 		/**
 		 * Fields callback function name convention.
 		 *
@@ -54,13 +59,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @return string
 		 */
 		abstract public function settings_id(): string;
-
-		/**
-		 * Plugin File name.
-		 *
-		 * @return string
-		 */
-		abstract public function plugin_file(): string;
 
 		/**
 		 * Show Settings in REST. If empty or false rest api will disable.
@@ -97,7 +95,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		final public function settings_init() {
 			add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
-			add_filter( 'plugin_action_links_' . plugin_basename( $this->get_plugin_file() ), array( $this, 'plugin_action_links' ), 15 );
+			add_filter( 'plugin_action_links_' . $this->get_plugin_basename(), array( $this, 'plugin_action_links' ), 15 );
 		}
 
 		/**
@@ -145,9 +143,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 
 			$strings = $this->localize_strings();
 
+			$class = sprintf( 'storepress-%s-settings', $this->get_plugin_slug() );
+
 			$action_links = sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $this->get_settings_uri() ), esc_html( $strings['settings_link_text'] ) );
 
-			$links[] = $action_links;
+			$links[ $class ] = $action_links;
 
 			return $links;
 		}
@@ -163,24 +163,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				return;
 			}
 
-			$plugin_dir_url  = untrailingslashit( plugin_dir_url( $this->get_plugin_file() ) );
-			$plugin_dir_path = untrailingslashit( plugin_dir_path( $this->get_plugin_file() ) );
-
-			$admin_settings_script_url        = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.js';
-			$admin_settings_style_url         = $plugin_dir_url . '/vendor/storepress/admin-utils/build/admin-settings.css';
-			$admin_settings_script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/build/admin-settings.asset.php';
-			$admin_settings_script_assets     = include $admin_settings_script_asset_file;
-
-			// Admin Utils.
-			$storepress_utils_script_url        = $plugin_dir_url . '/vendor/storepress/admin-utils/build/storepress-utils.js';
-			$storepress_utils_script_asset_file = $plugin_dir_path . '/vendor/storepress/admin-utils/build/storepress-utils.asset.php';
-			$storepress_utils_script_assets     = include $storepress_utils_script_asset_file;
-			wp_register_script( 'storepress-utils', $storepress_utils_script_url, $storepress_utils_script_assets['dependencies'], $storepress_utils_script_assets['version'], true );
-
-			// Admin Settings.
-			wp_register_script( 'storepress-admin-settings', $admin_settings_script_url, $admin_settings_script_assets['dependencies'], $admin_settings_script_assets['version'], true );
-			wp_register_style( 'storepress-admin-settings', $admin_settings_style_url, array(), $admin_settings_script_assets['version'] );
-			wp_localize_script( 'storepress-admin-settings', 'StorePressAdminUtilsSettingsParams', $this->localize_strings() );
+			$this->register_package_admin_utils_script();
+			$this->register_package_scripts( 'settings', $this->localize_strings() );
 		}
 
 		/**
@@ -189,8 +173,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @return void
 		 */
 		public function enqueue_scripts() {
-			wp_enqueue_script( 'storepress-admin-settings' );
-			wp_enqueue_style( 'storepress-admin-settings' );
+
+			$this->enqueue_package_scripts( 'settings' );
 
 			if ( $this->has_field_type( 'wc-enhanced-select' ) ) {
 				wp_enqueue_style( 'woocommerce_admin_styles' );
@@ -610,7 +594,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			 * @var array<int|string, mixed> $tab
 			 */
 
-
 			foreach ( $tabs as $tab_id => $tab ) {
 
 				if ( true === $tab['hidden'] ) {
@@ -690,15 +673,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			$tab  = $this->get_current_tab();
 
 			return sprintf( '%s-%s', $page, $tab );
-		}
-
-		/**
-		 * Get plugin file.
-		 *
-		 * @return string
-		 */
-		public function get_plugin_file(): string {
-			return $this->plugin_file();
 		}
 
 		/**

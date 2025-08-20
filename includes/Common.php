@@ -281,6 +281,75 @@ trait Common {
 	}
 
 	/**
+	 * Merge array.
+	 *
+	 * @param array<string|int, mixed> ...$arrays arrays.
+	 *
+	 * @return array<string|int, mixed>
+	 */
+	public function array_merge( array ...$arrays ): array {
+		$result = array();
+
+		foreach ( $arrays as $array ) {
+			foreach ( $array as $key => $value ) {
+				if ( isset( $result[ $key ] ) && is_array( $result[ $key ] ) && is_array( $value ) ) {
+					$result[ $key ] = wp_parse_args( $result[ $key ], $value );
+				} else {
+					$result[ $key ] = $value;
+				}
+			}
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Preapre KSES Arguments.
+	 *
+	 * @param array<string, mixed> $tags Allowed Tags.
+	 *
+	 * @return array<string, mixed>
+	 * @see wp_kses_check_attr_val()
+	 */
+	public function prepare_kses_args( array $tags = array() ): array {
+
+		$empty_attributes = array(
+			'allowfullscreen',
+			'autofocus',
+			'checked',
+			'default',
+			'formnovalidate',
+			'inert',
+			'itemscope',
+			'multiple',
+			'required',
+			'open',
+			'selected',
+			'hidden',
+			'contenteditable',
+			'draggable',
+		);
+
+		return array_reduce(
+			array_keys( $tags ),
+			function ( $result, $tag ) use ( $tags, $empty_attributes ) {
+				foreach ( $tags[ $tag ] as $key => $value ) {
+					if ( in_array( $value, $empty_attributes, true ) ) {
+						$result[ $tag ][ $value ] = array( 'valueless' => 'y' );
+					} elseif ( is_array( $value ) ) {
+						$result[ $tag ][ $key ] = $value;
+					} else {
+						$result[ $tag ][ $value ] = true;
+					}
+				}
+
+				return $result;
+			},
+			array()
+		);
+	}
+
+	/**
 	 * Returns an array of allowed HTML tags and attributes for a given context.
 	 *
 	 * @param array<string, string[]> $args extra argument.
@@ -299,16 +368,11 @@ trait Common {
 			'table' => array( 'class', 'role' ),
 		);
 
-		$allowed_args = array_reduce(
-			array_keys( $tags ),
-			function ( $carry, $tag ) use ( $tags ) {
-				$carry[ $tag ] = array_fill_keys( $tags[ $tag ], true );
-				return $carry;
-			},
-			array()
-		);
+		$allowed_args = $this->prepare_kses_args( $tags );
 
-		return array_merge( $defaults, $allowed_args, $args );
+		$extra_args = $this->prepare_kses_args( $args );
+
+		return $this->array_merge( $extra_args, $allowed_args, $defaults );
 	}
 
 	/**
@@ -322,35 +386,57 @@ trait Common {
 
 		$defaults = wp_kses_allowed_html( 'post' );
 
-		$allowed_attributes = array( 'list', 'disabled', 'type', 'width', 'size', 'id', 'class', 'style', 'checked', 'selected', 'multiple', 'name', 'required', 'label', 'aria-label', 'aria-describedby', 'value', 'step', 'mix', 'max', 'placeholder' );
+		$allowed_attributes = array( 'action', 'method', 'list', 'autocomplete', 'data-*', 'readonly', 'disabled', 'type', 'width', 'size', 'id', 'class', 'style', 'checked', 'selected', 'multiple', 'name', 'inputmode', 'pattern', 'required', 'label', 'aria-label', 'aria-describedby', 'value', 'step', 'min', 'max', 'placeholder' );
 		$tags               = array(
+			'form'     => $allowed_attributes,
 			'input'    => $allowed_attributes,
 			'textarea' => $allowed_attributes,
 			'optgroup' => $allowed_attributes,
 			'option'   => $allowed_attributes,
 			'select'   => $allowed_attributes,
 			'datalist' => $allowed_attributes,
+			'tr'       => array( 'inert' ),
+			'ul'       => array( 'inert' ),
 		);
 
-		$allowed_args = array_reduce(
-			array_keys( $tags ),
-			function ( $carry, $tag ) use ( $tags ) {
-				$carry[ $tag ] = array_fill_keys( $tags[ $tag ], true );
-				return $carry;
-			},
-			array()
+		$allowed_args = $this->prepare_kses_args( $tags );
+
+		$extra_args = $this->prepare_kses_args( $args );
+
+		return $this->array_merge( $extra_args, $allowed_args, $defaults );
+	}
+
+	/**
+	 * Returns an array of allowed HTML tags and attributes for dialog box.
+	 *
+	 * @param array<string, string[]> $args extra argument.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function get_kses_allowed_dialog_html( array $args = array() ): array {
+
+		$defaults = wp_kses_allowed_html( 'post' );
+
+		$allowed_attributes = array( 'list', 'autocomplete', 'data-*', 'readonly', 'disabled', 'type', 'width', 'size', 'id', 'class', 'style', 'checked', 'selected', 'multiple', 'name', 'inputmode', 'pattern', 'required', 'label', 'aria-label', 'aria-describedby', 'value', 'step', 'min', 'max', 'placeholder' );
+		$tags               = array(
+			'form'     => array( 'method', 'data-*' ),
+			'button'   => $allowed_attributes,
+			'input'    => $allowed_attributes,
+			'textarea' => $allowed_attributes,
+			'optgroup' => $allowed_attributes,
+			'option'   => $allowed_attributes,
+			'select'   => $allowed_attributes,
+			'datalist' => $allowed_attributes,
+			'tr'       => array( 'inert' ),
+			'ul'       => array( 'inert' ),
+			'li'       => array( 'inert' ),
 		);
 
-		$extra_args = array_reduce(
-			array_keys( $args ),
-			function ( $carry, $tag ) use ( $args ) {
-				$carry[ $tag ] = array_fill_keys( $args[ $tag ], true );
-				return $carry;
-			},
-			array()
-		);
+		$allowed_args = $this->prepare_kses_args( $tags );
 
-		return array_merge( $defaults, $allowed_args, $extra_args );
+		$extra_args = $this->prepare_kses_args( $args );
+
+		return $this->array_merge( $extra_args, $allowed_args, $defaults );
 	}
 
 	/**
@@ -381,6 +467,17 @@ trait Common {
 		);
 
 		return ! in_array( true, array_unique( $checked ), true );
+	}
+
+	/**
+	 * Check is given array is numeric or not.
+	 *
+	 * @param string[]|array<string|int, mixed> $items Array items.
+	 *
+	 * @return bool
+	 */
+	public function is_numeric_array( array $items ): bool {
+		return array_keys( $items ) === range( 0, count( $items ) - 1 );
 	}
 
 	/**

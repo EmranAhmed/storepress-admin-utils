@@ -1,6 +1,70 @@
 # StorePress Admin Utils
 
-Admin Utility functions for StorePress WordPress Plugin Projects.
+StorePress Admin Utils is a comprehensive PHP library for WordPress that simplifies the creation of admin interfaces for plugins. It provides a structured, object-oriented approach to building settings pages, managing plugin updates, handling rollbacks, and displaying administrative notices.
+
+## Core Features
+
+## Settings Framework
+
+The library's cornerstone is its powerful settings framework, which allows developers to create complex settings pages with multiple tabs and a wide variety of field types.
+
+### Field Types
+
+It supports a rich set of field types including `text`, `textarea`, `checkbox`, `radio`, `select`, `color`, `number`, and more advanced fields like `toggle` switches and `group` fields.
+
+### Structure
+
+Settings are organized into sections and tabs, providing a clean and intuitive user experience. The framework handles the rendering of the entire settings page, including the navigation tabs, fields, and save/reset buttons.
+
+### Data Management 
+
+It streamlines the process of saving, retrieving, and deleting plugin options from the database. It also includes mechanisms for data sanitization and validation.
+
+## Plugin Updater
+
+StorePress Admin Utils includes a robust module for managing plugin updates from a custom, non-WordPress.org server.
+
+### Custom Update Server
+
+Developers can specify a URL to their own update server in the plugin's header. The library then communicates with this server to check for new versions.
+
+### Update Process
+
+It handles the entire update process, from checking for new versions and displaying update notifications in the WordPress admin to downloading and installing the new plugin package. The `README.md` file provides a clear example of how to set up the server-side endpoint to respond to update requests.
+
+## Plugin Rollback
+
+A key feature is the ability to roll back a plugin to a previous version.
+
+### Rollback UI
+
+It adds a "Rollback" link to the plugin's action links on the plugins page. This leads to a dedicated page where the user can select a previous version to install.
+
+### Version Management
+
+The rollback functionality is tied into the update server, which must provide a list of available versions and their corresponding package URLs.
+
+
+## REST API Integration
+
+The settings framework can automatically expose plugin settings via the WordPress REST API.
+
+### Endpoints
+
+It creates REST API endpoints for fetching settings, allowing for headless WordPress implementations or integration with other applications.
+
+### Configuration
+
+Developers can easily enable or disable this feature and customize the API namespace and version.
+
+## Upgrade & Compatibility Notices
+
+The library provides a class for managing admin notices, which is particularly useful for handling compatibility issues between a primary plugin and its extensions. 
+It can display notices in the admin area and on the plugins page if an incompatible version of an extension is detected.
+
+## Usage and Implementation
+
+To use StorePress Admin Utils, developers typically extend the core classes provided by the library, such as `Settings`, `Updater`, and `Upgrade_Notice`. By implementing the abstract methods in these classes, developers can configure the library to suit their plugin's specific needs.
 
 ## Installation
 
@@ -206,7 +270,7 @@ class AdminSettings extends \Plugin_A\AdminPage {
                 'id'          => 'input',
                 'type'        => 'text',
                 'title'       => 'Input text 01 general',
-                'description' => 'Input desc of 01',
+                'description' => 'Input desc of 01 <code>xxx</code>',
                 'placeholder' => 'Abcd',
                 'default'     => 'ok',
                 'html_datalist'=>array('yes','no'),
@@ -220,6 +284,16 @@ class AdminSettings extends \Plugin_A\AdminPage {
                 'placeholder' => 'xxxx',
                 'class'       => 'code'
             ),
+            
+            array(
+					      'id'          => 'inputunit',
+					      'type'        => 'unit',
+					      'title'       => 'Input text unit',
+					      'description' => 'Input desc of unit',
+					      'default'     => '10px',
+					      'html_attributes' => array( 'min' => 0, 'max'=>100, 'step'=>'5' ),
+					      'units'=>array('px', '%', 'em', 'rem')
+				    ),
             
             array(
                 'id'          => 'input_group',
@@ -373,7 +447,7 @@ array(
 
 array(
     'id'          => 'input3', // Field ID.
-    'type'        => 'text', // text, password, toggle, code, small-text, tiny-text, large-text, textarea, email, url, number, color, select, wc-enhanced-select, radio, checkbox
+    'type'        => 'text', // text, unit, password, toggle, code, small-text, tiny-text, large-text, textarea, email, url, number, color, select, wc-enhanced-select, radio, checkbox
     'title'       => 'Input Label',
     
     // Optional.
@@ -391,6 +465,10 @@ array(
     'private'     => true, // Private field does not delete from db during reset all action trigger.
     'multiple'    => true, // for select box 
     'class'       => array( 'large-text', 'code', 'custom-class' ),
+    'tooltip'     => 'Textarea Help tooltip',
+    'condition'   =>array('selector'=>'#input2'),
+    'condition'   =>array('selector'=>'#input2', 'value'=>'hello'),
+    'units'       =>array('px', '%', 'em', 'rem'), // For unit type
 
     'sanitize_callback'=>'absint', // Use custom sanitize function. Default is: sanitize_text_field.
     'show_in_rest'    => false, // Hide from rest api field. Default is: true
@@ -505,18 +583,8 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
 
 namespace Plugin_A;
 class Updater extends \StorePress\AdminUtils\Updater {
-    /**
-     * @return self
-     */
-    public static function instance() {
-        static $instance = null;
-        
-        if ( is_null( $instance ) ) {
-            $instance = new self();
-        }
-        
-        return $instance;
-    }
+
+		use \StorePress\AdminUtils\Singleton;
     
     public function plugin_file(): string {
         return plugin_a()->get_plugin_file();
@@ -530,7 +598,7 @@ class Updater extends \StorePress\AdminUtils\Updater {
         return 100;
     }
     
-    		/**
+     /**
 		 * Translatable Strings.
 		 *
 		 * @abstract
@@ -588,6 +656,168 @@ class Updater extends \StorePress\AdminUtils\Updater {
 ```
 
 - Now use `Updater::instance();` on `Plugin::init()`
+
+## Plugin Deactivate Feedback `InactiveFeedback.php`
+
+```php
+<?php
+	
+	namespace StorePress\A;
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	class InactiveFeedback extends \StorePress\AdminUtils\Deactivation_Feedback {
+		
+		use \StorePress\AdminUtils\Singleton;
+		
+		// Where to send feedback data.
+		public function api_url(): string {
+			return 'https://state.example.com/wp-json/feedback/v1/deactivate';
+		}
+		
+		public function reasons(): array {
+			$current_user = wp_get_current_user();
+			
+			return array(
+				'temporary_deactivation' => array(
+					'title' => esc_html__( 'It\'s a temporary deactivation.', 'text-domain' ),
+				),
+				
+				'dont_know_about' => array(
+					'title' => esc_html__( 'I couldn\'t understand how to make it work.', 'text-domain' ),
+					'message' => __( 'Its Plugin A.', 'text-domain' ),
+				),
+				
+				'no_longer_needed' => array(
+					'title' => esc_html__( 'I no longer need the plugin.', 'text-domain' ),
+				),
+				
+				'found_a_better_plugin' => array(
+					'title' => esc_html__( 'I found a better plugin.', 'text-domain' ),
+					'input' => array(
+						'placeholder'=>esc_html__( 'Please let us know which one', 'text-domain' ),
+					),
+				),
+				
+				'broke_site_layout' => array(
+					'title' => __( 'The plugin <strong>broke my layout</strong> or some functionality.', 'text-domain' ),
+					'message' => __( '<a target="_blank" href="#">Please open a support ticket</a>, we will fix it immediately.', 'text-domain' ),
+				),
+				
+				'plugin_setup_help' => array(
+					'title' => __( 'I need someone to <strong>setup this plugin.</strong>', 'text-domain' ),
+					'input' => array(
+						'placeholder'=>esc_html__( 'Your email address.', 'woo-variation-swatches' ),
+						'value'=>sanitize_email( $current_user->user_email )
+					),
+					'message' => __( 'Please provide your email address to contact with you <br />and help you to set up and configure this plugin.', 'text-domain' ),
+				),
+				
+				'plugin_config_too_complicated' => array(
+					'title' => __( 'The plugin is <strong>too complicated to configure.</strong>', 'text-domain' ),
+					'message' => __( '<a target="_blank" href="#">Have you checked our documentation?</a>.', 'text-domain' ),
+				),
+				
+				'need_specific_feature' => array(
+					'title' => esc_html__( 'I need specific feature that you don\'t support.', 'text-domain' ),
+					'input' => array(
+						'placeholder'=>esc_html__( 'Please share with us.', 'text-domain' ),
+					),
+				),
+				
+				'other' => array(
+					'title' => esc_html__( 'Other', 'text-domain' ),
+					'input' => array(
+						'placeholder'=>esc_html__( 'Please share the reason', 'text-domain' ),
+					),
+				)
+			);
+		}
+		
+		public function options(): array {
+			return plugin_a()->get_settings()->get_options();
+		}
+		
+		public function title(): string {
+			return 'QUICK FEEDBACK';
+		}
+		
+		public function sub_title(): string {
+			return 'May we have a little info about why you are deactivating?';
+		}
+		
+		public function plugin_file(): string {
+			return plugin_a()->get_plugin_file();
+		}
+		/**
+		 * Get Dialog Button.
+		 *
+		 * @return array<int, mixed>
+		 * array(
+		 *     array(
+		 *         'type'       => 'button',
+		 *         'label'      => __( 'Send feedback & Deactivate' ),
+		 *         'attributes' => array(
+		 *             'disabled'        => true,
+		 *             'type'            => 'submit',
+		 *             'data-action'     => 'submit',
+		 *             'data-label'      => __( 'Send feedback & Deactivate' ),
+		 *             'data-processing' => __( 'Deactivate...' ),
+		 *             'class'           => array( 'button', 'button-primary' ),
+		 *          ),
+		 *         'spinner'    => true,
+		 *     ),
+		 *
+		 *     array(
+		 *         'type'       => 'link',
+		 *         'label'      => __( 'Skip & Deactivate' ),
+		 *         'attributes' => array(
+		 *             'href'  => '#',
+		 *             'class' => array( 'skip-deactivate' ),
+		 *         ),
+		 *     ),
+		 * )
+		 */
+		public function get_buttons(): array {
+			
+			return array(
+				array(
+					'type'       => 'button',
+					'label'      => __( 'Send feedback & Deactivate' ),
+					'attributes' => array(
+						'disabled'        => true,
+						'type'            => 'submit',
+						'data-action'     => 'submit',
+						'data-label'      => __( 'Send feedback & Deactivate' ),
+						'data-processing' => __( 'Deactivate...' ),
+						'class'           => array( 'button', 'button-primary' ),
+					),
+					'spinner'    => true,
+				),
+				array(
+					'type'       => 'link',
+					'label'      => __( 'Skip & Deactivate' ),
+					'attributes' => array(
+						'href'  => '#',
+						'class' => array( 'skip-deactivate' ),
+					),
+				),
+			);
+		}
+		
+		/**
+		 * Dialog width.  - Optional.
+		 *
+		 * @return string
+		 */
+		public function get_dialog_width(): string {
+			return ''; // 600px
+		}
+	}
+```
+
+- Now use `InactiveFeedback::instance();` on `Plugin::init()`
+
 
 ## Update Server
 
@@ -679,5 +909,44 @@ function updater_get_plugin( WP_REST_Request $request ) {
     );
     
     return rest_ensure_response( $data );
+}
+```
+
+## Feedback Server
+
+```php
+<?php
+
+// Sample API:  
+// https://state.example.com/wp-json/feedback/v1/deactivate
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'feedback/v1', '/deactivate', [
+        'methods'             => WP_REST_Server::CREATABLE,
+        'callback'            => 'store_deactivate_data',
+        'permission_callback' => '__return_true',
+    ] );
+} );
+
+/**
+ * @param WP_REST_Request $request REST request instance.
+ *
+ * @return WP_REST_Response|WP_Error WP_REST_Response instance if the plugin was found,
+ *                                    WP_Error if the plugin isn't found.
+ *                                   
+ * @see Deactivation_Feedback::send_feedback()
+ */
+function store_deactivate_data( WP_REST_Request $request ) {
+    
+    $params = $request->get_params();
+            
+    $feedback  = (array) $request->get_param( 'feedback' );
+    $wordpress = (array) $request->get_param( 'wordpress' );
+    $theme     = (array) $request->get_param( 'theme' );
+    $plugins   = (array) $request->get_param( 'plugins' );
+    $server    = (array) $request->get_param( 'server' );
+    
+    // Save data
+    
+    return rest_ensure_response( true );
 }
 ```
