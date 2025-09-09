@@ -75,6 +75,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 * Get API URL to send feedback.
 		 *
 		 * @return string
+		 * @example https://example.com/wp-json/__NAMESPACE__/v1/deactivate
 		 */
 		abstract public function api_url(): string;
 
@@ -94,6 +95,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 			// We use current_screen instead of admin_init.
 			// because using calling get_current_screen() too early in admin_init.
 			add_action( 'current_screen', array( $this, 'init' ), 9 );
+			add_action( 'admin_init', array( $this, 'ajax_setup' ) );
+		}
+
+		/**
+		 * Setup ajax action.
+		 *
+		 * @return void
+		 */
+		public function ajax_setup() {
+			add_action( sprintf( 'wp_ajax_%s', $this->ajax_action() ), array( $this, 'send_feedback' ) );
 		}
 
 		/**
@@ -107,9 +118,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 				return;
 			}
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 20 );
-
-			add_action( sprintf( 'wp_ajax_%s', $this->ajax_action() ), array( $this, 'send_feedback' ) );
-
 			$this->get_dialog();
 		}
 
@@ -225,6 +233,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 * @return void
 		 */
 		public function send_feedback() {
+
 			check_ajax_referer( $this->get_plugin_slug() );
 
 			$reasons = $this->get_reasons();
@@ -316,7 +325,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 * @return string
 		 */
 		public function ajax_action(): string {
-			return sprintf( 'storepress_plugin_deactivate_%s', $this->get_plugin_slug() );
+			return sprintf( 'storepress_plugin_deactivate_%s', str_replace( '-', '_', $this->get_plugin_slug() ) );
 		}
 
 		/**

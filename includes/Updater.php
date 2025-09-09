@@ -132,22 +132,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @abstract
 		 *
 		 * @return array{
-		 *      'license_key_empty_message': string,
-		 *      'check_update_link_text': string,
-		 *      'rollback_action_running': string,
-		 *      'rollback_action_button': string,
-		 *      'rollback_cancel_button': string,
-		 *      'rollback_current_version': string,
-		 *      'rollback_last_updated': string,
-		 *      'rollback_view_changelog': string,
-		 *      'rollback_page_title': string,
-		 *      'rollback_page_title': string,
-		 *      'rollback_link_text': string,
-		 *      'rollback_failed': string,
-		 *      'rollback_success': string,
-		 *      'rollback_plugin_not_available': string,
-		 *      'rollback_no_access': string,
-		 *  }
+		 *      license_key_empty_message: string,
+		 *      check_update_link_text: string,
+		 *      rollback_changelog_title: string,
+		 *      rollback_action_running: string,
+		 *      rollback_action_button: string,
+		 *      rollback_cancel_button: string,
+		 *      rollback_current_version: string,
+		 *      rollback_last_updated: string,
+		 *      rollback_view_changelog: string,
+		 *      rollback_page_title: string,
+		 *      rollback_link_text: string,
+		 *      rollback_failed: string,
+		 *      rollback_success: string,
+		 *      rollback_plugin_not_available: string,
+		 *      rollback_no_access: string,
+		 *      rollback_not_available: string,
+		 *      rollback_no_target_version: string
+		 * } Associative array of translatable strings with their default English values.
 		 */
 		public function localize_strings(): array {
 

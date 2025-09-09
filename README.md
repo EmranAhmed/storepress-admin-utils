@@ -44,7 +44,6 @@ It adds a "Rollback" link to the plugin's action links on the plugins page. This
 
 The rollback functionality is tied into the update server, which must provide a list of available versions and their corresponding package URLs.
 
-
 ## REST API Integration
 
 The settings framework can automatically expose plugin settings via the WordPress REST API.
@@ -68,7 +67,7 @@ To use StorePress Admin Utils, developers typically extend the core classes prov
 
 ## Installation
 
-```php
+```shell
 composer require storepress/admin-utils
 ```
 
@@ -494,18 +493,7 @@ array(
 namespace Plugin_A;
 
 class Settings extends AdminSettings {
-    /**
-     * @return self
-     */
-    public static function instance() {
-        static $instance = null;
-        
-        if ( is_null( $instance ) ) {
-            $instance = new self();
-        }
-        
-        return $instance;
-    }
+    use \StorePress\AdminUtils\Singleton;
 }
 ```
 
@@ -521,19 +509,10 @@ class Settings extends AdminSettings {
 
 ```php
 namespace Plugin_A;
+
 class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
-    /**
-     * @return self
-     */
-    public static function instance() {
-        static $instance = null;
-        
-        if ( is_null( $instance ) ) {
-            $instance = new self();
-        }
-        
-        return $instance;
-    }
+
+    use \StorePress\AdminUtils\Singleton;
     
     public function plugin_file(): string {
         return plugin_a()->get_pro_plugin_file();
@@ -582,6 +561,7 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
 <?php
 
 namespace Plugin_A;
+
 class Updater extends \StorePress\AdminUtils\Updater {
 
 		use \StorePress\AdminUtils\Singleton;
@@ -604,27 +584,30 @@ class Updater extends \StorePress\AdminUtils\Updater {
 		 * @abstract
 		 *
 		 * @return array{
-		 *      'license_key_empty_message': string,
-		 *      'check_update_link_text': string,
-		 *      'rollback_action_running': string,
-		 *      'rollback_action_button': string,
-		 *      'rollback_cancel_button': string,
-		 *      'rollback_current_version': string,
-		 *      'rollback_last_updated': string,
-		 *      'rollback_view_changelog': string,
-		 *      'rollback_page_title': string,
-		 *      'rollback_page_title': string,
-		 *      'rollback_link_text': string,
-		 *      'rollback_failed': string,
-		 *      'rollback_success': string,
-		 *      'rollback_plugin_not_available': string,
-		 *      'rollback_no_access': string,
+		 *      'license_key_empty_message'     => string,
+		 *      'check_update_link_text'        => string,
+		 *      'rollback_changelog_title'      => string,
+		 *      'rollback_action_running'       => string,
+		 *      'rollback_action_button'        => string,
+		 *      'rollback_cancel_button'        => string,
+		 *      'rollback_current_version'      => string,
+		 *      'rollback_last_updated'         => string,
+		 *      'rollback_view_changelog'       => string,
+		 *      'rollback_page_title'           => string,
+		 *      'rollback_link_text'            => string,
+		 *      'rollback_failed'               => string,
+		 *      'rollback_success'              => string,
+		 *      'rollback_plugin_not_available' => string,
+		 *      'rollback_no_access'            => string,
+		 *      'rollback_not_available'        => string,
+		 *      'rollback_no_target_version'    => string,
 		 *  }
 		 */
 		public function localize_strings(): array {
 			return array(
 				'license_key_empty_message'     => 'License key is not available.',
 				'check_update_link_text'        => 'Check Update',
+				'rollback_changelog_title'      => 'Changelog',
 				'rollback_action_running'       => 'Rolling back',
 				'rollback_action_button'        => 'Rollback',
 				'rollback_cancel_button'        => 'Cancel',
@@ -637,6 +620,8 @@ class Updater extends \StorePress\AdminUtils\Updater {
 				'rollback_success'              => 'Rollback success: %s rolled back to version %s.',
 				'rollback_plugin_not_available' => 'Plugin is not available.',
 				'rollback_no_access'            => 'Sorry, you are not allowed to rollback plugins for this site.',
+				'rollback_not_available'        => 'Rollback is not available for plugin: %s',
+				'rollback_no_target_version'    => 'Plugin version not selected.',
 			);
 		}
     
@@ -906,6 +891,12 @@ function updater_get_plugin( WP_REST_Request $request ) {
         'last_updated'   => '2023-12-12 09:58pm GMT+6',
         'package'        =>'https://updater.example.com/plugin.zip', // After license verified.
         'upgrade_notice' => 'Its Fine',
+        'changelog'      =>'Change log text',
+        'versions'       => [  
+                '1.0.0' => 'https://plugin-server.com/plugin-1.0.0.zip', 
+                '2.0.0' => 'https://plugin-server.com/plugin-2.0.0.zip' 
+        ], // Available versions
+       'allow_rollback'=>'yes', // yes | no // * REQUIRED for ROLLBACK
     );
     
     return rest_ensure_response( $data );
@@ -935,6 +926,7 @@ add_action( 'rest_api_init', function () {
  *                                   
  * @see Deactivation_Feedback::send_feedback()
  */
+ 
 function store_deactivate_data( WP_REST_Request $request ) {
     
     $params = $request->get_params();
