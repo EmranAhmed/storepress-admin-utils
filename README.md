@@ -584,24 +584,24 @@ class Updater extends \StorePress\AdminUtils\Updater {
 		 * @abstract
 		 *
 		 * @return array{
-		 *      'license_key_empty_message'     => string,
-		 *      'check_update_link_text'        => string,
-		 *      'rollback_changelog_title'      => string,
-		 *      'rollback_action_running'       => string,
-		 *      'rollback_action_button'        => string,
-		 *      'rollback_cancel_button'        => string,
-		 *      'rollback_current_version'      => string,
-		 *      'rollback_last_updated'         => string,
-		 *      'rollback_view_changelog'       => string,
-		 *      'rollback_page_title'           => string,
-		 *      'rollback_link_text'            => string,
-		 *      'rollback_failed'               => string,
-		 *      'rollback_success'              => string,
-		 *      'rollback_plugin_not_available' => string,
-		 *      'rollback_no_access'            => string,
-		 *      'rollback_not_available'        => string,
-		 *      'rollback_no_target_version'    => string,
-		 *  }
+		 *      license_key_empty_message     : string,
+		 *      check_update_link_text        : string,
+		 *      rollback_changelog_title      : string,
+		 *      rollback_action_running       : string,
+		 *      rollback_action_button        : string,
+		 *      rollback_cancel_button        : string,
+		 *      rollback_current_version      : string,
+		 *      rollback_last_updated         : string,
+		 *      rollback_view_changelog       : string,
+		 *      rollback_page_title           : string,
+		 *      rollback_link_text            : string,
+		 *      rollback_failed               : string,
+		 *      rollback_success              : string,
+		 *      rollback_plugin_not_available : string,
+		 *      rollback_no_access            : string,
+		 *      rollback_not_available        : string,
+		 *      rollback_no_target_version    : string,
+		 *  } Associative array of translatable strings with their default English values.
 		 */
 		public function localize_strings(): array {
 			return array(
@@ -625,7 +625,7 @@ class Updater extends \StorePress\AdminUtils\Updater {
 			);
 		}
     
-    // Without hostname. Host name will prepend from Update URI 
+    // Without hostname. Host name will prepend from Update URI Header.
     public function update_server_path(): string {
         return '/updater-api/wp-json/plugin-updater/v1/check-update';
     }
@@ -670,7 +670,7 @@ class Updater extends \StorePress\AdminUtils\Updater {
 				
 				'dont_know_about' => array(
 					'title' => esc_html__( 'I couldn\'t understand how to make it work.', 'text-domain' ),
-					'message' => __( 'Its Plugin A.', 'text-domain' ),
+					'message' => __( 'Its Your Plugin X.', 'text-domain' ),
 				),
 				
 				'no_longer_needed' => array(

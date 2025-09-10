@@ -259,28 +259,38 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 
 			$active_plugins = array();
 
-			foreach ( $wp['wp-plugins-active']['fields'] as $plugin ) {
-				$active_plugins[] = array(
-					'label' => $plugin['label'],
-					'value' => $plugin['value'],
+			$get_active_plugins         = (array) get_option( 'active_plugins', array() );
+			$get_network_active_plugins = (array) get_site_option( 'active_sitewide_plugins', array() );
+
+			$get_available_active_plugins = array_merge( $get_network_active_plugins, $get_active_plugins );
+
+			foreach ( $get_available_active_plugins as $plugin ) {
+				$plugin_data               = get_plugin_data( $this->get_plugin_file( $plugin ) );
+				$active_plugins[ $plugin ] = array(
+					'Name'      => esc_html( $plugin_data['Name'] ),
+					'PluginURI' => esc_url( $plugin_data['PluginURI'] ),
+					'Version'   => esc_html( $plugin_data['Version'] ),
+					'Author'    => strip_tags( $plugin_data['Author'] ), // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
+					'Slug'      => $plugin,
 				);
 			}
 
 			$request_body = array(
 				'feedback'  => array(
-					'basename'     => $plugin_name,
-					'version'      => $plugin_version,
-					'settings'     => $this->get_options(),
-					'reason_id'    => $reason_id,
-					'reason_title' => $reason_title,
-					'reason_text'  => $reason_text,
+					'reason_id'       => $reason_id,
+					'reason_title'    => $reason_title,
+					'reason_text'     => $reason_text,
+
+					'plugin_slug'     => $plugin_name,
+					'plugin_version'  => $plugin_version,
+					'plugin_settings' => $this->get_options(),
 				),
 				'wordpress' => array(
 					'version'          => $wp['wp-core']['fields']['version']['value'],
 					'site_language'    => $wp['wp-core']['fields']['site_language']['value'],
 					'user_language'    => $wp['wp-core']['fields']['user_language']['value'],
 					'site_url'         => $wp['wp-core']['fields']['site_url']['value'],
-					'multisite'        => $wp['wp-core']['fields']['multisite']['value'],
+					'is_multisite'     => $wp['wp-core']['fields']['multisite']['value'],
 					'environment_type' => $wp['wp-core']['fields']['environment_type']['value'],
 				),
 				'theme'     => array(
@@ -289,6 +299,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 					'author'         => $wp['wp-active-theme']['fields']['author']['value'],
 					'author_website' => $wp['wp-active-theme']['fields']['author_website']['value'],
 					'parent_theme'   => $wp['wp-active-theme']['fields']['parent_theme']['value'],
+					'theme_slug'     => basename( $wp['wp-active-theme']['fields']['theme_path']['value'] ),
 				),
 				'plugins'   => $active_plugins,
 				'database'  => array(

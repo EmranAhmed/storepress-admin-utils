@@ -580,8 +580,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 *     'upgrade_notice'=>'',
 		 *
-		 *     'upgrade_notice'=>['1.1.0'=>'Notice for this version', '1.2.0'=>'Notice for 1.2.0 version'],
-		 *
 		 *     'screenshots'=>[['src'=>'', 'caption'=>'' ], ['src'=>'', 'caption'=>''], ['src'=>'', 'caption'=>'']],
 		 *
 		 *     'tested'=>'x.x.x', // WP testes Version
