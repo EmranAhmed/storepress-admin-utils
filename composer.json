@@ -1,7 +1,7 @@
 {
 	"name" : "storepress/admin-utils",
 	"description" : "Utility Classes for WordPress Plugin Projects.",
-	"version" : "1.13.0",
+	"version" : "1.14.0",
 	"license" : "GPL-2.0-or-later",
 	"type" : "library",
 	"keywords" : [
@@ -20,21 +20,27 @@
 		}
 	],
 	"homepage" : "https://github.com/EmranAhmed/storepress-admin-utils#readme",
-	"minimum-stability" : "stable",
+	"minimum-stability" : "dev",
+	"prefer-stable" : true,
 	"require-dev" : {
-		"automattic/vipwpcs" : "^3.0.1",
-		"phpcompatibility/phpcompatibility-wp" : "^2.1.7",
-		"woocommerce/woocommerce-sniffs" : "^1.0.0",
+		"automattic/vipwpcs" : "^3.0",
+		"dealerdirect/phpcodesniffer-composer-installer" : "^1.0",
+		"phpcompatibility/php-compatibility" : "10.x-dev as 9.99.99",
+		"phpcompatibility/phpcompatibility-wp" : "^2.1",
+		"woocommerce/woocommerce-sniffs" : "^1.0.1",
 		"wp-cli/i18n-command" : "^v2.6.5",
 		"wp-coding-standards/wpcs" : "^3.2.0",
+		"phpstan/phpstan-deprecation-rules" : "^2.0.3",
+		"phpstan/phpstan" : "^2.1.32",
+		"squizlabs/php_codesniffer" : "^3.13.5",
 		"phpstan/extension-installer" : "^1.4.3",
-		"szepeviktor/phpstan-wordpress" : "^v2.0.2",
+		"szepeviktor/phpstan-wordpress" : "^v2.0.3",
 		"plugin-check/phpcs-sniffs" : "@dev"
 	},
 	"repositories" : [
 		{
 			"type" : "path",
-			"url" : "./wp-plugin-check",
+			"url" : "./vendor/plugin-check/phpcs-sniffs",
 			"options" : {
 				"symlink" : true
 			}
@@ -51,15 +57,22 @@
 		"sort-packages" : true,
 		"allow-plugins" : {
 			"dealerdirect/phpcodesniffer-composer-installer" : true,
-			"phpstan/extension-installer" : true
+			"phpstan/extension-installer" : true,
+			"composer/installers" : true
 		}
 	},
 	"scripts" : {
-		"phpstan" : "./vendor/bin/phpstan --memory-limit=2G",
-		"phpstan-report" : "./vendor/bin/phpstan --memory-limit=2G -vvv > phpstan-report.txt",
+		"phpstan" : "./vendor/bin/phpstan --memory-limit=4G",
+		"phpstan-report" : "./vendor/bin/phpstan --memory-limit=4G -vvv > phpstan-report.txt",
 		"format" : "./vendor/bin/phpcbf --standard=phpcs.xml",
 		"lint-report" : "./vendor/bin/phpcs --standard=phpcs.xml --report-summary --report-source --ignore-annotations --report-full=phpcs-report.txt",
-		"lint" : "./vendor/bin/phpcs --standard=phpcs.xml --report-summary --report-source"
+		"lint" : "./vendor/bin/phpcs --standard=phpcs.xml --report-summary --report-source",
+		"pre-install-cmd" : [
+			"npx gitget WordPress/plugin-check/phpcs-sniffs vendor/plugin-check/phpcs-sniffs"
+		],
+		"pre-update-cmd" : [
+			"npx gitget WordPress/plugin-check/phpcs-sniffs vendor/plugin-check/phpcs-sniffs"
+		]
 	},
 	"require" : {
 		"ext-json" : "*"

@@ -316,7 +316,7 @@ trait Common {
 		$empty_attributes = array(
 			'allowfullscreen',
 			'autofocus',
-			'checked',
+			// 'checked',
 			'default',
 			'formnovalidate',
 			'inert',
@@ -324,7 +324,7 @@ trait Common {
 			'multiple',
 			'required',
 			'open',
-			'selected',
+			// 'selected',
 			'hidden',
 			'contenteditable',
 			'draggable',

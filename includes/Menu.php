@@ -401,7 +401,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		 * @return boolean
 		 */
 		public function is_submenu(): bool {
-			return str_contains( $this->get_parent_slug(), '.php' );
+			return false !== strpos( $this->get_parent_slug(), '.php' );
 		}
 
 		/**

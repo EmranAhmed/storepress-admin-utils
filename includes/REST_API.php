@@ -316,7 +316,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 * @return array<string, mixed> Item schema data.
 		 */
 		public function get_item_schema(): array {
-			if ( $this->is_empty_array( (array) $this->schema ) ) {
+			if ( is_array( $this->schema ) && $this->is_empty_array( $this->schema ) ) {
 				return $this->add_additional_fields_schema( $this->schema );
 			}
 

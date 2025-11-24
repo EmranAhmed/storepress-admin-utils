@@ -16,7 +16,14 @@
 trait Package {
 	use Plugin;
 
-	const string ASSET_PATH = 'vendor/storepress/admin-utils/build';
+	/**
+	 * Get Admin Utility Asset Path.
+	 *
+	 * @return string
+	 */
+	public function get_assets_path(): string {
+		return 'vendor/storepress/admin-utils/build';
+	}
 
 	/**
 	 * Get script handle.
@@ -55,12 +62,12 @@ trait Package {
 		$url  = untrailingslashit( plugin_dir_url( $this->get_plugin_file() ) );
 		$path = untrailingslashit( plugin_dir_path( $this->get_plugin_file() ) );
 
-		$js_file    = sprintf( '%s/%s/%s.js', $path, self::ASSET_PATH, $filename );
-		$asset_file = sprintf( '%s/%s/%s.asset.php', $path, self::ASSET_PATH, $filename );
-		$js_url     = sprintf( '%s/%s/%s.js', $url, self::ASSET_PATH, $filename );
+		$js_file    = sprintf( '%s/%s/%s.js', $path, $this->get_assets_path(), $filename );
+		$asset_file = sprintf( '%s/%s/%s.asset.php', $path, $this->get_assets_path(), $filename );
+		$js_url     = sprintf( '%s/%s/%s.js', $url, $this->get_assets_path(), $filename );
 
-		$css_file = sprintf( '%s/%s/%s.css', $path, self::ASSET_PATH, $filename );
-		$css_url  = sprintf( '%s/%s/%s.css', $url, self::ASSET_PATH, $filename );
+		$css_file = sprintf( '%s/%s/%s.css', $path, $this->get_assets_path(), $filename );
+		$css_url  = sprintf( '%s/%s/%s.css', $url, $this->get_assets_path(), $filename );
 
 		$handle = $this->get_package_script_handle( $filename );
 
@@ -131,9 +138,9 @@ trait Package {
 		$url  = untrailingslashit( plugin_dir_url( $this->get_plugin_file() ) );
 		$path = untrailingslashit( plugin_dir_path( $this->get_plugin_file() ) );
 
-		$js_file    = sprintf( '%s/%s/storepress-utils.js', $path, self::ASSET_PATH );
-		$asset_file = sprintf( '%s/%s/storepress-utils.asset.php', $path, self::ASSET_PATH );
-		$js_url     = sprintf( '%s/%s/storepress-utils.js', $url, self::ASSET_PATH );
+		$js_file    = sprintf( '%s/%s/storepress-utils.js', $path, $this->get_assets_path() );
+		$asset_file = sprintf( '%s/%s/storepress-utils.asset.php', $path, $this->get_assets_path() );
+		$js_url     = sprintf( '%s/%s/storepress-utils.js', $url, $this->get_assets_path() );
 
 		if ( ! file_exists( $asset_file ) ) {
 			$message = sprintf( 'File: "%s" not found.', $asset_file );
