@@ -36,7 +36,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Plugin_Rollback' ) ) {
 		 *                                    Default true.
 		 * }
 		 * @return bool|\WP_Error True if the upgrade was successful, false or a WP_Error object otherwise.
-		 * @since 2.8.0
+		 * @since 1.13.0
 		 *
 		 * @see bulk_upgrade
 		 */

@@ -83,12 +83,81 @@ trait Common {
 	}
 
 	/**
-	 * Create HTML Attributes from given array
+	 * Generates a space-separated string of HTML attributes from an associative array.
 	 *
-	 * @param array<string, mixed> $attributes Attribute array.
-	 * @param string[]             $exclude    Exclude attribute. Default array.
+	 * Processes attribute values based on their type:
+	 * - Boolean true: Renders as boolean attribute (name only, no value)
+	 * - Boolean false/null/empty string: Skipped entirely
+	 * - Array for 'class' attribute: Processed through get_css_classes()
+	 * - Array for other attributes: JSON encoded
+	 * - String/numeric: Rendered as name="value"
 	 *
-	 * @return string
+	 * All attribute names and values are escaped using esc_attr() for security.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<string, mixed> $attributes Associative array of attribute names and values.
+	 *        - string keys: Attribute names.
+	 *        - values: Attribute values (type determines rendering behavior).
+	 * @param string[]             $exclude Optional. List of attribute names to exclude from output. Default empty array.
+	 *
+	 * @return string Space-separated string of HTML attributes ready for use in markup.
+	 *
+	 * @example Basic usage with common attributes
+	 * ```php
+	 * $attributes = [
+	 *     'id'          => 'my-element',
+	 *     'class'       => 'btn btn-primary',
+	 *     'href'        => 'https://example.com',
+	 *     'target'      => '_blank',
+	 *     'tabindex'    => 0,
+	 * ];
+	 *
+	 * $attrs = $this->get_html_attributes($attributes);
+	 * // Returns: 'id="my-element" class="btn btn-primary" href="https://example.com" target="_blank" tabindex="0"
+	 *
+	 * // Usage in markup:
+	 * // <a <?php echo $attrs; ?>>Link</a>
+	 * ```
+	 *
+	 * @example Boolean attributes and value filtering
+	 * ```php
+	 * $is_disabled = true;
+	 * $is_readonly = false;
+	 * $custom_attr = null;
+	 *
+	 * $attributes = [
+	 *     'type'        => 'text',
+	 *     'name'        => 'username',
+	 *     'disabled'    => $is_disabled,  // Added as boolean attribute
+	 *     'readonly'    => $is_readonly,  // Skipped (false)
+	 *     'placeholder' => $custom_attr,  // Skipped (null)
+	 *     'required'    => true,          // Added as boolean attribute
+	 *     'value'       => '',            // Skipped (empty string)
+	 * ];
+	 *
+	 * $attrs = $this->get_html_attributes($attributes);
+	 * // Returns: 'type="text" name="username" disabled required'
+	 * ```
+	 *
+	 * @example Array values, data attributes, and exclusions
+	 * ```php
+	 * $attributes = [
+	 *     'id'          => 'interactive-block',
+	 *     'class'       => ['wp-block', 'is-active' => true, 'is-hidden' => false],
+	 *     'data-config' => ['api' => '/wp-json/', 'timeout' => 5000],
+	 *     'data-items'  => [1, 2, 3],
+	 *     'style'       => 'color:red',
+	 *     'aria-label'  => 'Interactive element',
+	 * ];
+	 *
+	 * // Exclude 'style' and 'aria-label' from output
+	 * $attrs = $this->get_html_attributes($attributes, ['style', 'aria-label']);
+	 * // Returns: 'id="interactive-block" class="wp-block is-active" data-config="{&quot;api&quot;:&quot;\/wp-json\/&quot;,&quot;timeout&quot;:5000}" data-items="[1,2,3]"'
+	 *
+	 * // Note: 'class' array is processed via get_css_classes()
+	 * // Note: Other arrays are JSON encoded for data attributes
+	 * ```
 	 */
 	public function get_html_attributes( array $attributes, array $exclude = array() ): string {
 		$attrs = array();
@@ -147,58 +216,237 @@ trait Common {
 	}
 
 	/**
-	 * Array to css class.
+	 * Generates a space-separated string of CSS classes from various input formats.
 	 *
-	 * @param array<int|string, ?mixed> $classes_array css classes array.
+	 * Accepts multiple arguments of mixed types and intelligently processes them:
+	 * - Strings are added directly as class names
+	 * - Arrays with numeric keys treat values as class names
+	 * - Arrays with string keys treat keys as class names when values are truthy
 	 *
-	 * @return string
-	 * @since  1.0.0
-	 * @example
-	 * <code>
-	 *   ['class-a', 'class-b']
-	 *   // or
-	 *   ['class-a'=>true, 'class-b'=>false, 'class-c'=>'', 'class-e'=>null, 'class-d'=>'hello']
-	 * </code>
+	 * @since 1.0.0
+	 *
+	 * @param string|array<int|string, string|bool|array<mixed>|null> ...$css_classes_args Variable number of arguments.
+	 *        Each argument can be:
+	 *        - string: Added directly if non-empty.
+	 *        - array: Processed based on key type:
+	 *          - Numeric keys: Values are added as class names if they're non-empty strings.
+	 *          - String keys: Keys are added as class names if values are truthy.
+	 *            (not false, not null, not empty string, not empty array).
+	 *
+	 * @return string Space-separated string of unique CSS class names.
+	 *
+	 * @example Basic usage with strings and arrays
+	 * ```php
+	 * // Simple strings
+	 * $classes = $this->get_css_classes('btn', 'btn-primary');
+	 * // Returns: 'btn btn-primary'
+	 *
+	 * // Array with numeric keys (list of classes)
+	 * $classes = $this->get_css_classes(['card', 'card-body', 'shadow']);
+	 * // Returns: 'card card-body shadow'
+	 * ```
+	 *
+	 * @example Conditional classes using associative arrays
+	 * ```php
+	 * $is_active   = true;
+	 * $is_disabled = false;
+	 * $has_icon    = 'left';
+	 *
+	 * $classes = $this->get_css_classes(
+	 *     'btn',
+	 *     [
+	 *         'is-active'   => $is_active,    // Added (true)
+	 *         'is-disabled' => $is_disabled,  // Skipped (false)
+	 *         'has-icon'    => $has_icon,     // Added (truthy string)
+	 *         'is-loading'  => null,          // Skipped (null)
+	 *     ]
+	 * );
+	 * // Returns: 'btn is-active has-icon'
+	 * ```
+	 *
+	 * @example Complex mixed arguments
+	 * ```php
+	 * $block_classes = ['wp-block', 'alignwide'];
+	 * $user_class    = 'custom-class';
+	 * $is_featured   = true;
+	 * $extra_classes = [];
+	 *
+	 * $classes = $this->get_css_classes(
+	 *     'base-block',
+	 *     $block_classes,
+	 *     $user_class,
+	 *     [
+	 *         'is-featured'    => $is_featured,   // Added
+	 *         'has-extras'     => $extra_classes, // Skipped (empty array)
+	 *         'custom-variant' => '',             // Skipped (empty string)
+	 *     ],
+	 *     ['duplicate', 'wp-block'] // Duplicates are removed
+	 * );
+	 * // Returns: 'base-block wp-block alignwide custom-class is-featured duplicate'
+	 * ```
 	 */
-	public function get_css_classes( array $classes_array = array() ): string {
+	public function get_css_classes( ...$css_classes_args ): string {
 		$classes = array();
-		foreach ( $classes_array as $class_name => $should_include ) {
-			// Is class assign by numeric array. Like: ['class-a', 'class-b'].
-			if ( is_int( $class_name ) ) {
-				if ( ! is_string( $should_include ) ) {
+
+		foreach ( $css_classes_args as $arg ) {
+			if ( is_string( $arg ) && ! $this->is_empty_string( $arg ) ) {
+				$classes[] = $arg;
+				continue;
+			}
+
+			if ( ! is_array( $arg ) ) {
+				continue;
+			}
+
+			foreach ( $arg as $key => $value ) {
+				if ( is_int( $key ) ) {
+					if ( is_string( $value ) && ! $this->is_empty_string( $value ) ) {
+						$classes[] = $value;
+					}
 					continue;
 				}
 
-				if ( $this->is_empty_string( $should_include ) ) {
+				if ( false === $value || null === $value ) {
 					continue;
 				}
 
-				$classes[] = $should_include;
-				continue;
-			}
+				if ( is_string( $value ) && $this->is_empty_string( $value ) ) {
+					continue;
+				}
 
-			if ( false === $should_include ) {
-				continue;
-			}
+				if ( is_array( $value ) && $this->is_empty_array( $value ) ) {
+					continue;
+				}
 
-			if ( is_string( $should_include ) && $this->is_empty_string( $should_include ) ) {
-				continue;
+				$classes[] = $key;
 			}
-
-			if ( is_null( $should_include ) ) {
-				continue;
-			}
-
-			if ( is_array( $should_include ) && $this->is_empty_array( $should_include ) ) {
-				continue;
-			}
-
-			// Is class assign by associative array.
-			// Like: ['class-a'=>true, 'class-b'=>false, class-c'=>'', 'class-d'=>'hello', 'class-x'=>null, 'class-y'=>array()].
-			$classes[] = $class_name;
 		}
 
 		return implode( ' ', array_unique( $classes ) );
+	}
+
+	/**
+	 * Generates a semicolon-separated string of inline CSS styles from various input formats.
+	 *
+	 * Accepts multiple arguments of mixed types and intelligently processes them:
+	 * - Strings are added directly as raw style declarations
+	 * - Arrays with numeric keys treat values as raw style declarations
+	 * - Arrays with string keys treat keys as CSS properties and values as property values
+	 *
+	 * Later property declarations override earlier ones when using associative arrays,
+	 * allowing for easy default/override patterns.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|array<int|string, string|int|float|null|bool|array<mixed>> ...$inline_styles_args Variable number of arguments.
+	 *        Each argument can be:
+	 *        - string: Added directly as a raw style declaration if non-empty.
+	 *        - array: Processed based on key type:
+	 *          - Numeric keys: Values are added as raw style declarations if they're non-empty strings.
+	 *          - String keys: Keys are used as CSS properties, values as property values.
+	 *            (null, bool, array, and empty string values are skipped).
+	 *
+	 * @return string Semicolon-separated string of CSS style declarations.
+	 *                Property names and values are escaped using esc_attr().
+	 *
+	 * @example Basic usage with strings and arrays
+	 * ```php
+	 * // Raw style string
+	 * $styles = $this->get_inline_styles('color:red;font-size:14px');
+	 * // Returns: 'color:red;font-size:14px'
+	 *
+	 * // Associative array of properties
+	 * $styles = $this->get_inline_styles([
+	 *     'color'       => 'blue',
+	 *     'font-size'   => '16px',
+	 *     'font-weight' => 'bold',
+	 * ]);
+	 * // Returns: 'color:blue;font-size:16px;font-weight:bold'
+	 * ```
+	 *
+	 * @example Conditional styles with value filtering
+	 * ```php
+	 * $custom_color  = '#ff5733';
+	 * $custom_margin = null;
+	 * $is_visible    = true;
+	 *
+	 * $styles = $this->get_inline_styles([
+	 *     'background-color' => $custom_color,   // Added
+	 *     'margin'           => $custom_margin,  // Skipped (null)
+	 *     'display'          => $is_visible,     // Skipped (bool)
+	 *     'padding'          => '',              // Skipped (empty string)
+	 *     'opacity'          => 0.8,             // Added (numeric value)
+	 *     'z-index'          => 10,              // Added (integer value)
+	 * ]);
+	 * // Returns: 'background-color:#ff5733;opacity:0.8;z-index:10'
+	 * ```
+	 *
+	 * @example Merging defaults with overrides
+	 * ```php
+	 * $default_styles = [
+	 *     'color'      => 'black',
+	 *     'font-size'  => '14px',
+	 *     'padding'    => '10px',
+	 * ];
+	 *
+	 * $user_styles = [
+	 *     'color'         => 'navy',      // Overrides default
+	 *     'border-radius' => '4px',       // New property
+	 * ];
+	 *
+	 * $raw_style = 'text-transform:uppercase';
+	 *
+	 * $styles = $this->get_inline_styles(
+	 *     $default_styles,
+	 *     $user_styles,
+	 *     $raw_style,
+	 *     ['line-height:1.5'] // Numeric array with raw declaration
+	 * );
+	 * // Returns: 'text-transform:uppercase;line-height:1.5;color:navy;font-size:14px;padding:10px;border-radius:4px'
+	 * // Note: Raw strings appear first, then merged associative properties (later values override earlier)
+	 * ```
+	 */
+	public function get_inline_styles( ...$inline_styles_args ): string {
+		$merged = array();
+		$styles = array();
+
+		foreach ( $inline_styles_args as $styles_array ) {
+
+			if ( is_string( $styles_array ) && ! $this->is_empty_string( $styles_array ) ) {
+				$styles[] = $styles_array;
+				continue;
+			}
+
+			if ( ! is_array( $styles_array ) ) {
+				continue;
+			}
+
+			foreach ( $styles_array as $property => $value ) {
+
+				if ( is_int( $property ) ) {
+					if ( is_string( $value ) && ! $this->is_empty_string( $value ) ) {
+						$styles[] = $value;
+					}
+					continue;
+				}
+
+				if ( is_null( $value ) || is_bool( $value ) || is_array( $value ) ) {
+					continue;
+				}
+
+				if ( is_string( $value ) && $this->is_empty_string( $value ) ) {
+					continue;
+				}
+
+				$merged[ $property ] = $value;
+			}
+		}
+
+		foreach ( $merged as $property => $value ) {
+			$styles[] = sprintf( '%s:%s', esc_attr( $property ), esc_attr( $value ) );
+		}
+
+		return implode( ';', $styles );
 	}
 
 	/**
@@ -210,45 +458,6 @@ trait Common {
 	 */
 	public function is_empty_array( array $check_value = array() ): bool {
 		return 0 === count( $check_value );
-	}
-
-	/**
-	 * Generate Inline Style from array
-	 *
-	 * @param array<string, mixed> $inline_styles_array Inline style as array.
-	 *
-	 * @return string
-	 * @since  1.0.0
-	 */
-	public function get_inline_styles( array $inline_styles_array = array() ): string {
-		$styles = array();
-
-		foreach ( $inline_styles_array as $property => $value ) {
-
-			if ( is_null( $value ) ) {
-				continue;
-			}
-
-			if ( is_bool( $value ) ) {
-				continue;
-			}
-
-			if ( is_array( $value ) ) {
-				continue;
-			}
-
-			if ( is_string( $value ) && $this->is_empty_string( $value ) ) {
-				continue;
-			}
-
-			$styles[] = sprintf(
-				'%s: %s;',
-				esc_attr( $property ),
-				esc_attr( $value )
-			);
-		}
-
-		return implode( ' ', array_unique( $styles ) );
 	}
 
 	/**
@@ -304,7 +513,7 @@ trait Common {
 	}
 
 	/**
-	 * Preapre KSES Arguments.
+	 * Prepare KSES Arguments.
 	 *
 	 * @param array<string, mixed> $tags Allowed Tags.
 	 *
@@ -313,10 +522,12 @@ trait Common {
 	 */
 	public function prepare_kses_args( array $tags = array() ): array {
 
+		// DO NOT ADD: "checked" or "selected" as empty attribute.
+		// WP checked and selected function return is not empty attribute.
+
 		$empty_attributes = array(
 			'allowfullscreen',
 			'autofocus',
-			// 'checked',
 			'default',
 			'formnovalidate',
 			'inert',
@@ -324,7 +535,6 @@ trait Common {
 			'multiple',
 			'required',
 			'open',
-			// 'selected',
 			'hidden',
 			'contenteditable',
 			'draggable',
@@ -500,5 +710,39 @@ trait Common {
 		}
 
 		return $new_args;
+	}
+
+	/**
+	 * Checks whether a given array is a list or numeric array without custom index.
+	 * An array is considered a list if its keys consist of consecutive numbers from `0 to count($array)-1`
+	 *
+	 * @param array<int|string, ?mixed> $items Check array.
+	 *
+	 * @return bool
+	 * @example
+	 *             <code>
+	 *             array_is_list([]); // true
+	 *             array_is_list(['apple', 2, 3]); // true
+	 *             array_is_list([0 => 'apple', 'orange']); // true
+	 *
+	 *             // The array does not start at 0
+	 *              array_is_list([1 => 'apple', 'orange']); // false
+	 *
+	 *              // The keys are not in the correct order
+	 *              array_is_list([1 => 'apple', 0 => 'orange']); // false
+	 *
+	 *              // Non-integer keys
+	 *              array_is_list([0 => 'apple', 'foo' => 'bar']); // false
+	 *
+	 *              // Non-consecutive keys
+	 *              array_is_list([0 => 'apple', 2 => 'bar']); // false
+	 *         </code>
+	 */
+	public function array_is_list( array $items ): bool {
+		if ( function_exists( 'array_is_list' ) ) {
+			return array_is_list( $items );
+		}
+
+		return array_values( $items ) === $items;
 	}
 }
