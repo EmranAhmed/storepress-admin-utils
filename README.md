@@ -85,6 +85,7 @@ add_action( 'plugins_loaded', function () {
     if ( ! is_admin() ) {
         print_r( $settings->get_option( 'input' ) );
         print_r( $settings->get_option( 'input', 'default' ) );
+        print_r( $settings->get_group_option( 'group_id', 'input', 'default' ) );
     }
 } );
 ```
@@ -142,7 +143,7 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
         return __FILE__;
     }
     
-    public function get_default_sidebar() {
+    public function get_default_sidebar(): void {
         echo 'Default sidebar';
     }
     
@@ -160,16 +161,26 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     
     // Settings and Rest API Display Capability. Default is: manage_options
     public function capability(): string {
-    return 'edit_posts';
+        return 'edit_posts';
+    }
+    
+    // Only Rest API Display Capability. Default is: capability(). return empty for no capability to get data.
+    public function rest_get_capability(): string {
+        return 'edit_posts';
     }
     
     // Change rest api version. Default is: v1
     public function rest_api_version(): string {
-    return 'v2';
+        return 'v2';
+    }
+    
+    // Change rest api base. Default is: settings
+    public function rest_api_base(): string {
+        return 'settings';
     }
     
     // Adding custom scripts.
-    public function enqueue_scripts() {
+    public function enqueue_scripts(): void {
         parent::enqueue_scripts();
         if ( $this->has_field_type( 'wc-enhanced-select' ) ) {
             wp_enqueue_style( 'woocommerce_admin_styles' );
@@ -183,7 +194,7 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     }
     
     // Task: 02
-    public function process_actions($current_action){
+    public function process_actions($current_action): void{
     
         parent::process_actions($current_action);
       
@@ -193,7 +204,7 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     }
     
     // Task: 03
-    public function process_action_custom(){
+    public function process_action_custom(): void{
         check_admin_referer( $this->get_nonce_action() );
         
         
@@ -207,7 +218,7 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
     }
     
     // Task: 04
-    public function settings_messages(){
+    public function settings_messages(): void{
       
       parent::settings_messages();
       
@@ -439,7 +450,7 @@ array(
 )
 ```
 
-### Field data structure
+### Field data options
 
 ```php
 <?php
@@ -450,7 +461,12 @@ array(
     'title'       => 'Input Label',
     
     // Optional.
-    'full_width' => true, // To make field full width.
+    'full_width' => true, // To make field full width. Just remove this key if do not want to use.
+    
+    'add_tag' => "PRO", // Add TAG
+    'add_tag' => array("PRO", 'BACKGROUND COLOR'), // Add PRO Label
+    'add_tag' => array("BETA", 'BACKGROUND COLOR', 'TEXT COLOR'), // Add PRO Label
+    
     'description' => 'Input field description',
     
     'default'       => 'Hello World', //  default value can be string or array
@@ -465,13 +481,15 @@ array(
     'multiple'    => true, // for select box 
     'class'       => array( 'large-text', 'code', 'custom-class' ),
     'tooltip'     => 'Textarea Help tooltip',
-    'condition'   =>array('selector'=>'#input2'),
-    'condition'   =>array('selector'=>'#input2', 'value'=>'hello'),
-    'units'       =>array('px', '%', 'em', 'rem'), // For unit type
+    'condition'   => array( 'selector'=>'#input2' ), // Conditional field, show or hide based on other input value.
+    'condition'   => array( 'selector'=>'#input2', 'value'=>'hello' ),
+    'units'       => array('px', '%', 'em', 'rem'), // For unit type
 
     'sanitize_callback'=>'absint', // Use custom sanitize function. Default is: sanitize_text_field.
-    'show_in_rest'    => false, // Hide from rest api field. Default is: true
-    'show_in_rest'    => array('name'=>'custom_rest_id'), // Change field id on rest api.
+    'show_in_rest'    => true, // Hide from rest api field. Default is: true
+    'show_in_rest'    => 'custom_rest_id', // Change field id on rest api.
+    'show_in_rest'    => array( 'name'=>'custom_rest_id' ), // Change field id on rest api.
+    'show_in_rest'    => array( 'name'=>'custom_rest_id', 'schema'=>array() ), // Add input schema for REST Api. See: https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/
     // Options array for select, radio and checkbox [key=>value]
     // If checkbox have no options or value, default will be yes|no
     'options' => array(
@@ -502,6 +520,43 @@ class Settings extends AdminSettings {
 ### REST API
 
 - URL will be: `/wp-json/<page_id>/<rest_api_version>/settings`
+- Default IS: `/wp-json/<page_id>/v1/settings`
+- Example: `/wp-json/plugin-a/v1/settings`
+
+```js
+import { select } from '@wordpress/data';
+
+// For a single record (no ID needed if your endpoint returns one object)
+const settings = select( 'core' ).getEntityRecord( '<parent_menu>', '<page_id>' );
+
+// Or use the resolver hook in a component
+import { useEntityRecord } from '@wordpress/core-data';
+
+function MyComponent() {
+  const { record, isResolving } = useEntityRecord( 'storepress', '<page_id>' );
+
+  if ( isResolving ) return <p>Loading...</p>;
+
+  return <div>{ record?.['field-text'] }</div>;
+}
+```
+
+NOTE: If parent menu is a page like:
+
+```php
+public function parent_menu(): string {
+		return 'edit.php?post_type=wporg_product';
+}
+```
+
+It will create like:
+
+```js
+select( 'core' ).getEntityRecord( '<show_in_rest>', '<rest_api_base>' );
+select( 'core' ).getEntityRecord( 'plugin-name/v1', 'settings' );
+```
+
+- See: [@wordpress/core-data](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-core-data/)
 
 ### Upgrade Notice
 

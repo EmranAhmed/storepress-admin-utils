@@ -23,10 +23,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 	 */
 	abstract class Settings extends Menu {
 
-
 		use Plugin;
 		use Package;
-
 
 		/**
 		 * Fields callback function name convention.
@@ -34,18 +32,21 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @var string $fields_callback_fn_name_convention
 		 */
 		private string $fields_callback_fn_name_convention = 'add_%s_settings_fields';
+
 		/**
 		 * Sidebar callback function name convention.
 		 *
 		 * @var string $sidebar_callback_fn_name_convention
 		 */
 		private string $sidebar_callback_fn_name_convention = 'add_%s_settings_sidebar';
+
 		/**
 		 * Page callback function name convention.
 		 *
 		 * @var string $page_callback_fn_name_convention
 		 */
 		private string $page_callback_fn_name_convention = 'add_%s_settings_page';
+
 		/**
 		 * Store All Saved Options
 		 *
@@ -61,25 +62,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		abstract public function settings_id(): string;
 
 		/**
-		 * Show Settings in REST. If empty or false rest api will disable.
-		 *
-		 * @return string|bool
-		 * @example GET: /wp-json/<page-id>/<rest-api-version>/settings
-		 */
-		public function show_in_rest() {
-			return sprintf( '%s/%s', $this->get_page_id(), $this->rest_api_version() );
-		}
-
-		/**
-		 * Rest API version
-		 *
-		 * @return string
-		 */
-		public function rest_api_version(): string {
-			return 'v1';
-		}
-
-		/**
 		 * Control displaying reset button.
 		 *
 		 * @return bool
@@ -93,7 +75,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		final public function settings_init() {
+		final public function settings_init(): void {
 			add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
 			add_filter( 'plugin_action_links_' . $this->get_plugin_basename(), array( $this, 'plugin_action_links' ), 15 );
 		}
@@ -103,7 +85,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		final public function settings_actions() {
+		final public function settings_actions(): void {
 
 			if ( is_null( $this->http_request_var( 'action' ) ) || $this->http_get_var( 'page' ) !== $this->get_current_page_slug() ) {
 				return;
@@ -128,7 +110,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @example GET /wp-json/<page-id>/<rest-api-version>/settings
 		 * @return void
 		 */
-		public function rest_api_init() {
+		public function rest_api_init(): void {
 			( new REST_API( $this ) )->register_routes();
 		}
 
@@ -157,7 +139,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		public function register_admin_scripts() {
+		public function register_admin_scripts(): void {
 
 			if ( ! $this->is_admin_page() ) {
 				return;
@@ -172,7 +154,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		public function enqueue_scripts() {
+		public function enqueue_scripts(): void {
 
 			$this->enqueue_package_scripts( 'settings' );
 
@@ -244,6 +226,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @abstract
 		 * @return array<string, mixed>
+		 * @throws \WP_Exception Throw exception if this method is not implemented in subclass.
 		 */
 		public function add_settings(): array {
 
@@ -267,11 +250,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		final public function display_sidebar() {
+		final public function display_sidebar(): void {
 			$tab_sidebar = $this->get_tab_sidebar();
 			// Load sidebar based on callback.
 			if ( is_callable( $tab_sidebar ) ) {
-				call_user_func( $tab_sidebar );
+				$tab_sidebar();
 			} else {
 				// Load default sidebar.
 				$this->get_default_sidebar();
@@ -295,7 +278,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @abstract
 		 * @return void
 		 */
-		public function get_default_sidebar() {
+		public function get_default_sidebar(): void {
 			$current_tab       = $this->get_current_tab();
 			$callback_function = sprintf( $this->sidebar_callback_fn_name_convention, $current_tab );
 
@@ -310,7 +293,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		final public function display_fields() {
+		final public function display_fields(): void {
 			$fields_callback = $this->get_tab_fields_callback();
 			$page_callback   = $this->get_tab_page_callback();
 			$current_tab     = $this->get_current_tab();
@@ -322,7 +305,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			$this->check_unique_field_ids();
 
 			if ( is_callable( $fields_callback ) ) {
-				$get_fields = call_user_func( $fields_callback );
+				$get_fields = $fields_callback();
 
 				if ( is_array( $get_fields ) ) {
 
@@ -346,7 +329,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		public function display_buttons() {
+		public function display_buttons(): void {
 			$submit_button      = get_submit_button( '', 'primary large', 'submit', false, '' );
 			$reset_button       = $this->get_reset_button();
 			$allowed_input_html = $this->get_kses_allowed_input_html();
@@ -395,11 +378,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		final public function display_page() {
+		final public function display_page(): void {
 			$callback = $this->get_tab_page_callback();
 
 			if ( is_callable( $callback ) ) {
-				call_user_func( $callback );
+				$callback();
 			}
 		}
 
@@ -528,7 +511,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		private function check_unique_field_ids() {
+		private function check_unique_field_ids(): void {
 			$tabs = $this->get_tabs();
 
 			$_field_keys = array();
@@ -538,7 +521,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				$fields_callback = $tab['fields_callback'];
 
 				if ( is_callable( $fields_callback ) ) {
-					$fields = call_user_func( $fields_callback );
+					$fields = $fields_callback();
 					/**
 					 * Fields.
 					 *
@@ -564,15 +547,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			}
 		}
 
-
-		// used on ui template.
+		// USED ON UI TEMPLATE.
 
 		/**
 		 * Display tabs. Used on UI template.
 		 *
 		 * @return void
 		 */
-		final public function display_tabs() {
+		final public function display_tabs(): void {
 			echo wp_kses_post( implode( '', $this->get_navs() ) );
 		}
 
@@ -690,8 +672,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @see https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/#naming-conventions
 		 * @return void
 		 */
-		public function display_settings_page() {
-			include_once __DIR__ . '/templates/classic-template.php';
+		public function display_settings_page(): void {
+			include_once __DIR__ . '/../templates/classic-template.php';
 		}
 
 		/**
@@ -701,7 +683,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		public function process_actions( string $current_action ) {
+		public function process_actions( string $current_action ): void {
 
 			if ( 'update' === $current_action ) {
 				$this->process_action_update();
@@ -718,7 +700,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @see wp_removable_query_args()
 		 * @return void
 		 */
-		public function process_action_update() {
+		public function process_action_update(): void {
 
 			check_admin_referer( $this->get_nonce_action() );
 
@@ -753,7 +735,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @see wp_removable_query_args()
 		 * @return void
 		 */
-		public function process_action_reset() {
+		public function process_action_reset(): void {
 
 			check_admin_referer( $this->get_nonce_action() );
 
@@ -789,7 +771,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 * @see wp_removable_query_args()
 		 * @return void
 		 */
-		public function settings_messages() {
+		public function settings_messages(): void {
 
 			// We are just checking message request from uri redirect.
 			if ( ! $this->get_message_query_arg_value() ) {
@@ -844,7 +826,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		private function update_options( array $data ) {
+		private function update_options( array $data ): void {
 
 			$old_data = $this->get_options();
 
@@ -872,7 +854,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		public function get_option( string $field_id, $default_value = null ) {
 			$field = $this->get_field( $field_id );
 
-			return $field->get_value( $default_value );
+			return $field ? $field->get_value( $default_value ) : $default_value;
 		}
 
 		/**
@@ -887,7 +869,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		public function get_group_option( string $group_id, string $field_id, $default_value = null ) {
 			$field = $this->get_field( $group_id );
 
-			return $field->get_group_value( $field_id, $default_value );
+			return $field ? $field->get_group_value( $field_id, $default_value ) : $default_value;
 		}
 
 		/**
@@ -899,7 +881,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			$field_cb         = $this->get_tab_fields_callback();
 			$available_fields = array();
 			if ( is_callable( $field_cb ) ) {
-				$fields = call_user_func( $field_cb );
+				$fields = $field_cb();
 				/**
 				 * Field
 				 *
@@ -1028,7 +1010,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		public function settings_page_init() {
+		public function settings_page_init(): void {
 			$this->enqueue_scripts();
 			$this->settings_messages();
 		}
@@ -1038,7 +1020,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 *
 		 * @return void
 		 */
-		final public function display_settings_messages() {
+		final public function display_settings_messages(): void {
 			settings_errors( $this->get_current_page_slug() );
 		}
 
@@ -1055,42 +1037,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 			add_settings_error( $this->get_current_page_slug(), sprintf( '%s_message', $this->get_settings_id() ), $message, $type );
 
 			return $this;
-		}
-
-		/**
-		 * Parent menu slug.
-		 *
-		 * @return string Parent Menu Slug
-		 */
-		public function parent_menu(): string {
-			return 'storepress';
-		}
-
-		/**
-		 * Get settings capability.
-		 *
-		 * @return string
-		 */
-		public function capability(): string {
-			return 'manage_options';
-		}
-
-		/**
-		 * Menu position.
-		 *
-		 * @return int
-		 */
-		public function menu_position(): int {
-			return 45;
-		}
-
-		/**
-		 * Menu Icon.
-		 *
-		 * @return string
-		 */
-		public function menu_icon(): string {
-			return 'dashicons-admin-settings';
 		}
 
 		/**

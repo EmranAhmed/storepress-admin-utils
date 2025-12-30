@@ -36,6 +36,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		 * @var array<string, object>
 		 */
 		private array $sections = array();
+
 		/**
 		 * Last section ID.
 		 *
@@ -128,7 +129,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		 * @return string
 		 */
 		public function get_section_id(): string {
-			return uniqid( 'section-' );
+			return wp_unique_prefixed_id( 'section-' );
 		}
 
 		/**
@@ -156,7 +157,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Fields' ) ) {
 		 *
 		 * @return void
 		 */
-		public function display() {
+		public function display(): void {
 
 			$allowed_input_html = $this->get_kses_allowed_input_html( $this->get_settings()->allowed_tags() );
 			$allowed_html       = $this->get_kses_allowed_html( $this->get_settings()->allowed_tags() );

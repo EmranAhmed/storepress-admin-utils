@@ -36,7 +36,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 		 *
 		 * @return void
 		 */
-		public function init() {
+		public function init(): void {
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 20 );
 			add_action( 'admin_footer', array( $this, 'markup' ), 20 );
 		}
@@ -92,7 +92,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 		}
 
 		/**
-		 * Load Template?
+		 * Has Capability ti Load Template.
 		 *
 		 * @return bool
 		 */
@@ -120,17 +120,18 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 		 * Get Dialog Button.
 		 *
 		 * @return array<int, mixed>
+		 * @throws \WP_Exception Method should be overridden in subclass.
 		 * @example
-		 * array(
-		 *     array(
-		 *         'type' => 'link',
-		 *         'label'      => __( 'Buy Now' ),
-		 *         'attributes' => array(
+		 *             array(
+		 *             array(
+		 *             'type' => 'link',
+		 *             'label'      => __( 'Buy Now' ),
+		 *             'attributes' => array(
 		 *             'href'  => '#',
 		 *             // 'data-action' => 'submit',
 		 *             'class' => array( 'button', 'button-primary' ),
-		 *         ),
-		 *     ),
+		 *             ),
+		 *             ),
 		 *
 		 *     array(
 		 *         'type'       => 'link',
@@ -252,7 +253,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 		 *
 		 * @return void
 		 */
-		public function enqueue_scripts() {
+		public function enqueue_scripts(): void {
 			if ( ! $this->has_capability() ) {
 				return;
 			}
@@ -266,11 +267,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 		 *
 		 * @return void
 		 */
-		public function markup() {
+		public function markup(): void {
 			if ( ! $this->has_capability() ) {
 				return;
 			}
-			include __DIR__ . '/templates/dialog-box.php';
+			include __DIR__ . '/../templates/dialog-box.php';
 		}
 	}
 }

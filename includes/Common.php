@@ -187,6 +187,14 @@ trait Common {
 			if ( is_array( $attribute_value ) ) {
 				if ( 'class' === $attribute_name ) {
 					$attribute_value = $this->get_css_classes( $attribute_value );
+					if ( $this->is_empty_string( $attribute_value ) ) {
+						continue;
+					}
+				} elseif ( 'style' === $attribute_name ) {
+					$attribute_value = $this->get_inline_styles( $attribute_value );
+					if ( $this->is_empty_string( $attribute_value ) ) {
+						continue;
+					}
 				} else {
 					$attribute_value = wp_json_encode( $attribute_value );
 				}
@@ -212,7 +220,7 @@ trait Common {
 	 * @return bool
 	 */
 	public function is_empty_string( string $check_value = '' ): bool {
-		return 0 === strlen( trim( $check_value ) );
+		return '' === trim( $check_value );
 	}
 
 	/**

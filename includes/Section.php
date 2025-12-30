@@ -39,7 +39,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Section' ) ) {
 			$this->section = wp_parse_args(
 				$section,
 				array(
-					'_id'         => uniqid( 'section-' ),
+					'_id'         => wp_unique_prefixed_id( 'section-' ),
 					'title'       => '',
 					'description' => '',
 					'fields'      => array(),

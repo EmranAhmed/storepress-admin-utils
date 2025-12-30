@@ -602,12 +602,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 			$id                    = $this->get_id();
 			$class                 = $this->get_css_class();
-			$type                  = $this->get_type();
 			$additional_attributes = $this->get_attribute( 'html_attributes', array() );
 			$units                 = $this->get_attribute( 'units', array() );
 			$escape_callback       = $this->get_escape_callback();
 			$value                 = map_deep( $this->get_value(), $escape_callback );
-			$raw_type              = $this->get_raw_type();
 			$system_class          = array( $css_class );
 
 			['value' => $input] = $this->parse_unit( $value );
@@ -1459,17 +1457,53 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$label            = $this->get_label_markup();
 			$description      = $this->get_description_markup();
 			$input            = $this->get_input_markup();
-			$full_width       = $this->get_attribute( 'full_width', false );
+			$full_width       = $this->has_attribute( 'full_width' );
 			$datalist         = $this->get_datalist_markup();
 			$conditional_attr = $this->get_html_attributes( $this->conditional_attribute() );
 
 			// <span class="help-tooltip"></span>
 			// <span class="help-modal"></span>
-			if ( $full_width ) {
-				return sprintf( '<tr %s><td colspan="2" class="td-full">%s %s %s</td></tr>', $conditional_attr, $input, $datalist, $description );
+
+			$get_tag = $this->get_attribute( 'add_tag', null );
+
+			$header_data_attrs = array(
+				'data-tag' => is_string( $get_tag ) ? $get_tag : $this->get_var( $get_tag[0] ),
+			);
+
+			if ( $get_tag && wp_is_numeric_array( $get_tag ) ) {
+				$header_data_attrs['style']                            = array();
+				$header_data_attrs['style']['--_tag_background-color'] = $this->get_var( $get_tag[1] );
+				$header_data_attrs['style']['--_tag_text-color']       = $this->get_var( $get_tag[2] );
 			}
 
-			return sprintf( '<tr %s><th scope="row">%s</th><td>%s %s %s</td></tr>', $conditional_attr, $label, $input, $datalist, $description );
+			$column_data_attrs = array();
+
+			$row_markup_start = sprintf( '<tr %s>', $conditional_attr );
+			$row_markup_end   = '</tr>';
+
+			if ( $full_width ) {
+				return sprintf(
+					'%s<td %s colspan="2" class="td-full">%s %s %s</td>%s',
+					$row_markup_start,
+					$this->get_html_attributes( $column_data_attrs ),
+					$input,
+					$datalist,
+					$description,
+					$row_markup_end
+				);
+			}
+
+			return sprintf(
+				'%s<th scope="row" %s>%s</th><td %s>%s %s %s</td>%s',
+				$row_markup_start,
+				$this->get_html_attributes( $header_data_attrs ),
+				$label,
+				$this->get_html_attributes( $column_data_attrs ),
+				$input,
+				$datalist,
+				$description,
+				$row_markup_end
+			);
 		}
 	}
 }

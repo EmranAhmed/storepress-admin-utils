@@ -31,6 +31,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 * @var Settings
 		 */
 		protected Settings $settings;
+
 		/**
 		 * API Display Permission.
 		 *
@@ -59,8 +60,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 */
 		public function __construct( Settings $settings ) {
 			$this->settings   = $settings;
-			$this->permission = $this->get_settings()->get_capability();
+			$this->permission = $this->get_settings()->rest_get_capability();
 			$this->namespace  = $this->get_settings()->show_in_rest();
+			$this->rest_base  = $this->get_settings()->rest_api_base();
 		}
 
 		/**
@@ -78,7 +80,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 * @return void
 		 * @see register_rest_route()
 		 */
-		public function register_routes() {
+		public function register_routes(): void {
 
 			if ( $this->is_empty_string( $this->namespace ) ) {
 				return;
@@ -110,7 +112,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 * @return bool TRUE if the request has read access for the item, otherwise FALSE.
 		 */
 		public function get_item_permissions_check( $request ): bool {
-			return current_user_can( $this->permission );
+			return $this->is_empty_string( $this->permission ) || current_user_can( $this->permission );
 		}
 
 		/**
@@ -120,7 +122,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 *
 		 * @return \WP_REST_Response|\WP_Error Array on success, or WP_Error object on failure.
 		 * @see \WP_REST_Settings_Controller::get_item()
-		 * @phpstan-ignore missingType.generics
 		 */
 		public function get_item( $request ) {
 			$options  = $this->get_registered_options();
@@ -200,12 +201,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 					$rest_args = $field->get_attribute( 'show_in_rest' );
 				}
 
+				if ( is_string( $field->get_attribute( 'show_in_rest' ) ) ) {
+					$rest_args['name'] = $field->get_attribute( 'show_in_rest' );
+				}
+
 				$defaults = array(
 					'name'   => $rest_args['name'] ?? $field->get_id(),
 					'schema' => array(),
 				);
 
-				$rest_args = array_merge( $defaults, $rest_args );
+				$rest_args = $this->array_merge( $defaults, $rest_args );
 
 				$default_schema = array(
 					'type'        => $field->get_rest_type(),
@@ -261,16 +266,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 						}
 
 						if ( 'color' === $group_field->get_type() ) {
-							// @phpstan-ignore offsetAssign.dimType
-							$default_properties[ $id ]['type']['format'] = 'hex-color';
+							$default_properties[ $id ]['format'] = 'hex-color';
 						}
 
 						if ( 'url' === $group_field->get_type() ) {
-							$default_properties[ $id ]['type']['format'] = 'uri';
+							$default_properties[ $id ]['format'] = 'uri';
 						}
 
 						if ( 'email' === $group_field->get_type() ) {
-							$default_properties[ $id ]['type']['format'] = 'email';
+							$default_properties[ $id ]['format'] = 'email';
 						}
 					}
 
@@ -281,7 +285,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 					}
 				}
 
-				$rest_args['schema']      = array_merge( $default_schema, $rest_args['schema'] );
+				$rest_args['schema']      = $this->array_merge( $default_schema, $rest_args['schema'] );
 				$rest_args['option_name'] = $field->get_id();
 				if ( $field->is_type_group() ) {
 					$rest_args['value'] = $field->get_rest_group_values();
@@ -353,7 +357,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		 * @param string           $param   The parameter name.
 		 *
 		 * @return mixed|\WP_Error
-		 * @phpstan-ignore missingType.generics
 		 */
 		public function sanitize_callback( $value, \WP_REST_Request $request, string $param ) {
 			if ( is_null( $value ) ) {

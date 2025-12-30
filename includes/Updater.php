@@ -45,7 +45,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 * @return void
 		 */
-		public function init() {
+		public function init(): void {
 
 			if ( ! current_user_can( 'update_plugins' ) ) {
 				return;
@@ -99,7 +99,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 * @return void
 		 */
-		public function rollback_init() {
+		public function rollback_init(): void {
 			if ( ! current_user_can( 'update_plugins' ) ) {
 				return;
 			}
@@ -311,7 +311,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 * @return void
 		 */
-		final public function force_update_check() {
+		final public function force_update_check(): void {
 
 			if ( ! current_user_can( 'update_plugins' ) ) {
 				return;
@@ -477,7 +477,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * Update check.
 		 *
 		 * @param bool|array<string, mixed> $update The plugin update data with the latest details.
-		 * @param array<string, mixed>      $plugin_data Plugin headers.
+		 * @param array<string, mixed>      $_plugin_data Plugin headers.
 		 * @param string                    $plugin_file Plugin filename.
 		 *
 		 * @return bool|array<string, mixed>
@@ -486,7 +486,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 * @example https://example.com/updater-api/wp-json/plugin-updater/v1/check-update
 		 * @see: POST http://api.wordpress.org/plugins/update-check/1.1/
 		 */
-		final public function update_check( $update, array $plugin_data, string $plugin_file ) {
+		final public function update_check( $update, array $_plugin_data, string $plugin_file ) {
 
 			if ( $plugin_file !== $this->get_plugin_basename() ) {
 				return $update;
@@ -538,9 +538,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 * @param array<string, array<string, string>> $screenshots Screenshot array.
 		 *
-		 * @return false|string
+		 * @return string
 		 */
-		public function screenshots_html( array $screenshots = array() ) {
+		public function screenshots_html( array $screenshots = array() ): string {
 			ob_start();
 			echo '<ol>';
 			foreach ( $screenshots as $screenshot ) {
@@ -870,7 +870,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Updater' ) ) {
 		 *
 		 * @return void
 		 */
-		public function update_message( array $plugin_data ) {
+		public function update_message( array $plugin_data ): void {
 
 			$license_key    = $this->get_license_key();
 			$upgrade_notice = $plugin_data['upgrade_notice'] ?? '';

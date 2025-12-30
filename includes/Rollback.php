@@ -33,12 +33,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		 * @var string
 		 */
 		private string $plugin_file;
+
 		/**
 		 * Rollback Page title.
 		 *
 		 * @var string
 		 */
 		private string $page_title;
+
 		/**
 		 * Rollback link text.
 		 *
@@ -154,6 +156,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		public function get_wp_nonce_query_arg(): string {
 			return '_wpnonce';
 		}
+
 		/**
 		 * Get nonce key.
 		 *
@@ -169,7 +172,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function init() {
+		public function init(): void {
 
 			if ( ! current_user_can( 'update_plugins' ) ) {
 				return;
@@ -202,7 +205,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function handle_rollback() {
+		public function handle_rollback(): void {
 
 			$status = array(
 				'currentVersion' => '',
@@ -312,7 +315,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function register_scripts() {
+		public function register_scripts(): void {
 
 			$this->register_package_admin_utils_script();
 
@@ -333,11 +336,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function enqueue_scripts() {
+		public function enqueue_scripts(): void {
 			wp_enqueue_script( 'updates' );
 			$this->enqueue_package_scripts( 'rollback' );
 		}
-
 
 		/**
 		 * Get page title.
@@ -427,7 +429,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function admin_menu() {
+		public function admin_menu(): void {
 
 			add_menu_page( '', '', 'update_plugins', $this->main_menu_slug(), '__return_false' );
 
@@ -441,11 +443,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		/**
 		 * Show admin page.
 		 *
-		 * @return void|\WP_Error
+		 * @return void
 		 */
-		public function settings_template() {
+		public function settings_template(): void {
 
-			include_once __DIR__ . '/templates/rollback-template.php';
+			include_once __DIR__ . '/../templates/rollback-template.php';
 
 			wp_print_request_filesystem_credentials_modal();
 			wp_print_admin_notice_templates();
@@ -456,7 +458,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function settings_init() {
+		public function settings_init(): void {
 
 			$plugin_file = $this->get_plugin_file();
 

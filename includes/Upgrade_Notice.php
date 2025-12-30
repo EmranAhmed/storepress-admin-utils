@@ -49,7 +49,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 *
 		 * @return void
 		 */
-		public function init() {
+		public function init(): void {
 
 			if ( ! current_user_can( 'update_plugins' ) ) {
 				return;
@@ -81,7 +81,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 *
 		 * @return void
 		 */
-		public function deactivate() {
+		public function deactivate(): void {
 
 			if ( ! current_user_can( 'update_plugins' ) ) {
 				return;
@@ -118,7 +118,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 *
 		 * @return void
 		 */
-		public function admin_notice() {
+		public function admin_notice(): void {
 
 			if ( ! $this->show_admin_notice() ) {
 				return;
@@ -138,7 +138,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 *
 		 * @return void
 		 */
-		public function row_notice() {
+		public function row_notice(): void {
 			global $wp_list_table;
 
 			if ( ! $this->show_plugin_row_notice() ) {

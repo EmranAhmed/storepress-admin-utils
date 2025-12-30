@@ -1,10 +1,10 @@
 {
-	"name" : "storepress/admin-utils",
-	"description" : "Utility Classes for WordPress Plugin Projects.",
-	"version" : "1.15.0",
-	"license" : "GPL-2.0-or-later",
-	"type" : "library",
-	"keywords" : [
+	"name": "storepress/admin-utils",
+	"description": "Utility Classes for WordPress Plugin Projects.",
+	"version": "1.16.0",
+	"license": "GPL-2.0-or-later",
+	"type": "library",
+	"keywords": [
 		"wordpress",
 		"storepress",
 		"plugin-settings-panel",
@@ -13,68 +13,68 @@
 		"plugin-updater",
 		"plugin"
 	],
-	"authors" : [
+	"authors": [
 		{
-			"name" : "Emran Ahmed",
-			"email" : "emran.bd.08@gmail.com"
+			"name": "Emran Ahmed",
+			"email": "emran.bd.08@gmail.com"
 		}
 	],
-	"homepage" : "https://github.com/EmranAhmed/storepress-admin-utils#readme",
-	"minimum-stability" : "dev",
-	"prefer-stable" : true,
-	"require-dev" : {
-		"automattic/vipwpcs" : "^3.0.1",
-		"dealerdirect/phpcodesniffer-composer-installer" : "^v1.2.0",
-		"phpcompatibility/php-compatibility" : "^9.3.5",
-		"phpcompatibility/phpcompatibility-wp" : "^2.1.8",
-		"woocommerce/woocommerce-sniffs" : "^1.0.1",
-		"wp-cli/i18n-command" : "^v2.6.6",
-		"wp-coding-standards/wpcs" : "^3.3.0",
-		"phpstan/phpstan-deprecation-rules" : "^2.0.3",
-		"phpstan/phpstan" : "^2.1.33",
-		"squizlabs/php_codesniffer" : "^3.13.5",
-		"phpstan/extension-installer" : "^1.4.3",
-		"szepeviktor/phpstan-wordpress" : "^v2.0.3",
-		"plugin-check/phpcs-sniffs" : "@dev"
+	"homepage": "https://github.com/EmranAhmed/storepress-admin-utils#readme",
+	"minimum-stability": "dev",
+	"prefer-stable": true,
+	"require-dev": {
+		"automattic/vipwpcs": "^3.0.1",
+		"dealerdirect/phpcodesniffer-composer-installer": "^v1.2.0",
+		"phpcompatibility/php-compatibility": "^9.3.5",
+		"phpcompatibility/phpcompatibility-wp": "^2.1.8",
+		"phpstan/extension-installer": "^1.4.3",
+		"phpstan/phpstan": "^2.1.33",
+		"phpunit/phpunit": "^9.6",
+		"plugin-check/phpcs-sniffs": "@dev",
+		"squizlabs/php_codesniffer": "^3.13.5",
+		"szepeviktor/phpstan-wordpress": "^v2.0.3",
+		"woocommerce/woocommerce-sniffs": "^1.0.1",
+		"wp-cli/i18n-command": "^v2.6.6",
+		"wp-coding-standards/wpcs": "^3.3.0",
+		"wp-phpunit/wp-phpunit": "^6.5",
+		"yoast/phpunit-polyfills": "^3.0.0"
 	},
-	"repositories" : [
+	"repositories": [
 		{
-			"type" : "path",
-			"url" : "./vendor/plugin-check/phpcs-sniffs",
-			"options" : {
-				"symlink" : true
+			"type": "path",
+			"url": "./wp-plugin-check/plugin-check/phpcs-sniffs",
+			"options": {
+				"symlink": true
 			}
 		}
 	],
-	"autoload" : {
-		"psr-4" : {
-			"StorePress\\AdminUtils\\" : "includes/"
+	"autoload": {
+		"psr-4": {
+			"StorePress\\AdminUtils\\": "includes/"
 		}
 	},
-	"config" : {
-		"lock" : false,
-		"optimize-autoloader" : true,
-		"sort-packages" : true,
-		"allow-plugins" : {
-			"dealerdirect/phpcodesniffer-composer-installer" : true,
-			"phpstan/extension-installer" : true,
-			"composer/installers" : true
+	"config": {
+		"lock": false,
+		"optimize-autoloader": true,
+		"sort-packages": true,
+		"allow-plugins": {
+			"dealerdirect/phpcodesniffer-composer-installer": true,
+			"phpstan/extension-installer": true,
+			"composer/installers": true
 		}
 	},
-	"scripts" : {
-		"phpstan" : "./vendor/bin/phpstan --memory-limit=4G",
-		"phpstan-report" : "./vendor/bin/phpstan --memory-limit=4G -vvv > phpstan-report.txt",
-		"format" : "./vendor/bin/phpcbf --standard=phpcs.xml",
-		"lint-report" : "./vendor/bin/phpcs --standard=phpcs.xml --report-summary --report-source --ignore-annotations --report-full=phpcs-report.txt",
-		"lint" : "./vendor/bin/phpcs --standard=phpcs.xml --report-summary --report-source",
-		"pre-install-cmd" : [
-			"npx gitget WordPress/plugin-check/phpcs-sniffs vendor/plugin-check/phpcs-sniffs"
-		],
-		"pre-update-cmd" : [
-			"npx gitget WordPress/plugin-check/phpcs-sniffs vendor/plugin-check/phpcs-sniffs"
-		]
+	"scripts": {
+		"test": "./vendor/bin/phpunit --testdox",
+		"test:unit": "./vendor/bin/phpunit --testsuite Unit",
+		"test:integration": "./vendor/bin/phpunit --testsuite Integration",
+		"test:coverage": "./vendor/bin/phpunit --coverage-html coverage",
+		"phpstan": "./vendor/bin/phpstan --memory-limit=4G",
+		"phpstan-report": "./vendor/bin/phpstan --memory-limit=4G -vvv > phpstan-report.txt",
+		"format": "./vendor/bin/phpcbf --standard=phpcs.xml",
+		"lint-report": "./vendor/bin/phpcs --standard=phpcs.xml --report-summary --report-source --ignore-annotations --report-full=phpcs-report.txt",
+		"lint": "./vendor/bin/phpcs --standard=phpcs.xml --report-summary --report-source"
 	},
-	"require" : {
-		"ext-json" : "*"
+	"require": {
+		"ext-json": "*"
 	}
 }

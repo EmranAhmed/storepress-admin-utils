@@ -55,6 +55,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		public function id(): string {
 			return $this->get_api()->get_dialog_id();
 		}
+
 		/**
 		 * Dialog Title.
 		 *
@@ -63,6 +64,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		public function title(): string {
 			return $this->get_api()->get_title();
 		}
+
 		/**
 		 * Dialog Title.
 		 *
@@ -146,7 +148,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		public function get_buttons(): array {
 			return $this->get_api()->get_buttons();
 		}
-
 
 		/**
 		 * Check has permission.

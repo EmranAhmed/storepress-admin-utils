@@ -103,7 +103,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function ajax_setup() {
+		public function ajax_setup(): void {
 			add_action( sprintf( 'wp_ajax_%s', $this->ajax_action() ), array( $this, 'send_feedback' ) );
 		}
 
@@ -112,7 +112,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function init() {
+		public function init(): void {
 
 			if ( ! $this->is_plugins_page() ) {
 				return;
@@ -129,6 +129,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		public function get_title(): string {
 			return $this->title();
 		}
+
 		/**
 		 * Get API URL to send feedback.
 		 *
@@ -142,6 +143,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 * Dialog buttons.
 		 *
 		 * @return array<int, mixed>
+		 * @throws \WP_Exception Method should be implemented in subclass.
 		 * @example
 		 *
 		 * array(
@@ -232,7 +234,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function send_feedback() {
+		public function send_feedback(): void {
 
 			check_ajax_referer( $this->get_plugin_slug() );
 
@@ -344,7 +346,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function enqueue_scripts() {
+		public function enqueue_scripts(): void {
 
 			$this->register_package_admin_utils_script();
 			$this->register_package_scripts( 'deactivation' );
@@ -393,7 +395,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 * @return Deactivation_Dialog
 		 */
 		public function get_dialog(): Deactivation_Dialog {
-			// Load Deactivation_Dialog In NON Singleton It Does load In Page in many times.
+			// Load Deactivation_Dialog In NON Singleton way. It can be loaded in page in many times.
 			return new Deactivation_Dialog( $this );
 		}
 

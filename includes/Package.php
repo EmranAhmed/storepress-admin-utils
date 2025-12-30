@@ -36,6 +36,7 @@ trait Package {
 		$filename = str_ireplace( array( '.css', '.js' ), '', $filename );
 		return sprintf( 'storepress-admin-utils-%s', $filename );
 	}
+
 	/**
 	 * Get script l10 object name. Like: "STOREPRESS_ADMIN_UTILS_FILENAME_PARAMS".
 	 *

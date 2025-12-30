@@ -14,6 +14,14 @@
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 trait Plugin {
+
+	/**
+	 * Plugin Version.
+	 *
+	 * @var string $version Plugin version.
+	 */
+	private string $plugin_version = '';
+
 	/**
 	 * Get plugin file absolute or relative path.
 	 *
@@ -32,7 +40,7 @@ trait Plugin {
 	 * @return string
 	 */
 	public function get_plugin_absolute_file( string $plugin_file = '' ): string {
-		$file   = 0 === strlen( $plugin_file ) ? wp_normalize_path( $this->plugin_file() ) : wp_normalize_path( $plugin_file );
+		$file   = '' === $plugin_file ? wp_normalize_path( $this->plugin_file() ) : wp_normalize_path( $plugin_file );
 		$plugin = plugin_basename( $file );
 
 		return trailingslashit( WP_PLUGIN_DIR ) . $plugin;
@@ -123,12 +131,12 @@ trait Plugin {
 	 * @since 1.0.0
 	 */
 	public function get_plugin_version( string $plugin_file = '' ): string {
-		static $versions;
 
-		if ( is_null( $versions ) ) {
-			$versions = get_file_data( $this->get_plugin_file( $plugin_file ), array( 'version' => 'Version' ) );
+		if ( '' === $this->plugin_version ) {
+			$versions             = get_file_data( $this->get_plugin_file( $plugin_file ), array( 'version' => 'Version' ) );
+			$this->plugin_version = $versions['version'] ?? '';
 		}
 
-		return $versions['version'] ?? '';
+		return $this->plugin_version;
 	}
 }

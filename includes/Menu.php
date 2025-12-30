@@ -35,7 +35,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		 *
 		 * @var array<string, int> $slug_usages Slug used in menu.
 		 */
-
 		private static array $slug_usages = array();
 
 		/**
@@ -179,6 +178,33 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 					wp_add_inline_style( 'admin-menu', '#adminmenu li.menu-top.wp-menu-separator { min-height: auto; }' );
 				}
 			);
+
+			if ( ! $this->is_empty_string( $this->show_in_rest() ) ) {
+
+				add_action(
+					'admin_enqueue_scripts',
+					function () {
+
+						wp_add_inline_script(
+							'wp-data',
+							sprintf(
+								'wp.domReady(function(){
+							wp.data.dispatch( "core" ).addEntities( [{
+								name: "%s",
+								kind: "%s",
+								baseURL: "%s",
+								label: "%s"
+							}] );
+							});',
+								$this->core_data_entity_name(),
+								$this->core_data_entity_kind(),
+								sprintf( '/%s/%s', $this->show_in_rest(), $this->rest_api_base() ),
+								$this->get_page_title()
+							)
+						);
+					}
+				);
+			}
 		}
 
 		/**
@@ -186,28 +212,28 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		 *
 		 * @return void
 		 */
-		abstract public function rest_api_init();
+		abstract public function rest_api_init(): void;
 
 		/**
 		 * Settings Init.
 		 *
 		 * @return void
 		 */
-		abstract public function settings_init();
+		abstract public function settings_init(): void;
 
 		/**
 		 * Load Settings Page.
 		 *
 		 * @return void
 		 */
-		abstract public function settings_page_init();
+		abstract public function settings_page_init(): void;
 
 		/**
 		 * Process Settings Actions.
 		 *
 		 * @return void
 		 */
-		abstract public function settings_actions();
+		abstract public function settings_actions(): void;
 
 		/**
 		 * Process Single Settings action.
@@ -216,14 +242,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		 *
 		 * @return void
 		 */
-		abstract public function process_actions( string $current_action );
-
-		/**
-		 * Set Parent Menu Slug
-		 *
-		 * @return string
-		 */
-		abstract public function parent_menu(): string;
+		abstract public function process_actions( string $current_action ): void;
 
 		/**
 		 * Settings template. Can override for custom ui page.
@@ -231,7 +250,90 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		 * @see https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/#naming-conventions
 		 * @return void
 		 */
-		abstract public function display_settings_page();
+		abstract public function display_settings_page(): void;
+
+		/**
+		 * Parent menu slug.
+		 *
+		 * @return string Parent Menu Slug
+		 */
+		public function parent_menu(): string {
+			return 'storepress';
+		}
+
+		/**
+		 * Get settings capability.
+		 *
+		 * @return string
+		 */
+		public function capability(): string {
+			return 'manage_options';
+		}
+
+		/**
+		 * Menu position.
+		 *
+		 * @return int
+		 */
+		public function menu_position(): int {
+			return 45;
+		}
+
+		/**
+		 * Menu Icon.
+		 *
+		 * @return string
+		 */
+		public function menu_icon(): string {
+			return 'dashicons-admin-generic';
+		}
+
+		/**
+		 * Show Settings in REST. If empty or false rest api will disable.
+		 *
+		 * @return string|bool
+		 * @example GET: /wp-json/<page-id>/<rest-api-version>/<rest-api-base>
+		 * @example GET: /wp-json/<page-id>/v1/settings
+		 */
+		public function show_in_rest() {
+			return sprintf( '%s/%s', $this->get_page_id(), $this->rest_api_version() );
+		}
+
+		/**
+		 * Rest API version
+		 *
+		 * @return string
+		 */
+		public function rest_api_version(): string {
+			return 'v1';
+		}
+
+		/**
+		 * Rest API Base
+		 *
+		 * @return string
+		 */
+		public function rest_api_base(): string {
+			return 'settings';
+		}
+
+		/**
+		 * WP Core Data Entity Kind.
+		 *
+		 * @return string
+		 */
+		public function core_data_entity_kind(): string {
+			return $this->is_submenu() ? $this->show_in_rest() : $this->get_parent_menu();
+		}
+
+		/**
+		 * WP Core Data Entity Name.
+		 *
+		 * @return string
+		 */
+		public function core_data_entity_name(): string {
+			return $this->is_submenu() ? $this->rest_api_base() : $this->get_page_id();
+		}
 
 		/**
 		 * Get Parent Menu or Main Menu name
@@ -259,13 +361,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		}
 
 		/**
-		 * Assign Parent Menu Icon
-		 *
-		 * @return string
-		 */
-		abstract public function menu_icon(): string;
-
-		/**
 		 * Get Main Menu Icon
 		 *
 		 * @return string menu icon;
@@ -273,13 +368,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		public function get_menu_icon(): string {
 			return $this->menu_icon();
 		}
-
-		/**
-		 * Assign Parent Menu Position
-		 *
-		 * @return int
-		 */
-		abstract public function menu_position(): int;
 
 		/**
 		 * Get Main Menu Position
@@ -339,18 +427,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 		}
 
 		/**
-		 * Assign Settings Page Showing Capability.
-		 *
-		 * @return string
-		 */
-		abstract public function capability(): string;
-
-		/**
-		 * Get Settings Page Showing Capability.
+		 * Get Settings Page Visibility Capability.
 		 *
 		 * @return string
 		 */
 		public function get_capability(): string {
+			return $this->capability();
+		}
+
+		/**
+		 * REST API Response Capability for GET Method.
+		 *
+		 * @return string
+		 */
+		public function rest_get_capability(): string {
 			return $this->capability();
 		}
 
