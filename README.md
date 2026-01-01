@@ -464,8 +464,8 @@ array(
     'full_width' => true, // To make field full width. Just remove this key if do not want to use.
     
     'add_tag' => "PRO", // Add TAG
-    'add_tag' => array("PRO", 'BACKGROUND COLOR'), // Add PRO Label
-    'add_tag' => array("BETA", 'BACKGROUND COLOR', 'TEXT COLOR'), // Add PRO Label
+    'add_tag' => array("PRO", 'BACKGROUND COLOR HEX CODE'), // Add PRO Label
+    'add_tag' => array("BETA", 'BACKGROUND COLOR HEX CODE', 'TEXT COLOR HEX CODE'), // Add PRO Label
     
     'description' => 'Input field description',
     
@@ -481,8 +481,8 @@ array(
     'multiple'    => true, // for select box 
     'class'       => array( 'large-text', 'code', 'custom-class' ),
     'tooltip'     => 'Textarea Help tooltip',
-    'condition'   => array( 'selector'=>'#input2' ), // Conditional field, show or hide based on other input value.
-    'condition'   => array( 'selector'=>'#input2', 'value'=>'hello' ),
+    'condition'   => array( 'selector'=>$this->get_field_selector('input2') ), // Conditional field, show or hide based on other input value.
+    'condition'   => array( 'selector'=>$this->get_field_selector('input2'), 'value'=>'hello' ),
     'units'       => array('px', '%', 'em', 'rem'), // For unit type
 
     'sanitize_callback'=>'absint', // Use custom sanitize function. Default is: sanitize_text_field.

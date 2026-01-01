@@ -822,25 +822,39 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		/**
 		 * Update Option
 		 *
-		 * @param array<string, mixed> $data Updated data.
+		 * @param array<string, mixed> $_data Updated data.
 		 *
 		 * @return void
 		 */
-		private function update_options( array $data ): void {
+		private function update_options( array $_data ): void {
 
 			$old_data = $this->get_options();
 
 			if ( ! $this->is_empty_array( $old_data ) ) {
-				$current_data = array_merge( $old_data, $data['public'] );
+				$current_data = array_merge( $old_data, $_data['public'] );
 			} else {
-				$current_data = $data['public'];
+				$current_data = $_data['public'];
 			}
 
-			foreach ( $data['private'] as $key => $value ) {
+			foreach ( $_data['private'] as $key => $value ) {
 				update_option( esc_attr( $key ), $value );
 			}
 
-			update_option( $this->get_settings_id(), $current_data );
+			$_data = $this->before_update_options( $current_data );
+
+			update_option( $this->get_settings_id(), $_data );
+		}
+
+		/**
+		 * Before update option. Override this method in subclass to modify option data.
+		 *
+		 * @param array<string, ?mixed> $_data Option data.
+		 *
+		 * @return array<string, ?mixed>
+		 */
+		public function before_update_options( array $_data ): array {
+
+			return $_data;
 		}
 
 		/**
@@ -956,6 +970,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 				$sanitize_callback = $field->get_sanitize_callback();
 				$type              = $field->get_type();
 				$options           = $field->get_options();
+				$default           = $field->get_default_value();
 
 				if ( $field->is_private() ) {
 					$id                  = $field->get_private_name();
@@ -963,9 +978,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 					continue;
 				}
 
+				// Conditional value key is not set here if it's hidden.
+				// So if is there any default value, we will set.
+				if ( ! isset( $_post[ $key ] ) && ! in_array( $type, array( 'toggle', 'checkbox', 'group' ), true ) ) {
+					$_post[ $key ] = $default;
+				}
+
 				switch ( $type ) {
+					case 'toggle':
 					case 'checkbox':
-						// Add default checkbox value.
+						// Add default checkbox and toggle value.
 						if ( ! isset( $_post[ $key ] ) ) {
 							$_post[ $key ] = ( count( $options ) > 0 ) ? array() : 'no';
 						}
@@ -980,13 +1002,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 							$group_field_id          = $group_field->get_id();
 							$group_field_type        = $group_field->get_type();
 							$group_field_options     = $group_field->get_options();
-							$group_sanitize_callback = $field->get_sanitize_callback();
+							$group_sanitize_callback = $group_field->get_sanitize_callback();
+							$group_default           = $group_field->get_default_value();
+
+							// Group Conditional value key is not set here if it's hidden.
+							if ( ! isset( $_post[ $key ][ $group_field_id ] ) && ! in_array( $group_field_type, array( 'toggle', 'checkbox' ), true ) ) {
+								$_post[ $key ][ $group_field_id ] = $group_default;
+							}
 
 							// Add default checkbox value.
-							if ( 'checkbox' === $group_field_type ) {
-								if ( ! isset( $_post[ $key ][ $group_field_id ] ) ) {
-									$_post[ $key ][ $group_field_id ] = ( count( $group_field_options ) > 0 ) ? array() : 'no';
-								}
+							if ( ! isset( $_post[ $key ][ $group_field_id ] ) && in_array( $group_field_type, array( 'toggle', 'checkbox' ), true ) ) {
+								$_post[ $key ][ $group_field_id ] = ( count( $group_field_options ) > 0 ) ? array() : 'no';
 							}
 
 							$public_data[ $key ][ $group_field_id ] = map_deep( $_post[ $key ][ $group_field_id ], $group_sanitize_callback );
@@ -1196,6 +1222,55 @@ if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 		 */
 		public function allowed_tags(): array {
 			return array();
+		}
+
+		/**
+		 * Get generated group field HTML id attribute.
+		 *
+		 * @param string     $group_id Group ID.
+		 * @param string     $field_id       Field ID.
+		 * @param int|string $option_id       Option ID.
+		 *
+		 * @return string
+		 */
+		public function get_group_field_id( string $group_id, string $field_id, $option_id = '' ): string {
+			return $this->is_empty_string( $option_id ) ? sprintf( '%s__%s__group', $group_id, $field_id ) : sprintf( '%s__%s__%s__group', $group_id, $field_id, $option_id );
+		}
+		/**
+		 * Get generated group field HTML id attribute.
+		 *
+		 * @param string     $group_id Group ID.
+		 * @param string     $field_id Field ID.
+		 * @param int|string $option_id Option ID.
+		 *
+		 * @return string
+		 */
+		public function get_group_field_selector( string $group_id, string $field_id, $option_id = '' ): string {
+			return sprintf( '#%s', $this->get_group_field_id( $group_id, $field_id, $option_id ) );
+		}
+
+		/**
+		 * Get generated field HTML id attribute.
+		 *
+		 * @param string     $field_id Field ID.
+		 * @param int|string $option_id Option ID.
+		 *
+		 * @return string
+		 */
+		public function get_field_id( string $field_id, $option_id = '' ): string {
+			return $this->is_empty_string( $option_id ) ? sprintf( '%s', $field_id ) : sprintf( '%s__%s', $field_id, $option_id );
+		}
+
+		/**
+		 * Get generated group field HTML id attribute.
+		 *
+		 * @param string     $field_id Field ID.
+		 *  @param int|string $option_id Option ID.
+		 *
+		 * @return string
+		 */
+		public function get_field_selector( string $field_id, $option_id = '' ): string {
+			return sprintf( '#%s', $this->get_field_id( $field_id, $option_id ) );
 		}
 	}
 }

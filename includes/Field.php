@@ -499,20 +499,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		}
 
 		/**
-		 * Get HTML Attributes.
-		 *
-		 * @param array<string, mixed> $attrs            Attributes.
-		 * @param array<string, mixed> $additional_attrs Additional attributes. Default array().
-		 *
-		 * @return string
-		 */
-		public function get_input_attributes( array $attrs, array $additional_attrs = array() ): string {
-			$attributes = wp_parse_args( $additional_attrs, $attrs );
-
-			return $this->get_html_attributes( $attributes );
-		}
-
-		/**
 		 * Creating custom input field.
 		 *
 		 * @return string
@@ -540,7 +526,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 */
 		public function text_input( string $css_class = 'regular-text' ): string {
 
-			$id                    = $this->get_id();
+			$id                    = $this->get_settings()->get_field_id( $this->get_id() );
 			$class                 = $this->get_css_class();
 			$type                  = $this->get_type();
 			$additional_attributes = $this->get_attribute( 'html_attributes', array() );
@@ -588,7 +574,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 			$suffix_markup = $this->has_suffix() ? sprintf( '<span class="input-suffix">%s</span>', $this->get_suffix() ) : '';
 
-			return sprintf( '<div class="%s"><span class="input-field"><input %s /></span> %s</div>', esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_input_attributes( $attributes, $additional_attributes ), $suffix_markup );
+			return sprintf( '<div class="%s"><span class="input-field"><input %s /></span> %s</div>', esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $additional_attributes ), $suffix_markup );
 		}
 
 		/**
@@ -600,7 +586,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 */
 		public function unit_input( string $css_class = 'small-text' ): string {
 
-			$id                    = $this->get_id();
+			$id                    = $this->get_settings()->get_field_id( $this->get_id() );
 			$class                 = $this->get_css_class();
 			$additional_attributes = $this->get_attribute( 'html_attributes', array() );
 			$units                 = $this->get_attribute( 'units', array() );
@@ -645,7 +631,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 			$suffix_markup = $has_suffix ? sprintf( '<span class="input-suffix">%s</span>', $units[0] ) : $unit_markup;
 
-			return sprintf( '<div class="%s"><span class="input-field"><input %s /></span> %s %s </div>', esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_input_attributes( $attributes, $additional_attributes ), $suffix_markup, $unit_hidden_input );
+			$attrs = $this->get_html_attributes( $additional_attributes, $attributes );
+
+			return sprintf( '<div class="%s"><span class="input-field"><input %s /></span> %s %s </div>', esc_attr( $this->get_css_classes( $wrapper_classes ) ), $attrs, $suffix_markup, $unit_hidden_input );
 		}
 
 		/**
@@ -727,7 +715,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 */
 		public function textarea_input( string $css_class = 'regular-text' ): string {
 
-			$id                    = $this->get_id();
+			$id                    = $this->get_settings()->get_field_id( $this->get_id() );
 			$class                 = $this->get_css_class();
 			$type                  = $this->get_type();
 			$additional_attributes = $this->get_attribute( 'html_attributes', array() );
@@ -754,7 +742,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				$attributes['placeholder'] = $this->get_attribute( 'placeholder' );
 			}
 
-			return sprintf( '<textarea %s>%s</textarea>', $this->get_input_attributes( $attributes, $additional_attributes ), $value );
+			return sprintf( '<textarea %s>%s</textarea>', $this->get_html_attributes( $attributes, $additional_attributes ), $value );
 		}
 
 		/**
@@ -764,7 +752,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 */
 		public function check_input(): string {
 
-			$id       = $this->get_id();
+			$id       = $this->get_settings()->get_field_id( $this->get_id() );
 			$type     = $this->get_type();
 			$title    = $this->get_title();
 			$name     = $this->get_name();
@@ -793,7 +781,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				return '';
 			}
 
-			$inputs = array();
+			$inputs           = array();
+			$is_single_option = count( $options ) === 1;
 
 			/**
 			 * Group Options.
@@ -801,7 +790,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			 * @var array<string, string> $options
 			 */
 			foreach ( $options as $option_key => $option_value ) {
-				$uniq_id = sprintf( '%s-%s', $id, $option_key );
+
+				$uniq_id = $this->get_settings()->get_field_id( $id, $option_key );
 
 				$attributes = array(
 					'id'      => $uniq_id,
@@ -812,17 +802,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 				);
 
 				$option_description = '';
-				if ( is_array( $option_value ) && isset( $option_value['label'] ) && isset( $option_value['description'] ) ) {
-
+				if ( is_array( $option_value ) && isset( $option_value['description'] ) ) {
 					$option_description = sprintf( '<p class="description" id="%s-description">%s</p>', $uniq_id, $option_value['description'] );
-					$option_value       = $option_value['label'];
+				}
+
+				if ( is_array( $option_value ) && isset( $option_value['label'] ) ) {
+					$option_value = $option_value['label'];
 				}
 
 				if ( $is_toggle ) {
 					$attributes['class'] = array( 'toggle' );
 				}
 
-				$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label> %s', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $option_value ), wp_kses_post( $option_description ) );
+				if ( $is_single_option ) {
+					$uniq_id          = $id;
+					$attributes['id'] = $id;
+				}
+
+				$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label> %s', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $option_value ), wp_kses_post( $option_description ) );
 			}
 
 			return sprintf( '<fieldset><legend class="screen-reader-text">%s</legend>%s</fieldset>', $title, implode( '<br />', $inputs ) );
@@ -835,7 +832,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 */
 		public function select_input(): string {
 
-			$id                    = $this->get_id();
+			$id                    = $this->get_settings()->get_field_id( $this->get_id() );
 			$type                  = $this->get_type();
 			$title                 = $this->get_title();
 			$value                 = $this->get_value();
@@ -879,10 +876,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 			foreach ( $options as $option_key => $option_value ) {
 				$selected = ( $is_multiple ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ), true ) : $value == $option_key; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual
-				$inputs[] = sprintf( '<option %s value="%s"><span>%s</span></option>', $this->get_input_attributes( array( 'selected' => $selected ) ), esc_attr( $option_key ), esc_html( $option_value ) );
+				$inputs[] = sprintf( '<option %s value="%s"><span>%s</span></option>', $this->get_html_attributes( array( 'selected' => $selected ) ), esc_attr( $option_key ), esc_html( $option_value ) );
 			}
 
-			return sprintf( '<select %s>%s</select>', $this->get_input_attributes( $attributes, $additional_attributes ), implode( '', $inputs ) );
+			return sprintf( '<select %s>%s</select>', $this->get_html_attributes( $attributes, $additional_attributes ), implode( '', $inputs ) );
 		}
 
 		/**
@@ -994,8 +991,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 */
 		public function group_input( string $css_class = 'small-text' ): string {
 
-			$id           = $this->get_id();
-			$title        = $this->get_title();
+			$group_id     = $this->get_id();
+			$group_title  = $this->get_title();
 			$group_fields = $this->get_group_fields();
 
 			$inputs = array();
@@ -1006,7 +1003,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			foreach ( $group_fields as $field ) {
 
 				$field_id          = $field->get_id();
-				$uniq_id           = sprintf( '%s-%s__group', $id, $field_id );
+				$uniq_id           = $this->get_settings()->get_group_field_id( $group_id, $field_id );
 				$field_title       = $field->get_title();
 				$field_type        = $field->get_type();
 				$raw_field_type    = $field->get_raw_type();
@@ -1069,7 +1066,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 						$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
 
 						$inputs[] = sprintf( '<ul %s class="input-wrapper single-input-wrapper">', $conditional_attr );
-						$inputs[] = sprintf( '<li class="group-field-inputs"><label for="%s"><input %s /><span>%s</span> %s %s</label></li>', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $field_title ), $required_markup, $tooltip_markup );
+						$inputs[] = sprintf( '<li class="group-field-inputs"><label for="%s"><input %s /><span>%s</span> %s %s</label></li>', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $field_title ), $required_markup, $tooltip_markup );
 						$inputs[] = '</ul>';
 						continue;
 					}
@@ -1087,7 +1084,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					$inputs[] = sprintf( '<ul %s class="input-wrapper multiple-input-wrapper"><li class="group-field-label"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></li><li class="group-field-inputs"><ul>', $conditional_attr, esc_html( $field_title ), $required_markup, $tooltip_markup );
 
 					foreach ( $field_options as $option_key => $option_value ) {
-						$uniq_id               = sprintf( '%s-%s-%s__group', $id, $field_id, $option_key );
+						$uniq_id               = $this->get_settings()->get_group_field_id( $group_id, $field_id, $option_key );
 						$attributes['value']   = esc_attr( $option_key );
 						$attributes['checked'] = is_array( $field_value ) ? in_array( $option_key, $field_value, true ) : $option_key == $field_value;  // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual
 						$attributes['id']      = $uniq_id;
@@ -1098,7 +1095,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 						$attributes['required'] = false;
 
-						$inputs[] = sprintf( '<li><label for="%s"><input %s /><span>%s</span></label></li>', esc_attr( $uniq_id ), $this->get_input_attributes( $attributes ), esc_html( $option_value ) );
+						$inputs[] = sprintf( '<li><label for="%s"><input %s /><span>%s</span></label></li>', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $option_value ) );
 					}
 					$inputs[] = '</ul></li></ul>';
 				} elseif ( 'select' === $field_type ) {
@@ -1119,7 +1116,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 					$inputs[] = sprintf( '<ul %s class="input-wrapper select-input-wrapper">', $conditional_attr );
 					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup );
-					$inputs[] = sprintf( '<li class="group-field-inputs"><select %s>%s</select></li>', $this->get_input_attributes( $attributes ), implode( '', $options ) );
+					$inputs[] = sprintf( '<li class="group-field-inputs"><select %s>%s</select></li>', $this->get_html_attributes( $attributes ), implode( '', $options ) );
 					$inputs[] = '</ul>';
 				} elseif ( 'textarea' === $field_type ) {
 					// Input box.
@@ -1128,7 +1125,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					$required_markup     = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
 
 					$inputs[] = sprintf( '<ul %s class="input-wrapper textarea-input-wrapper">', $conditional_attr );
-					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><textarea %s>%s</textarea></li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, $this->get_input_attributes( $attributes, $field_attributes ), $field_value );
+					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><textarea %s>%s</textarea></li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, $this->get_html_attributes( $attributes, $field_attributes ), $field_value );
 					$inputs[] = '</ul>';
 				} elseif ( 'unit' === $field_type ) {
 
@@ -1160,7 +1157,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 						$datalist_markup = sprintf( '<datalist id="%s">', $datalist_id );
 						$datalist_items  = $field->get_attribute( 'html_datalist' );
-						$is_numeric      = $this->is_numeric_array( $datalist_items );
+						$is_numeric      = wp_is_numeric_array( $datalist_items );
 						foreach ( $datalist_items as $value => $label ) {
 							if ( $is_numeric ) {
 								$datalist_markup .= sprintf( '<option value="%s"></option>', $label );
@@ -1188,7 +1185,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 						$required_markup,
 						$tooltip_markup,
 						esc_attr( $this->get_css_classes( $wrapper_classes ) ),
-						$this->get_input_attributes( $attributes, $field_attributes ),
+						$this->get_html_attributes( $attributes, $field_attributes ),
 						$suffix_markup,
 						$unit_hidden_input,
 						$datalist_markup
@@ -1204,7 +1201,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 						$datalist_markup = sprintf( '<datalist id="%s">', $datalist_id );
 						$datalist_items  = $field->get_attribute( 'html_datalist' );
-						$is_numeric      = $this->is_numeric_array( $datalist_items );
+						$is_numeric      = wp_is_numeric_array( $datalist_items );
 						foreach ( $datalist_items as $value => $label ) {
 							if ( $is_numeric ) {
 								$datalist_markup .= sprintf( '<option value="%s"></option>', $label );
@@ -1226,12 +1223,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 					$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
 
 					$inputs[] = sprintf( '<ul %s class="input-wrapper text-input-wrapper">', $conditional_attr );
-					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><span class="%s"><span class="input-field"><input %s /></span> %s </span>%s</li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_input_attributes( $attributes, $field_attributes ), $suffix_markup, $datalist_markup );
+					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><span class="%s"><span class="input-field"><input %s /></span> %s </span>%s</li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $field_attributes ), $suffix_markup, $datalist_markup );
 					$inputs[] = '</ul>';
 				}
 			}
 
-			return sprintf( '<fieldset class="group-input-fields"><legend class="screen-reader-text">%s</legend>%s</fieldset>', esc_html( $title ), implode( '', $inputs ) );
+			return sprintf( '<fieldset class="group-input-fields"><legend class="screen-reader-text">%s</legend>%s</fieldset>', esc_html( $group_title ), implode( '', $inputs ) );
 		}
 
 		/**
@@ -1414,7 +1411,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$datalist_markup = '';
 			if ( ! $this->is_empty_array( $datalist_attributes ) ) {
 				$datalist_markup = sprintf( '<datalist id="%s">', $datalist_id );
-				$is_numeric      = $this->is_numeric_array( $datalist_attributes );
+				$is_numeric      = wp_is_numeric_array( $datalist_attributes );
 				foreach ( $datalist_attributes as $value => $label ) {
 					if ( $is_numeric ) {
 						$datalist_markup .= sprintf( '<option value="%s"></option>', $label );
@@ -1466,14 +1463,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 
 			$get_tag = $this->get_attribute( 'add_tag', null );
 
-			$header_data_attrs = array(
+			$data_tag_attrs = array(
 				'data-tag' => is_string( $get_tag ) ? $get_tag : $this->get_var( $get_tag[0] ),
 			);
 
 			if ( $get_tag && wp_is_numeric_array( $get_tag ) ) {
-				$header_data_attrs['style']                            = array();
-				$header_data_attrs['style']['--_tag_background-color'] = $this->get_var( $get_tag[1] );
-				$header_data_attrs['style']['--_tag_text-color']       = $this->get_var( $get_tag[2] );
+				$data_tag_attrs['style']                            = array();
+				$data_tag_attrs['style']['--_tag_background-color'] = $this->get_var( $get_tag[1] );
+				$data_tag_attrs['style']['--_tag_text-color']       = $this->get_var( $get_tag[2] );
 			}
 
 			$column_data_attrs = array();
@@ -1482,10 +1479,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			$row_markup_end   = '</tr>';
 
 			if ( $full_width ) {
+
+				$column_data_attrs['colspan'] = '2';
+				$column_data_attrs['class']   = 'td-full';
+
 				return sprintf(
-					'%s<td %s colspan="2" class="td-full">%s %s %s</td>%s',
+					'%s<td %s>%s %s %s</td>%s',
 					$row_markup_start,
-					$this->get_html_attributes( $column_data_attrs ),
+					$this->get_html_attributes( $data_tag_attrs, $column_data_attrs ),
 					$input,
 					$datalist,
 					$description,
@@ -1496,7 +1497,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 			return sprintf(
 				'%s<th scope="row" %s>%s</th><td %s>%s %s %s</td>%s',
 				$row_markup_start,
-				$this->get_html_attributes( $header_data_attrs ),
+				$this->get_html_attributes( $data_tag_attrs ),
 				$label,
 				$this->get_html_attributes( $column_data_attrs ),
 				$input,
