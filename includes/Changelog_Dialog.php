@@ -17,7 +17,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Changelog_Dialog' ) ) {
 	/**
 	 * Changelog Dialog Class.
 	 *
-	 * @name Dialog
+	 * @name Changelog_Dialog
 	 */
 	class Changelog_Dialog extends Dialog {
 
@@ -57,6 +57,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Changelog_Dialog' ) ) {
 		public function id(): string {
 			return 'changelog-dialog';
 		}
+
 		/**
 		 * Dialog Title.
 		 *

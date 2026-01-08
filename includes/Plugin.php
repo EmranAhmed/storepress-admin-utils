@@ -18,9 +18,16 @@ trait Plugin {
 	/**
 	 * Plugin Version.
 	 *
-	 * @var string $version Plugin version.
+	 * @var string $plugin_version Plugin version.
 	 */
 	private string $plugin_version = '';
+
+	/**
+	 * Plugin Name.
+	 *
+	 * @var string $plugin_name Plugin Name.
+	 */
+	private string $plugin_name = '';
 
 	/**
 	 * Get plugin file absolute or relative path.
@@ -138,5 +145,26 @@ trait Plugin {
 		}
 
 		return $this->plugin_version;
+	}
+
+	/**
+	 * Get Plugin Name.
+	 *
+	 * @param string $plugin_file Optional. The plugin file path to convert. Can be relative
+	 *                            or absolute. If empty, defaults to the current plugin's
+	 *                            main file path retrieved via $this->plugin_file().
+	 *                            Default empty string.
+	 *
+	 * @return string
+	 * @since 1.0.0
+	 */
+	public function get_plugin_name( string $plugin_file = '' ): string {
+
+		if ( '' === $this->plugin_name ) {
+			$names             = get_file_data( $this->get_plugin_file( $plugin_file ), array( 'name' => 'Plugin Name' ) );
+			$this->plugin_name = $names['name'] ?? '';
+		}
+
+		return $this->plugin_name;
 	}
 }

@@ -17,7 +17,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 	/**
 	 * Changelog Dialog Class.
 	 *
-	 * @name Dialog
+	 * @name Deactivation_Dialog
 	 */
 	class Deactivation_Dialog extends Dialog {
 
@@ -144,6 +144,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		 * Dialog buttons.
 		 *
 		 * @return array<int, mixed>
+		 * @throws \WP_Exception If method not implemented in api subclass.
 		 */
 		public function get_buttons(): array {
 			return $this->get_api()->get_buttons();

@@ -592,8 +592,6 @@ trait Common {
 		return $result;
 	}
 
-
-
 	/**
 	 * Retrieves a list of HTML boolean (valueless) attributes.
 	 *

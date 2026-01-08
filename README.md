@@ -10,7 +10,7 @@ The library's cornerstone is its powerful settings framework, which allows devel
 
 ### Field Types
 
-It supports a rich set of field types including `text`, `textarea`, `checkbox`, `radio`, `select`, `color`, `number`, and more advanced fields like `toggle` switches and `group` fields.
+It supports a rich set of field types including `text`, `unit`, `textarea`, `checkbox`, `radio`, `select`, `color`, `number`, and more advanced fields like `toggle` switches and `group` fields.
 
 ### Structure
 
@@ -35,6 +35,10 @@ It handles the entire update process, from checking for new versions and display
 ## Plugin Rollback
 
 A key feature is the ability to roll back a plugin to a previous version.
+
+## Simple DI Container
+
+Simple DI Container with singleton and factory support.
 
 ### Rollback UI
 
@@ -88,6 +92,250 @@ add_action( 'plugins_loaded', function () {
         print_r( $settings->get_group_option( 'group_id', 'input', 'default' ) );
     }
 } );
+```
+
+### `Container` class usages example
+
+```php
+<?php
+
+
+/**
+ * Database service (singleton example).
+ *
+ * @package Container
+ */
+class Database {
+
+    use Singleton;
+
+    /**
+     * Query count.
+     *
+     * @var int
+     */
+    private $queries = 0;
+
+    /**
+     * Constructor.
+     */
+    private function __construct() {}
+
+    /**
+     * Run a query.
+     *
+     * @param string $sql SQL query.
+     *
+     * @return self
+     */
+    public function query( $sql ) {
+        $this->queries++;
+        return $this;
+    }
+
+    /**
+     * Get query count.
+     *
+     * @return int
+     */
+    public function get_query_count() {
+        return $this->queries;
+    }
+}
+
+/**
+ * Logger service (factory example).
+ *
+ * @package Container
+ */
+class Logger {
+
+    /**
+     * Log entries.
+     *
+     * @var array<int, string>
+     */
+    private $logs = array();
+
+    /**
+     * Log a message.
+     *
+     * @param string $message Message to log.
+     *
+     * @return self
+     */
+    public function log( $message ) {
+        $this->logs[] = $message;
+        return $this;
+    }
+
+    /**
+     * Get all logs.
+     *
+     * @return array<int, string>
+     */
+    public function get_logs() {
+        return $this->logs;
+    }
+
+    /**
+     * Get log count.
+     *
+     * @return int
+     */
+    public function count() {
+        return count( $this->logs );
+    }
+}
+
+/**
+ * User repository (dependency example).
+ *
+ * @package Container
+ */
+class UserRepository {
+
+    /**
+     * Database instance.
+     *
+     * @var Database
+     */
+    private $db;
+
+    /**
+     * Constructor.
+     *
+     * @param Database $db Database instance.
+     */
+    public function __construct( Database $db ) {
+        $this->db = $db;
+    }
+
+    /**
+     * Find user by ID.
+     *
+     * @param int $id User ID.
+     *
+     * @return array{id: int, name: string}|null
+     */
+    public function find( $id ) {
+        $this->db->query( sprintf( 'SELECT * FROM users WHERE id = %d', $id ) );
+        return array(
+            'id'   => $id,
+            'name' => 'John',
+        );
+    }
+
+    /**
+     * Get database instance.
+     *
+     * @return Database
+     */
+    public function get_db() {
+        return $this->db;
+    }
+}
+
+/**
+ * API Client (singleton with constructor args example).
+ *
+ * @package Container
+ */
+class ApiClient {
+
+    use Singleton;
+
+    /**
+     * API key.
+     *
+     * @var string
+     */
+    private $api_key = '';
+
+    /**
+     * Base URL.
+     *
+     * @var string
+     */
+    private $base_url = '';
+
+    /**
+     * Constructor.
+     */
+    private function __construct() {}
+
+    /**
+     * Configure the client.
+     *
+     * @param string $api_key  API key.
+     * @param string $base_url Base URL.
+     *
+     * @return self
+     */
+    public function configure( $api_key, $base_url = 'https://api.example.com' ) {
+        $this->api_key  = $api_key;
+        $this->base_url = $base_url;
+        return $this;
+    }
+
+    /**
+     * Get API key.
+     *
+     * @return string
+     */
+    public function get_api_key() {
+        return $this->api_key;
+    }
+
+    /**
+     * Get base URL.
+     *
+     * @return string
+     */
+    public function get_base_url() {
+        return $this->base_url;
+    }
+}
+
+
+
+
+// In Plugin.php
+
+// Bootstrap container
+$container = Container::instance();
+
+// Register singleton (same instance every time)
+$container->register( Database::class, function() {
+    return Database::instance();
+});
+
+// Register factory (new instance every time)
+$container->register( Logger::class, function() {
+    return new Logger();
+});
+
+// Register with dependencies
+$container->register( UserRepository::class, function( Container $c ) {
+    return new UserRepository( $c->get( Database::class ) );
+});
+
+// Register singleton with configuration
+$container->register( ApiClient::class, function() {
+    return ApiClient::instance()->configure( 'my-api-key', 'https://api.example.com' );
+});
+
+// Usage
+$db   = $container->get( Database::class );
+$repo = $container->get( UserRepository::class );
+$user = $repo->find( 1 );
+
+// Factory creates new instances
+$logger1 = $container->get( Logger::class );
+$logger1->log( 'First message' );
+
+$logger2 = $container->get( Logger::class );
+// $logger2 has no logs (new instance)
 ```
 
 ### Plugin `AdminPage.php`
@@ -522,6 +770,8 @@ class Settings extends AdminSettings {
 - URL will be: `/wp-json/<page_id>/<rest_api_version>/settings`
 - Default IS: `/wp-json/<page_id>/v1/settings`
 - Example: `/wp-json/plugin-a/v1/settings`
+
+### WordPress Data Store Usages example
 
 ```js
 import { select } from '@wordpress/data';

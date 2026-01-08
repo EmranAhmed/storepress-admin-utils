@@ -29,6 +29,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		 * @var string[]|array<string, mixed>
 		 */
 		private array $field;
+
 		/**
 		 * Setting Object.
 		 *
@@ -154,7 +155,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Field' ) ) {
 		/**
 		 * Get default value.
 		 *
-		 * @return bool|string|numeric|string[]|null
+		 * @return bool|string|numeric|array<int|string, mixed>|null
 		 */
 		public function get_default_value() {
 			return $this->get_attribute( 'default' );
