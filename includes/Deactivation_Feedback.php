@@ -1,6 +1,6 @@
 <?php
 	/**
-	 * Dialog UI.
+	 * Abstract Deactivation Feedback Class File.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
@@ -15,7 +15,7 @@
 
 if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 	/**
-	 * Admin Settings Field Class.
+	 * Abstract Deactivation Feedback Class.
 	 *
 	 * @name Deactivation_Feedback
 	 */

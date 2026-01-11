@@ -1,13 +1,13 @@
 <?php
 	/**
-	 * Admin Settings Class file.
+	 * Abstract Admin Settings Class file.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
 	 * @version    1.0.0
 	 */
 
-	declare(strict_types=1);
+	declare( strict_types=1 );
 
 	namespace StorePress\AdminUtils;
 
@@ -16,7 +16,7 @@
 if ( ! class_exists( '\StorePress\AdminUtils\Settings' ) ) {
 
 	/**
-	 * Admin Settings Class
+	 * Abstract Admin Settings Class.
 	 *
 	 * @name Settings
 	 * @see Menu

@@ -1,13 +1,13 @@
 <?php
 	/**
-	 * Plugin Upgrade Notice Class File.
+	 * Abstract Plugin Upgrade Notice Class File.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
 	 * @version    1.0.0
 	 */
 
-	declare(strict_types=1);
+	declare( strict_types=1 );
 
 	namespace StorePress\AdminUtils;
 
@@ -15,7 +15,9 @@
 
 if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 	/**
-	 * Plugin Upgrade Notice Class.
+	 * Abstract Plugin Upgrade Notice Class.
+	 *
+	 * @name Upgrade_Notice
 	 */
 	abstract class Upgrade_Notice {
 

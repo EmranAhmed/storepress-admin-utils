@@ -1,13 +1,13 @@
 <?php
 	/**
-	 * Changelog Class File.
+	 * Deactivation Dialog Class File.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
 	 * @version    1.0.0
 	 */
 
-	declare(strict_types=1);
+	declare( strict_types=1 );
 
 	namespace StorePress\AdminUtils;
 
@@ -15,7 +15,7 @@
 
 if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 	/**
-	 * Changelog Dialog Class.
+	 * Deactivation Dialog Class.
 	 *
 	 * @name Deactivation_Dialog
 	 */

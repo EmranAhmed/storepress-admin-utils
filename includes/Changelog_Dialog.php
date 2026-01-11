@@ -1,13 +1,13 @@
 <?php
 	/**
-	 * Changelog Class File.
+	 * Changelog Dialog Class File.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
 	 * @version    1.0.0
 	 */
 
-	declare(strict_types=1);
+	declare( strict_types=1 );
 
 	namespace StorePress\AdminUtils;
 

@@ -7,7 +7,7 @@
 	 * @version    1.0.0
 	 */
 
-	declare(strict_types=1);
+	declare( strict_types=1 );
 
 	namespace StorePress\AdminUtils;
 
@@ -18,7 +18,7 @@
 if ( ! class_exists( '\StorePress\AdminUtils\Plugin_Rollback' ) ) {
 
 	/**
-	 * Plugin Updater API Class.
+	 * Plugin Rollback API Class.
 	 *
 	 * @name Plugin_Rollback
 	 */

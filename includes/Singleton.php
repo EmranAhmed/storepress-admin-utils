@@ -1,6 +1,6 @@
 <?php
 	/**
-	 * Singleton trait.
+	 * Singleton Trait File.
 	 *
 	 * @package      StorePress/AdminUtils
 	 * @since        1.11.1
@@ -13,39 +13,47 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-trait Singleton {
+if ( ! trait_exists( '\StorePress\AdminUtils\Singleton' ) ) {
 
 	/**
-	 * Instance holder.
+	 * Singleton Trait.
 	 *
-	 * @var self|null
+	 * @name Singleton
 	 */
-	private static $instance;
+	trait Singleton {
 
-	/**
-	 *  Return singleton instance of Class.
-	 *  The instance will be created if it does not exist yet.
-	 *
-	 * @param mixed ...$args Class params.
-	 *
-	 * @return self
-	 * @since  1.11.0
-	 */
-	public static function instance( ...$args ): self {
-		if ( is_null( self::$instance ) ) {
-			self::$instance = new self( ...$args );
+		/**
+		 * Instance holder.
+		 *
+		 * @var self|null
+		 */
+		protected static $instance;
+
+		/**
+		 *  Return singleton instance of Class.
+		 *  The instance will be created if it does not exist yet.
+		 *
+		 * @param mixed ...$args Class params.
+		 *
+		 * @return self
+		 * @since  1.11.0
+		 */
+		public static function instance( ...$args ): self {
+			if ( is_null( self::$instance ) ) {
+				self::$instance = new self( ...$args );
+			}
+
+			return self::$instance;
 		}
 
-		return self::$instance;
-	}
-
-	/**
-	 * Reset instance (for testing).
-	 *
-	 * @return void
-	 * @since  2.0.0
-	 */
-	public static function destroy(): void {
-		self::$instance = null;
+		/**
+		 * Reset instance (for testing).
+		 *
+		 * @return void
+		 * @since  2.0.0
+		 */
+		public static function destroy(): void {
+			self::$instance = null;
+		}
 	}
 }

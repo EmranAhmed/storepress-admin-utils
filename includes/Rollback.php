@@ -1,6 +1,6 @@
 <?php
 	/**
-	 * Plugin Rollback API Class File.
+	 * Rollback Class File.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
@@ -18,7 +18,7 @@
 if ( ! class_exists( '\StorePress\AdminUtils\Rollback' ) ) {
 
 	/**
-	 * Plugin Updater API Class.
+	 * Rollback Class.
 	 *
 	 * @name Rollback
 	 */

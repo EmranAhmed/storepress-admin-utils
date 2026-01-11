@@ -7,7 +7,7 @@
 	 * @version    1.0.0
 	 */
 
-	declare(strict_types=1);
+	declare( strict_types=1 );
 
 	namespace StorePress\AdminUtils;
 
@@ -15,7 +15,7 @@
 
 if ( ! class_exists( '\StorePress\AdminUtils\Menu' ) ) {
 	/**
-	 * Admin Settings Menu Class.
+	 * Admin Settings Abstract Menu Class.
 	 *
 	 * @name Menu
 	 */
