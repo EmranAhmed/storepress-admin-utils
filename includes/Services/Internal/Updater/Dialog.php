@@ -9,44 +9,36 @@
 
 	declare( strict_types=1 );
 
-	namespace StorePress\AdminUtils;
+	namespace StorePress\AdminUtils\Services\Internal\Updater;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-if ( ! class_exists( '\StorePress\AdminUtils\Changelog_Dialog' ) ) {
+	use StorePress\AdminUtils\Abstracts\AbstractDialog;
+	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Traits\PluginFileTrait;
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+
+if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Dialog' ) ) {
 	/**
 	 * Changelog Dialog Class.
 	 *
-	 * @name Changelog_Dialog
+	 * @name Dialog
+	 * @phpstan-use CallerTrait<Rollback>
+	 * @method Rollback get_caller()
 	 */
-	class Changelog_Dialog extends Dialog {
+	class Dialog extends AbstractDialog {
 
-		use Singleton;
-
-		/**
-		 * DI Rollback
-		 *
-		 * @var Rollback
-		 */
-		private Rollback $api;
+		use SingletonTrait;
+		use CallerTrait;
 
 		/**
 		 * Instance.
 		 *
-		 * @param Rollback $api Parent Class.
+		 * @param Rollback $caller Caller Class.
 		 */
-		public function __construct( Rollback $api ) {
-			$this->api = $api;
+		public function __construct( Rollback $caller ) {
+			$this->set_caller( $caller );
 			parent::__construct();
-		}
-
-		/**
-		 * Get DI Class.
-		 *
-		 * @return Rollback
-		 */
-		public function get_api(): Rollback {
-			return $this->api;
 		}
 
 		/**
@@ -62,9 +54,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Changelog_Dialog' ) ) {
 		 * Dialog Title.
 		 *
 		 * @return string
+		 * @throws \WP_Exception Throw Exception If used method not overridden in subclass.
 		 */
 		public function title(): string {
-			$l10 = $this->get_api()->get_localize_strings();
+			$l10 = $this->get_caller()->get_localize_strings();
 			return $l10['rollback_changelog_title'];
 		}
 
@@ -73,8 +66,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Changelog_Dialog' ) ) {
 		 *
 		 * @return string
 		 */
-		public function contents(): string {
-			$info = $this->get_api()->get_plugin_info();
+		public function content(): string {
+			$info = $this->get_caller()->get_plugin_info();
 			return $info['sections']['changelog'];
 		}
 
@@ -94,15 +87,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Changelog_Dialog' ) ) {
 		 */
 		public function get_buttons(): array {
 			return array();
-		}
-
-		/**
-		 * Get plugin file absolute or relative path.
-		 *
-		 * @return string
-		 */
-		public function plugin_file(): string {
-			return $this->get_api()->get_plugin_file();
 		}
 	}
 }

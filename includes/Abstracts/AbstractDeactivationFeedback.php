@@ -9,60 +9,64 @@
 
 	declare( strict_types=1 );
 
-	namespace StorePress\AdminUtils;
+	namespace StorePress\AdminUtils\Abstracts;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
+	use StorePress\AdminUtils\ServiceProviders\Internal\DeactivationFeedbackServiceProvider;
+	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
+	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
+	use StorePress\AdminUtils\Traits\ManageServiceProviderTrait;
+	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
+	use StorePress\AdminUtils\Traits\PluginCommonTrait;
+	use WP_Exception;
+
+if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedback' ) ) {
 	/**
 	 * Abstract Deactivation Feedback Class.
 	 *
-	 * @name Deactivation_Feedback
+	 * @name AbstractDeactivationFeedback
 	 */
-	abstract class Deactivation_Feedback {
+	abstract class AbstractDeactivationFeedback {
 
-		use Common;
-		use Package;
+		use HelperMethodsTrait;
+		use PluginCommonTrait;
+		use InternalPackageTrait;
+		use ManageServiceProviderTrait;
+		use CallerTrait;
+		use MethodShouldImplementTrait;
 
 		/**
-		 * Get deactivation reasons.
+		 * Updater Plugin Admin Init.
 		 *
-		 * @return array<string, mixed>
-		 * @example
-		 *
-		 * array(
-		 *     'temporary_deactivation' => array(
-		 *         'title' => "It's a temporary deactivation.",
-		 *     ),
-		 *
-		 *     'dont_understand' => array(
-		 *         'title' => "I could not understand how to make it work.",
-		 *         'message' => 'Explain what it does.<br /><a target="_blank" href="#">Please check live demo</a>.',
-		 *     ),
-		 *
-		 *     'broke_site_layout' => array(
-		 *         'title' => 'The plugin <strong>broke my layout</strong> or some functionality.',
-		 *         'message' => '<a target="_blank" href="#">Please open a support ticket</a>, we will fix it immediately.',
-		 *     ),
-		 *
-		 *     'plugin_setup_help' => array(
-		 *         'title' => 'I need someone to <strong>setup this plugin.</strong>',
-		 *         'input' => array(
-		 *             'placeholder'=>'Your email address.',
-		 *             'value'=>sanitize_email( $current_user->user_email )
-		 *         ),
-		 *         'message' => 'Please provide your email address to contact with you <br />and help you to set up and configure this plugin.',
-		 *     ),
-		 *
-		 *     'other' => array(
-		 *         'title' => 'Other',
-		 *         'input' => array(
-		 *             'placeholder'=> 'Please share the reason',
-		 *         ),
-		 *     )
-		 * )
+		 * @param object $caller Caller Object.
 		 */
-		abstract public function reasons(): array;
+		public function __construct( object $caller ) {
+			$this->set_caller( $caller );
+			$this->register_service_provider( $this );
+			$this->register_services();
+			$this->hooks();
+			$this->init();
+		}
+
+		/**
+		 * Init method
+		 *
+		 * @return void
+		 */
+		public function init(): void {}
+
+		/**
+		 * Set Service provider.
+		 *
+		 * @param object $caller Caller Class.
+		 *
+		 * @return DeactivationFeedbackServiceProvider
+		 */
+		public function service_provider( object $caller ): DeactivationFeedbackServiceProvider {
+			return new DeactivationFeedbackServiceProvider( $caller );
+		}
 
 		/**
 		 * Get deactivation title.
@@ -72,7 +76,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		abstract public function title(): string;
 
 		/**
-		 * Get API URL to send feedback.
+		 * Set API URL to send feedback.
 		 *
 		 * @return string
 		 * @example https://example.com/wp-json/__NAMESPACE__/v1/deactivate
@@ -91,10 +95,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 *
 		 * @return void
 		 */
-		protected function __construct() {
+		public function hooks(): void {
 			// We use current_screen instead of admin_init.
-			// because using calling get_current_screen() too early in admin_init.
-			add_action( 'current_screen', array( $this, 'init' ), 9 );
+			// because using calling get_current_screen() too early to use in admin_init hook.
+			add_action( 'current_screen', array( $this, 'loaded' ), 9 );
 			add_action( 'admin_init', array( $this, 'ajax_setup' ) );
 		}
 
@@ -112,13 +116,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 *
 		 * @return void
 		 */
-		public function init(): void {
+		public function loaded(): void {
 
 			if ( ! $this->is_plugins_page() ) {
 				return;
 			}
+
+			$this->boot_services();
+
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 20 );
-			$this->get_dialog();
 		}
 
 		/**
@@ -142,8 +148,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		/**
 		 * Dialog buttons.
 		 *
+		 * @abstract Method should be implemented in subclass.
+		 *
 		 * @return array<int, mixed>
-		 * @throws \WP_Exception Method should be implemented in subclass.
+		 * @throws WP_Exception Method should be implemented in subclass.
 		 * @example
 		 *
 		 * array(
@@ -173,9 +181,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 */
 		public function get_buttons(): array {
 
-			/* translators: %s: Method name. */
-			$message = sprintf( esc_html__( "Method '%s' not implemented. Must be overridden in subclass." ), __METHOD__ );
-			wp_trigger_error( __METHOD__, $message );
+			$this->subclass_should_implement( __FUNCTION__ );
 
 			return array(
 				array(
@@ -214,10 +220,80 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		/**
 		 * Get deactivation reasons.
 		 *
+		 * @abstract Method should be implemented in subclass.
 		 * @return array<string, mixed>
+		 * @throws WP_Exception Method should be implemented in subclass.
+		 * @example
+		 *
+		 * array(
+		 *     'temporary_deactivation' => array(
+		 *         'title' => "It's a temporary deactivation.",
+		 *     ),
+		 *
+		 *     'dont_understand' => array(
+		 *         'title' => "I could not understand how to make it work.",
+		 *         'message' => 'Explain what it does.<br /><a target="_blank" href="#">Please check live demo</a>.',
+		 *     ),
+		 *
+		 *     'broke_site_layout' => array(
+		 *         'title' => 'The plugin <strong>broke my layout</strong> or some functionality.',
+		 *         'message' => '<a target="_blank" href="#">Please open a support ticket</a>, we will fix it immediately.',
+		 *     ),
+		 *
+		 *     'plugin_setup_help' => array(
+		 *         'title' => 'I need someone to <strong>setup this plugin.</strong>',
+		 *         'input' => array(
+		 *             'placeholder'=>'Your email address.',
+		 *             'value'=>sanitize_email( $current_user->user_email )
+		 *         ),
+		 *         'message' => 'Please provide your email address to contact with you <br />and help you to set up and configure this plugin.',
+		 *     ),
+		 *
+		 *     'other' => array(
+		 *         'title' => 'Other',
+		 *         'input' => array(
+		 *             'placeholder'=> 'Please share the reason',
+		 *         ),
+		 *     )
+		 * )
 		 */
 		public function get_reasons(): array {
-			return $this->reasons();
+
+			$this->subclass_should_implement( __FUNCTION__ );
+
+			$current_user = wp_get_current_user();
+
+			return array(
+				'temporary_deactivation' => array(
+					'title' => "It's a temporary deactivation.",
+				),
+
+				'dont_understand'        => array(
+					'title'   => 'I could not understand how to make it work.',
+					'message' => 'Explain what it does.<br /><a target="_blank" href="#">Please check live demo</a>.',
+				),
+
+				'broke_site_layout'      => array(
+					'title'   => 'The plugin <strong>broke my layout</strong> or some functionality.',
+					'message' => '<a target="_blank" href="#">Please open a support ticket</a>, we will fix it immediately.',
+				),
+
+				'plugin_setup_help'      => array(
+					'title'   => 'I need someone to <strong>setup this plugin.</strong>',
+					'input'   => array(
+						'placeholder' => 'Your email address.',
+						'value'       => sanitize_email( $current_user->user_email ),
+					),
+					'message' => 'Please provide your email address to contact with you <br />and help you to set up and configure this plugin.',
+				),
+
+				'other'                  => array(
+					'title' => 'Other',
+					'input' => array(
+						'placeholder' => 'Please share the reason',
+					),
+				),
+			);
 		}
 
 		/**
@@ -233,6 +309,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 * Send feedback to API Server.
 		 *
 		 * @return void
+		 * @throws WP_Exception "get_reasons" Method should be implemented in subclass.
 		 */
 		public function send_feedback(): void {
 
@@ -348,7 +425,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 */
 		public function enqueue_scripts(): void {
 
-			$this->register_package_admin_utils_script();
 			$this->register_package_scripts( 'deactivation' );
 
 			wp_enqueue_script( 'wp-util' );
@@ -384,19 +460,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Feedback' ) ) {
 		 */
 		public function is_plugins_page(): bool {
 			$screen    = get_current_screen();
-			$screen_id = $screen ? $screen->id : '';
+			$screen_id = $screen->id ?? '';
 
 			return in_array( $screen_id, array( 'plugins', 'plugins-network' ), true ) && current_user_can( 'update_plugins' );
-		}
-
-		/**
-		 * Load Dialog.
-		 *
-		 * @return Deactivation_Dialog
-		 */
-		public function get_dialog(): Deactivation_Dialog {
-			// Load Deactivation_Dialog In NON Singleton way. It can be loaded in page in many times.
-			return new Deactivation_Dialog( $this );
 		}
 
 		/**

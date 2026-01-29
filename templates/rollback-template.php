@@ -3,10 +3,12 @@
 	 * Rollback Template File.
 	 *
 	 * @package StorePress/AdminUtils
-	 * @var \StorePress\AdminUtils\Rollback $this - Settings Class Instance.
+	 * @var Rollback $this - Rollback Instance.
 	 * @since 1.0.0
 	 * @version 1.0.0
 	 */
+
+	use StorePress\AdminUtils\Services\Internal\Updater\Rollback;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 

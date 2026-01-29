@@ -9,76 +9,126 @@
 
 	declare( strict_types=1 );
 
-	namespace StorePress\AdminUtils;
+	namespace StorePress\AdminUtils\Services\Internal\Settings;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
+	use StorePress\AdminUtils\Abstracts\AbstractSettings;
+	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
+
+if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\API' ) ) {
+
 	/**
 	 * Admin Settings REST API Class.
 	 *
-	 * @name REST_API
-	 * @see \WP_REST_Controller
-	 * @example    Default REST URL /wp-json/<plugin-page-id>/v1/settings
+	 * Provides REST API endpoints for reading settings from the AbstractSettings framework.
+	 * Extends WP_REST_Controller to integrate with WordPress REST API infrastructure.
+	 *
+	 * @name API
+	 *
+	 * @phpstan-use CallerTrait<AbstractSettings>
+	 *
+	 * @method AbstractSettings get_caller() Returns the parent AbstractSettings instance.
+	 *
+	 * @see \WP_REST_Controller For base REST controller methods.
+	 * @see AbstractSettings For settings page integration.
+	 *
+	 * @example Default REST URL format:
+	 *          GET: /wp-json/<plugin-page-id>/v1/settings
+	 *          GET: /wp-json/my-plugin/v1/settings
+	 *
+	 * @example Response format:
+	 *          ```json
+	 *          {
+	 *              "field_id": "field_value",
+	 *              "another_field": "another_value",
+	 *              "group_field": {
+	 *                  "sub_field": "sub_value"
+	 *              }
+	 *          }
+	 *          ```
+	 *
+	 * @since 1.0.0
 	 */
-	class REST_API extends \WP_REST_Controller {
+	class API extends \WP_REST_Controller {
 
-		use Common;
+		use HelperMethodsTrait;
+		use CallerTrait;
 
 		/**
-		 * Settings Object.
+		 * Required capability for API access.
 		 *
-		 * @var Settings
-		 */
-		protected Settings $settings;
-
-		/**
-		 * API Display Permission.
+		 * The WordPress capability required to read settings via REST API.
 		 *
 		 * @var string
 		 */
 		protected string $permission;
 
 		/**
-		 * API Namespace.
+		 * REST API namespace.
+		 *
+		 * The namespace prefix for the REST routes (e.g., 'my-plugin/v1').
 		 *
 		 * @var string
 		 */
 		protected $namespace;
 
 		/**
-		 * Rest base.
+		 * REST API base path.
+		 *
+		 * The base path for the settings endpoint (e.g., 'settings').
 		 *
 		 * @var string
 		 */
 		protected $rest_base = 'settings';
 
 		/**
-		 * Construct.
+		 * Constructor.
 		 *
-		 * @param Settings $settings Setting Class Instance.
+		 * Initializes the REST API controller with the parent settings instance.
+		 *
+		 * @param AbstractSettings $settings The settings class instance.
+		 *
+		 * @see set_caller()
+		 *
+		 * @since 1.0.0
 		 */
-		public function __construct( Settings $settings ) {
-			$this->settings   = $settings;
+		public function __construct( AbstractSettings $settings ) {
+			$this->set_caller( $settings );
+
 			$this->permission = $this->get_settings()->rest_get_capability();
 			$this->namespace  = $this->get_settings()->show_in_rest();
 			$this->rest_base  = $this->get_settings()->rest_api_base();
 		}
 
 		/**
-		 * Get Settings Object.
+		 * Get the parent settings instance.
 		 *
-		 * @return Settings
+		 * Returns the AbstractSettings instance that owns this API controller.
+		 *
+		 * @return AbstractSettings The settings instance.
+		 *
+		 * @see get_caller()
+		 *
+		 * @since 1.0.0
 		 */
-		public function get_settings(): Settings {
-			return $this->settings;
+		public function get_settings(): AbstractSettings {
+			return $this->get_caller();
 		}
 
 		/**
-		 * Registers the routes for the StorePress's settings.
+		 * Register REST API routes for settings.
+		 *
+		 * Registers the GET endpoint for reading settings. Only registers if
+		 * the namespace is configured (i.e., show_in_rest() returns a value).
 		 *
 		 * @return void
+		 *
 		 * @see register_rest_route()
+		 * @see https://developer.wordpress.org/rest-api/extending-the-rest-api/adding-custom-endpoints/
+		 *
+		 * @since 1.0.0
 		 */
 		public function register_routes(): void {
 
@@ -86,7 +136,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				return;
 			}
 
-			// @see: https://developer.wordpress.org/rest-api/extending-the-rest-api/adding-custom-endpoints/
+			// Register REST route for reading settings.
 			register_rest_route(
 				$this->namespace,
 				'/' . $this->rest_base,
@@ -104,28 +154,42 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		}
 
 		/**
-		 * Checks if a given request has access to read and manage settings.
+		 * Check if request has permission to read settings.
 		 *
-		 * @phpstan-param \WP_REST_Request $request
+		 * Verifies the current user has the required capability to access
+		 * the settings endpoint.
+		 *
 		 * @param \WP_REST_Request $request Full details about the request.
 		 *
-		 * @return bool TRUE if the request has read access for the item, otherwise FALSE.
+		 * @return bool True if the request has read access, false otherwise.
+		 *
+		 * @phpstan-param \WP_REST_Request $request
+		 *
+		 * @since 1.0.0
 		 */
 		public function get_item_permissions_check( $request ): bool {
 			return $this->is_empty_string( $this->permission ) || current_user_can( $this->permission );
 		}
 
 		/**
-		 * Retrieves the settings.
+		 * Retrieve all settings via REST API.
+		 *
+		 * Returns all registered settings that have show_in_rest enabled.
+		 * Values are validated and sanitized according to their schema.
 		 *
 		 * @param \WP_REST_Request $request Full details about the request.
 		 *
-		 * @return \WP_REST_Response|\WP_Error Array on success, or WP_Error object on failure.
+		 * @return \WP_REST_Response|\WP_Error Response with settings data or error.
+		 *
 		 * @see \WP_REST_Settings_Controller::get_item()
+		 * @see get_registered_options()
+		 * @see prepare_value()
+		 *
+		 * @since 1.0.0
 		 */
 		public function get_item( $request ) {
 			$options  = $this->get_registered_options();
-			$page_id  = $this->get_settings()->get_page_id();
+			$page_id  = $this->get_settings()->get_page_slug();
 			$response = array();
 
 			foreach ( $options as $name => $args ) {
@@ -160,12 +224,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		}
 
 		/**
-		 * Prepares a value for output based off a schema array.
+		 * Prepare a value for REST API output based on schema.
 		 *
-		 * @param mixed                          $value  Value to prepare.
-		 * @param array<string, string|string[]> $schema Schema to match.
+		 * Validates and sanitizes the value according to the provided JSON schema.
+		 * Returns null for invalid values to prevent destructive overwrites.
 		 *
-		 * @return mixed The prepared value.
+		 * @param mixed                          $value  The value to prepare.
+		 * @param array<string, string|string[]> $schema The JSON schema to validate against.
+		 *
+		 * @return mixed The prepared value or null if invalid.
+		 *
+		 * @see rest_validate_value_from_schema()
+		 * @see rest_sanitize_value_from_schema()
+		 *
+		 * @since 1.0.0
 		 */
 		protected function prepare_value( $value, array $schema ) {
 			/*
@@ -181,10 +253,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		}
 
 		/**
-		 * Retrieves all the registered options for the Settings API.
+		 * Retrieve all registered settings fields for REST API.
 		 *
-		 * @return array<string, mixed> Array of registered options.
+		 * Builds an array of all settings fields that have show_in_rest enabled,
+		 * including their values, schemas, and metadata.
+		 *
+		 * @return array<string, mixed> Array of registered options with schema and values.
+		 *
+		 * @see get_all_fields()
 		 * @see https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/
+		 *
+		 * @since 1.0.0
 		 */
 		protected function get_registered_options(): array {
 			$rest_options = array();
@@ -218,7 +297,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 					/** 'readonly'    => true,
 					// 'context'     => array( 'view' ),
 					// 'default'     => $field->get_default_value(),
-					*/
+					 */
 				);
 
 				if ( $field->has_attribute( 'required' ) ) {
@@ -301,6 +380,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 				/*
 				 * Allow the supported types for settings, as we don't want invalid types
 				 * to be updated with arbitrary values that we can't do decent sanitizing for.
+				 * @see https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/#primitive-types
 				 */
 				if ( ! in_array( $rest_args['schema']['type'], array( 'number', 'integer', 'string', 'boolean', 'array', 'object' ), true ) ) {
 					continue;
@@ -315,9 +395,18 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		}
 
 		/**
-		 * Retrieves the site setting schema, conforming to JSON Schema.
+		 * Retrieve the JSON Schema for the settings endpoint.
 		 *
-		 * @return array<string, mixed> Item schema data.
+		 * Builds and caches a JSON Schema definition for all registered
+		 * settings, conforming to JSON Schema draft-04.
+		 *
+		 * @return array<string, mixed> The JSON Schema array.
+		 *
+		 * @see get_registered_options()
+		 * @see add_additional_fields_schema()
+		 * @see https://json-schema.org/draft-04/schema
+		 *
+		 * @since 1.0.0
 		 */
 		public function get_item_schema(): array {
 			if ( is_array( $this->schema ) && $this->is_empty_array( $this->schema ) ) {
@@ -346,17 +435,21 @@ if ( ! class_exists( '\StorePress\AdminUtils\REST_API' ) ) {
 		}
 
 		/**
-		 * Custom sanitize callback used for all options to allow the use of 'null'.
+		 * Custom sanitize callback to allow null values.
 		 *
-		 * By default, the schema of settings will throw an error if a value is set to
-		 * `null` as it's not a valid value for something like "type => string". We
-		 * provide a wrapper sanitizer to allow the use of `null`.
+		 * By default, JSON Schema validation throws an error if a value is set to
+		 * `null` as it's not valid for types like "string". This wrapper allows
+		 * null values to pass through without validation errors.
 		 *
 		 * @param mixed            $value   The value for the setting.
 		 * @param \WP_REST_Request $request The request object.
 		 * @param string           $param   The parameter name.
 		 *
-		 * @return mixed|\WP_Error
+		 * @return mixed|\WP_Error The sanitized value or WP_Error on failure.
+		 *
+		 * @see rest_parse_request_arg()
+		 *
+		 * @since 1.0.0
 		 */
 		public function sanitize_callback( $value, \WP_REST_Request $request, string $param ) {
 			if ( is_null( $value ) ) {

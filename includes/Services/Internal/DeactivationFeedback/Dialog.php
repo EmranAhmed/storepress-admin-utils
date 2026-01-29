@@ -1,6 +1,6 @@
 <?php
 	/**
-	 * Deactivation Dialog Class File.
+	 * Changelog Dialog Class File.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
@@ -9,42 +9,36 @@
 
 	declare( strict_types=1 );
 
-	namespace StorePress\AdminUtils;
+	namespace StorePress\AdminUtils\Services\Internal\DeactivationFeedback;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
-	/**
-	 * Deactivation Dialog Class.
-	 *
-	 * @name Deactivation_Dialog
-	 */
-	class Deactivation_Dialog extends Dialog {
+	use StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedback;
+	use StorePress\AdminUtils\Abstracts\AbstractDialog;
+	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Traits\SingletonTrait;
 
-		/**
-		 * DI Rollback
-		 *
-		 * @var Deactivation_Feedback
-		 */
-		private Deactivation_Feedback $api;
+if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\DeactivationFeedback\Dialog' ) ) {
+	/**
+	 * Changelog Dialog Class.
+	 *
+	 * @name Dialog
+	 * @phpstan-use CallerTrait<AbstractDeactivationFeedback>
+	 * @method AbstractDeactivationFeedback get_caller()
+	 */
+	class Dialog extends AbstractDialog {
+
+		use SingletonTrait;
+		use CallerTrait;
 
 		/**
 		 * Instance.
 		 *
-		 * @param Deactivation_Feedback $api Parent Class.
+		 * @param AbstractDeactivationFeedback $caller Caller Class.
 		 */
-		public function __construct( Deactivation_Feedback $api ) {
-			$this->api = $api;
+		public function __construct( AbstractDeactivationFeedback $caller ) {
+			$this->set_caller( $caller );
 			parent::__construct();
-		}
-
-		/**
-		 * Get DI Class.
-		 *
-		 * @return Deactivation_Feedback
-		 */
-		public function get_api(): Deactivation_Feedback {
-			return $this->api;
 		}
 
 		/**
@@ -53,7 +47,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		 * @return string
 		 */
 		public function id(): string {
-			return $this->get_api()->get_dialog_id();
+			return $this->get_caller()->get_dialog_id();
 		}
 
 		/**
@@ -62,7 +56,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		 * @return string
 		 */
 		public function title(): string {
-			return $this->get_api()->get_title();
+			return $this->get_caller()->get_title();
 		}
 
 		/**
@@ -71,7 +65,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		 * @return string
 		 */
 		public function get_sub_title(): string {
-			return $this->get_api()->sub_title();
+			return $this->get_caller()->sub_title();
 		}
 
 		/**
@@ -79,8 +73,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		 *
 		 * @return string
 		 */
-		public function contents(): string {
-			$reasons = $this->get_api()->get_reasons();
+		public function content(): string {
+			$reasons = $this->get_caller()->get_reasons();
 
 			$html = array();
 
@@ -132,22 +126,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		}
 
 		/**
-		 * Get plugin file absolute or relative path.
-		 *
-		 * @return string
-		 */
-		public function plugin_file(): string {
-			return $this->get_api()->get_plugin_file();
-		}
-
-		/**
-		 * Dialog buttons.
+		 * Action buttons.
 		 *
 		 * @return array<int, mixed>
-		 * @throws \WP_Exception If method not implemented in api subclass.
 		 */
 		public function get_buttons(): array {
-			return $this->get_api()->get_buttons();
+			return $this->get_caller()->get_buttons();
 		}
 
 		/**
@@ -156,7 +140,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		 * @return bool
 		 */
 		public function has_capability(): bool {
-			return $this->get_api()->is_plugins_page();
+			return $this->get_caller()->is_plugins_page();
 		}
 
 		/**
@@ -165,7 +149,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Deactivation_Dialog' ) ) {
 		 * @return string
 		 */
 		public function width(): string {
-			return $this->get_api()->get_dialog_width();
+			return $this->get_caller()->get_dialog_width();
 		}
 	}
 }

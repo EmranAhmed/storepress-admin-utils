@@ -9,33 +9,33 @@
 
 	declare( strict_types=1 );
 
-	namespace StorePress\AdminUtils;
+	namespace StorePress\AdminUtils\Traits;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-if ( ! trait_exists( '\StorePress\AdminUtils\Plugin' ) ) {
+if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 
 	/**
 	 * Plugin Trait.
 	 *
-	 * @name Plugin
+	 * @name PluginCommonTrait
 	 */
 
-	trait Plugin {
+	trait PluginCommonTrait {
 
 		/**
 		 * Plugin Version.
 		 *
 		 * @var string $plugin_version Plugin version.
 		 */
-		private string $plugin_version = '';
+		protected string $plugin_version = '';
 
 		/**
 		 * Plugin Name.
 		 *
 		 * @var string $plugin_name Plugin Name.
 		 */
-		private string $plugin_name = '';
+		protected string $plugin_name = '';
 
 		/**
 		 * Get plugin file absolute or relative path.
@@ -281,12 +281,12 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Plugin' ) ) {
 		/**
 		 * Register StorePress Utils script.
 		 *
-		 * @return void
+		 * @return string
 		 */
-		public function register_storepress_utils_script(): void {
+		public function register_storepress_utils_script(): string {
 
 			if ( ! file_exists( $this->build_path() . '/storepress-utils.js' ) ) {
-				return;
+				return '';
 			}
 
 			$file_url   = $this->build_url() . '/storepress-utils.js';
@@ -294,6 +294,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Plugin' ) ) {
 			$asset      = include $asset_path;
 
 			wp_register_script( 'storepress-utils', $file_url, $asset['dependencies'], $asset['version'], array( 'strategy' => 'defer' ) );
+			return 'storepress-utils';
 		}
 	}
 }

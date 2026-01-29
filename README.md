@@ -10,7 +10,7 @@ The library's cornerstone is its powerful settings framework, which allows devel
 
 ### Field Types
 
-It supports a rich set of field types including `text`, `unit`, `textarea`, `checkbox`, `radio`, `select`, `color`, `number`, and more advanced fields like `toggle` switches and `group` fields.
+It supports a rich set of field types including `text`, `unit`, `textarea`, `checkbox`, `toggle`,`radio`, `select`, `color`, `number`, and more advanced fields like `toggle` switches and `group` fields.
 
 ### Structure
 
@@ -75,359 +75,393 @@ To use StorePress Admin Utils, developers typically extend the core classes prov
 composer require storepress/admin-utils
 ```
 
+## Plugin Directory Structure
+
+```
+example/
+│
+├── example.php                            # Main plugin entry point, registers hooks, initializes Init class
+├── composer.json                          # Composer dependencies & PSR-4 autoloading configuration
+├── CLAUDE.md                              # AI assistant guidance for codebase conventions
+├── README.md                              # Plugin Readme file
+├── CHANGELOG.md                           # Plugin Changelog file
+│
+└── includes/                              # PHP source files (PSR-4: StorePress\Example\)
+    │
+    ├── Init.php                           # Plugin bootstrap: loads autoloader, registers/boots services
+    ├── functions.php                      # Utility functions.
+    │
+    ├── Features/                          # Feature modules
+    │   ├── Blocks.php                     # Gutenberg blocks.    
+    │
+    ├── Integrations/                      # Classes that integrate with WordPress/external systems
+    │   ├── AdminPage.php                  # Base settings page with sidebar and localized strings
+    │   ├── DeactivationFeedback.php       # Collects user feedback on plugin deactivation via dialog
+    │   ├── ProPluginInCompatibility.php   # Checks pro plugin version compatibility (v3.0.0+)
+    │   └── Updater.php                    # Handles plugin updates from custom server with rollback
+    │
+    ├── ServiceContainers/                 # Dependency injection
+    │   └── ServiceContainer.php           # DI container singleton for registering/resolving services
+    │
+    ├── ServiceProviders/                  # Service registration & bootstrapping
+    │   └── ServiceProvider.php            # Registers all services and boots them in correct order
+    │
+    └── Services/                          # Business logic services
+        └── Settings.php                   # Defines admin settings tabs and fields (General, Basic, Advanced, Rest)
+```
+
 ## Usage
 
-### Plugin instance
+### Plugin entry file.
 
 ```php
 <?php
-
-add_action( 'plugins_loaded', function () {
-
-    $settings = Settings::instance();
-    
-    if ( ! is_admin() ) {
-        print_r( $settings->get_option( 'input' ) );
-        print_r( $settings->get_option( 'input', 'default' ) );
-        print_r( $settings->get_group_option( 'group_id', 'input', 'default' ) );
-    }
-} );
+  /**
+  Plugin Name: Plugin Example
+  Plugin URI: https://storepress.com/plugins/plugin-example/
+  Description: Example Plugin.
+  Author: Emran Ahmed
+  Version: 1.0.0
+  Tested up to: 6.3
+  Author URI: https://storepress.com/emran/
+  Update URI: http://sites.local/
+  */
+  
+  defined( 'ABSPATH' ) || die( 'Keep Silent' );
+  
+  use StorePress\Example\Init;
+  
+  // Include the main class.
+  if ( ! class_exists( Init::class, false ) ) {
+    require_once __DIR__ . '/includes/Init.php';
+  }
+  
+  /**
+   * Plugin class init
+   *
+   * @return Init
+   */
+  function plugin_example(): Init {
+    return Init::instance(__FILE__);
+  }
+  
+  add_action( 'plugins_loaded', 'plugin_example' );
 ```
 
-### `Container` class usages example
+### Sample `Init.php` file
 
 ```php
 <?php
+	/**
+	 * Plugin Initialization Class File.
+	 *
+	 * Handles plugin bootstrap, dependency loading, and service provider initialization.
+	 *
+	 * @package    StorePress/B
+	 * @since      1.0.0
+	 * @version    1.0.0
+	 */
 
+	declare( strict_types=1 );
 
-/**
- * Database service (singleton example).
- *
- * @package Container
- */
-class Database {
+	namespace StorePress\Example;
 
-    use Singleton;
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	use StorePress\Example\ServiceContainers\ServiceContainer;
+	use StorePress\Example\ServiceProviders\ServiceProvider;
+	
+	/**
+	 * Plugin Initialization Class.
+	 *
+	 * Bootstraps the plugin by loading vendor autoloaders, registering the service provider,
+	 * and initializing hooks. Uses the singleton pattern to ensure only one instance exists.
+	 *
+	 * @name Init
+	 *
+	 * @example
+	 * // Initialize the plugin from main plugin file.
+	 * Init::instance( __FILE__ );
+	 *
+	 * @example
+	 * // Access the service container.
+	 * $container = Init::instance( __FILE__ )->get_container();
+	 *
+	 * @example
+	 * // Get the plugin file path.
+	 * $plugin_file = plugin_b()->get_plugin_file();
+	 */
+	class Init {
 
-    /**
-     * Query count.
-     *
-     * @var int
-     */
-    private $queries = 0;
+		// =====================================================================
+		// Properties
+		// =====================================================================
 
-    /**
-     * Constructor.
-     */
-    private function __construct() {}
+		/**
+		 * Plugin file path.
+		 *
+		 * Stores the absolute path to the main plugin file.
+		 *
+		 * @var string
+		 */
+		protected string $plugin_file;
 
-    /**
-     * Run a query.
-     *
-     * @param string $sql SQL query.
-     *
-     * @return self
-     */
-    public function query( $sql ) {
-        $this->queries++;
-        return $this;
-    }
+		// =====================================================================
+		// Singleton Instance
+		// =====================================================================
 
-    /**
-     * Get query count.
-     *
-     * @return int
-     */
-    public function get_query_count() {
-        return $this->queries;
-    }
-}
+		/**
+		 * Return singleton instance of the Init class.
+		 *
+		 * The instance will be created if it does not exist yet.
+		 *
+		 * @param string $plugin_file The absolute path to the main plugin file.
+		 *
+		 * @return self The singleton instance.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @example
+		 * // Get or create the singleton instance.
+		 * $init = Init::instance( __FILE__ );
+		 *
+		 * @example
+		 * // Access from global function.
+		 * function plugin_b(): Init {
+		 *     return Init::instance( __FILE__ );
+		 * }
+		 */
+		public static function instance( string $plugin_file ): self {
+			static $instance = null;
+			return $instance ??= new self( $plugin_file );
+		}
 
-/**
- * Logger service (factory example).
- *
- * @package Container
- */
-class Logger {
+		// =====================================================================
+		// Constructor
+		// =====================================================================
 
-    /**
-     * Log entries.
-     *
-     * @var array<int, string>
-     */
-    private $logs = array();
+		/**
+		 * Initialize the plugin.
+		 *
+		 * Loads vendor autoloaders and functions, registers the service provider,
+		 * boots the service provider, and runs initialization hooks.
+		 *
+		 * @param string $plugin_file The absolute path to the main plugin file.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see Init::includes()          Loads required files.
+		 * @see Init::service_provider()  Gets the service provider instance.
+		 * @see Init::hooks()             Registers WordPress hooks.
+		 */
+		public function __construct( string $plugin_file ) {
 
-    /**
-     * Log a message.
-     *
-     * @param string $message Message to log.
-     *
-     * @return self
-     */
-    public function log( $message ) {
-        $this->logs[] = $message;
-        return $this;
-    }
+			$this->plugin_file = $plugin_file;
 
-    /**
-     * Get all logs.
-     *
-     * @return array<int, string>
-     */
-    public function get_logs() {
-        return $this->logs;
-    }
+			$this->includes();
 
-    /**
-     * Get log count.
-     *
-     * @return int
-     */
-    public function count() {
-        return count( $this->logs );
-    }
-}
+			$this->service_provider()->register();
 
-/**
- * User repository (dependency example).
- *
- * @package Container
- */
-class UserRepository {
+			$this->service_provider()->boot();
 
-    /**
-     * Database instance.
-     *
-     * @var Database
-     */
-    private $db;
+			$this->hooks();
+		}
 
-    /**
-     * Constructor.
-     *
-     * @param Database $db Database instance.
-     */
-    public function __construct( Database $db ) {
-        $this->db = $db;
-    }
+		// =====================================================================
+		// File Loading Methods
+		// =====================================================================
 
-    /**
-     * Find user by ID.
-     *
-     * @param int $id User ID.
-     *
-     * @return array{id: int, name: string}|null
-     */
-    public function find( $id ) {
-        $this->db->query( sprintf( 'SELECT * FROM users WHERE id = %d', $id ) );
-        return array(
-            'id'   => $id,
-            'name' => 'John',
-        );
-    }
+		/**
+		 * Load required files.
+		 *
+		 * Includes the vendor autoload_packages.php file if it exists and the
+		 * plugin functions.php file for utility functions.
+		 *
+		 * @return void
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see Init::get_plugin_file() Gets the plugin file path.
+		 *
+		 * @example
+		 * // Files loaded:
+		 * // - vendor/autoload_packages.php (if exists)
+		 * // - includes/functions.php
+		 */
+		public function includes(): void {
+			$vendor_path = untrailingslashit( plugin_dir_path( $this->get_plugin_file() ) ) . '/vendor';
 
-    /**
-     * Get database instance.
-     *
-     * @return Database
-     */
-    public function get_db() {
-        return $this->db;
-    }
-}
+			if ( file_exists( $vendor_path . '/autoload_packages.php' ) ) {
+				require_once $vendor_path . '/autoload_packages.php';
+			}
 
-/**
- * API Client (singleton with constructor args example).
- *
- * @package Container
- */
-class ApiClient {
+			require_once __DIR__ . '/functions.php';
+		}
 
-    use Singleton;
+		// =====================================================================
+		// Getter Methods
+		// =====================================================================
 
-    /**
-     * API key.
-     *
-     * @var string
-     */
-    private $api_key = '';
+		/**
+		 * Get the plugin file path.
+		 *
+		 * Returns the absolute path to the main plugin file, useful for
+		 * deriving plugin directory, URL, basename, and version.
+		 *
+		 * @return string The absolute path to the main plugin file.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @example
+		 * // Get the plugin file path.
+		 * $file = $init->get_plugin_file();
+		 * // Returns: /path/to/wp-content/plugins/plugin-b/plugin-b.php
+		 *
+		 * @example
+		 * // Derive plugin directory.
+		 * $dir = plugin_dir_path( $init->get_plugin_file() );
+		 *
+		 * @example
+		 * // Derive plugin URL.
+		 * $url = plugin_dir_url( $init->get_plugin_file() );
+		 *
+		 * @example
+		 * // Get plugin basename.
+		 * $basename = plugin_basename( $init->get_plugin_file() );
+		 * // Returns: plugin-b/plugin-b.php
+		 */
+		public function get_plugin_file(): string {
+			return $this->plugin_file;
+		}
 
-    /**
-     * Base URL.
-     *
-     * @var string
-     */
-    private $base_url = '';
+		// =====================================================================
+		// Hook Methods
+		// =====================================================================
 
-    /**
-     * Constructor.
-     */
-    private function __construct() {}
+		/**
+		 * Register WordPress hooks.
+		 *
+		 * Hook into WordPress actions and filters for plugin functionality.
+		 * This method is intended to be extended with additional hook registrations
+		 * as the plugin grows.
+		 *
+		 * @return void
+		 *
+		 * @since 1.0.0
+		 *
+		 * @example
+		 * // Override in subclass or extend with hooks:
+		 * public function hooks(): void {
+		 *     add_action( 'init', array( $this, 'register_post_types' ) );
+		 *     add_filter( 'plugin_action_links', array( $this, 'add_settings_link' ) );
+		 * }
+		 */
+		public function hooks(): void {}
 
-    /**
-     * Configure the client.
-     *
-     * @param string $api_key  API key.
-     * @param string $base_url Base URL.
-     *
-     * @return self
-     */
-    public function configure( $api_key, $base_url = 'https://api.example.com' ) {
-        $this->api_key  = $api_key;
-        $this->base_url = $base_url;
-        return $this;
-    }
+		// =====================================================================
+		// Service Container Methods
+		// =====================================================================
 
-    /**
-     * Get API key.
-     *
-     * @return string
-     */
-    public function get_api_key() {
-        return $this->api_key;
-    }
+		/**
+		 * Get the service provider instance.
+		 *
+		 * Returns the singleton instance of ServiceProvider which manages
+		 * dependency injection and service registration for the plugin.
+		 *
+		 * @return ServiceProvider The service provider instance.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see ServiceProvider::instance() Creates or returns the provider instance.
+		 *
+		 * @example
+		 * // Access the service provider.
+		 * $provider = $init->service_provider();
+		 *
+		 * @example
+		 * // Register a new service.
+		 * $init->service_provider()->register();
+		 *
+		 * @example
+		 * // Boot all registered services.
+		 * $init->service_provider()->boot();
+		 */
+		public function service_provider(): ServiceProvider {
+			return ServiceProvider::instance( $this );
+		}
 
-    /**
-     * Get base URL.
-     *
-     * @return string
-     */
-    public function get_base_url() {
-        return $this->base_url;
-    }
-}
-
-
-
-
-// In Plugin.php
-
-// Bootstrap container
-$container = Container::instance();
-
-// Register singleton (same instance every time)
-$container->register( Database::class, function() {
-    return Database::instance();
-});
-
-// Register factory (new instance every time)
-$container->register( Logger::class, function() {
-    return new Logger();
-});
-
-// Register with dependencies
-$container->register( UserRepository::class, function( Container $c ) {
-    return new UserRepository( $c->get( Database::class ) );
-});
-
-// Register singleton with configuration
-$container->register( ApiClient::class, function() {
-    return ApiClient::instance()->configure( 'my-api-key', 'https://api.example.com' );
-});
-
-// Usage
-$db   = $container->get( Database::class );
-$repo = $container->get( UserRepository::class );
-$user = $repo->find( 1 );
-
-// Factory creates new instances
-$logger1 = $container->get( Logger::class );
-$logger1->log( 'First message' );
-
-$logger2 = $container->get( Logger::class );
-// $logger2 has no logs (new instance)
+		/**
+		 * Get the dependency injection container.
+		 *
+		 * Provides access to the service container for resolving dependencies
+		 * registered with the service provider.
+		 *
+		 * @return ServiceContainer The dependency injection container.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see Init::service_provider()       Gets the service provider.
+		 * @see ServiceProvider::get_container() Gets the container from provider.
+		 *
+		 * @example
+		 * // Get a registered service.
+		 * $settings = $init->get_container()->get( Settings::class );
+		 *
+		 * @example
+		 * // Check if a service is registered.
+		 * if ( $init->get_container()->has( Updater::class ) ) {
+		 *     $updater = $init->get_container()->get( Updater::class );
+		 * }
+		 *
+		 * @example
+		 * // Access from global function.
+		 * $container = plugin_b()->get_container();
+		 * $settings = $container->get( Settings::class );
+		 */
+		public function get_container(): ServiceContainer {
+			 return $this->service_provider()->get_container();
+		}
+	}
 ```
 
-### Plugin `AdminPage.php`
+### `AbstractSettings` class usages example
 
 ```php
 <?php
-
-namespace Plugin_A;
-
-class AdminPage extends \StorePress\AdminUtils\Settings {
-        
-    public function localize_strings(): array {
-        return array(
-            'unsaved_warning_text'          => 'The changes you made will be lost if you navigate away from this page.',
-            'reset_warning_text'            => 'Are you sure to reset?',
-            'reset_button_text'             => 'Reset All',
-            'settings_link_text'            => 'Settings',
-            'settings_updated_message_text' => 'Settings Saved',
-            'settings_deleted_message_text' => 'Settings Reset',
-            'settings_error_message_text'   => 'Settings Not saved.',
-        );
-    }
-    
-    public function parent_menu_title(): string {
-        return 'StorePress';
-    }
-    
-    public function page_title(): string {
-        return 'Plugin A Page Title';
-    }
-    
-    /*
-     // Parent menu id.
-     public function parent_menu() {
-        return 'edit.php?post_type=wporg_product';
-     }
-    */
-    public function menu_title(): string {
-        return 'Plugin A Menu';
-    }
-    
-    // Settings page slug.
-    public function page_id(): string {
-        return 'plugin-a';
-    }
-    
-    // Option name to save data.
-    public function settings_id(): string {
-        return 'plugin_a_option';
-    }
-    
-    public function plugin_file(): string {
-        return __FILE__;
-    }
-    
-    public function get_default_sidebar(): void {
-        echo 'Default sidebar';
-    }
-    
-    // To Disable rest api.
-    // URL will be: `/wp-json/<page_id>/<rest_api_version>/settings`
-    public function show_in_rest(): ?string {
-        return false;
-    }
-    // NOTE: You have to create and proper access to get REST API response.
-    // Create: "Application Passwords" from "WP Admin -> Users -> Profile" to use.
-    // Will return: /wp-json/my-custom-uri/settings
-    public function show_in_rest(): ?string {
-        return 'my-custom-uri';
-    }
-    
-    // Settings and Rest API Display Capability. Default is: manage_options
-    public function capability(): string {
-        return 'edit_posts';
-    }
-    
-    // Only Rest API Display Capability. Default is: capability(). return empty for no capability to get data.
-    public function rest_get_capability(): string {
-        return 'edit_posts';
-    }
-    
-    // Change rest api version. Default is: v1
-    public function rest_api_version(): string {
-        return 'v2';
-    }
-    
-    // Change rest api base. Default is: settings
-    public function rest_api_base(): string {
-        return 'settings';
-    }
-    
-    // Adding custom scripts.
+	
+	namespace StorePress\Example\Integrations;
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	use StorePress\AdminUtils\Abstracts\AbstractSettings;
+	
+	class AdminPage extends AbstractSettings {
+		
+		public function settings_id(): string {
+			return 'example-plugin-settings';
+		}
+		
+		public function get_default_sidebar(): void {
+			echo 'Hello from default sidebar';
+			
+		}
+		
+		public function localize_strings(): array {
+			return array(
+				'unsaved_warning_text'            => 'The changes you made will be lost if you navigate away from this page.',
+				'reset_warning_text'              => 'Are you sure to reset?',
+				'reset_button_text'               => 'Reset All',
+				'settings_link_text'              => 'Settings',
+				'settings_error_message_text'     => 'Settings not saved',
+				'settings_updated_message_text'   => 'Settings Saved',
+				'settings_deleted_message_text'   => 'Settings Reset',
+				'settings_tab_not_available_text' => 'Settings Tab is not available.',
+			);
+		}
+		
+		
+		
+		   // Adding custom scripts.
     public function enqueue_scripts(): void {
         parent::enqueue_scripts();
         if ( $this->has_field_type( 'wc-enhanced-select' ) ) {
@@ -480,212 +514,651 @@ class AdminPage extends \StorePress\AdminUtils\Settings {
           $this->add_settings_message( 'Custom action failed.', 'error' );
       }
     }
-}
+	}
 ```
-
-### Plugin `AdminSettings.php`
 
 ```php
 <?php
-
-namespace Plugin_A;
-
-class AdminSettings extends \Plugin_A\AdminPage {
-    
-    // Settings Tabs.
-    public function add_settings(): array {
-        return array(
-            'general' => 'General',
-            'basic'   => array( 
-                    'name' => 'Basic', 
-                    'sidebar' => 30, // Sidebar Width.
-                ),
-            'advance' => array( 
-                    'name' => 'Advanced', 
-                    'icon' => 'dashicons dashicons-analytics', 
-                    'sidebar' => false, 
-                    'hidden' => false, 
-                    'external' => false 
-                ),
-        );
-    }
-    
-    // Naming Convention: add_<TAB ID>_settings_sidebar()
-    public function add_general_settings_sidebar() {
-        echo 'Hello from general sidebar';
-    }
-    
-    // Naming Convention: add_<TAB ID>_settings_fields()
-    public function add_general_settings_fields() {
-        return array(
-            array(
-                'type'        => 'section',
-                'title'       => 'Section 01 General',
-                'description' => 'Section of 01',
-            ),
-            
-            array(
-                'id'          => 'input',
-                'type'        => 'text',
-                'title'       => 'Input text 01 general',
-                'description' => 'Input desc of 01 <code>xxx</code>',
-                'placeholder' => 'Abcd',
-                'default'     => 'ok',
-                'html_datalist'=>array('yes','no'),
-            ),
-            array(
-                'id'          => 'license',
-                'type'        => 'text',
-                'title'       => 'License',
-                'private'     => true,
-                //'description' => 'Input desc of 01',
-                'placeholder' => 'xxxx',
-                'class'       => 'code'
-            ),
-            
-            array(
-					      'id'          => 'inputunit',
-					      'type'        => 'unit',
-					      'title'       => 'Input text unit',
-					      'description' => 'Input desc of unit',
-					      'default'     => '10px',
-					      'html_attributes' => array( 'min' => 0, 'max'=>100, 'step'=>'5' ),
-					      'units'=>array('px', '%', 'em', 'rem')
-				    ),
-            
-            array(
-                'id'          => 'input_group',
-                'type'        => 'group',
-                'title'       => 'Input text 01 general',
-                'description' => 'Input desc of 01',
-                'fields'      => array(
-                    array(
-                        'id'          => 'input2',
-                        'type'        => 'checkbox',
-                        'title'       => 'Width',
-                        'placeholder' => 'Abcd',
-                        'default'     => 'yes'
-                    ),
-                    array(
-                        'id'          => 'input5',
-                        'type'        => 'number',
-                        'title'       => 'Width',
-                        'description' => 'Input desc of 01',
-                        'placeholder' => 'Abcd',
-                        'default'     => '100',
-                        //'class'=>'tiny-text'
-                    ),
-                    array(
-                        'id'          => 'input_wi',
-                        'type'        => 'radio',
-                        'title'       => 'Width X',
-                        'placeholder' => 'Abcd',
-                        'default'     => 'y',
-                        'options'     => array(
-                            'x' => 'Home X',
-                            'y' => 'Home Y',
-                            'z' => 'Home Z',
-                        )
-                    ),
-                ),
-            ),
-            
-            array(
-                'id'          => 'inputr',
-                'type'        => 'radio',
-                'title'       => 'Input text 01 general',
-                'description' => 'Input desc of 01',
-                'default'     => 'home2',
-                'options'     => array(
-                    'home'  => 'Home One',
-                    'home2' => 'Home Twos',
-                )
-            ),
-            
-            array(
-                'id'          => 'inputc',
-                'type'        => 'checkbox',
-                'title'       => 'Input text 01 general single checkbox',
-                'description' => 'Input desc of 01',
-                'default'     => 'home3',
-                'options'     => array(
-                    'home1' => 'Home One',
-                    'home3' => 'Home 3',
-                    'home2' => 'Home 2',
-                )
-            ),
-            array(
-                'id'          => 'inputse',
-                'type'        => 'select',
-                'title'       => 'Input text 01 general single checkbox',
-                'description' => 'Input desc of 01',
-                'default'     => 'home3',
-                'options'     => array(
-                    'home1' => 'Home One',
-                    'home3' => 'Home 3',
-                    'home2' => 'Home 2',
-                )
-            ),
-            
-            array(
-                'id'          => 'input2',
-                'type'        => 'text',
-                'title'       => 'Input text 02',
-                'description' => 'Input desc of 02',
-                'value'       => 'Hello Worlds 2',
-                'placeholder' => 'Abcd 02'
-            ),
-            
-            array(
-                'type'        => 'section',
-                'title'       => 'Section 02',
-                'description' => 'Section of 02',
-            ),
-        );
-    }
-    
-    // Naming Convention: add_<TAB ID>_settings_fields()
-    public function add_advance_settings_fields() {
-        return array(
-            array(
-                'type'        => 'section',
-                'title'       => 'Section 01 Advanced',
-                'description' => 'Section of 01',
-            ),
-            
-            array(
-                'id'          => 'input3',
-                'type'        => 'text',
-                'title'       => 'Input text 01 advanced',
-                'description' => 'Input desc of 01',
-                'value'       => 'Hello Worlds',
-                'placeholder' => 'Abcd'
-            ),
-            
-            array(
-                'id'          => 'input4',
-                'type'        => 'text',
-                'title'       => 'Input text 02',
-                'description' => 'Input desc of 02',
-                'value'       => 'Hello Worlds 2',
-                'placeholder' => 'Abcd 02'
-            ),
-            
-            
-            array(
-                'type'        => 'section',
-                'title'       => 'Section 02',
-                'description' => 'Section of 02',
-            ),
-        );
-    }
-    
-    // Naming Convention: add_<TAB ID>_settings_page()
+	
+	namespace StorePress\Example\Services;
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+	use StorePress\Example\Init;
+	use StorePress\Example\Integrations\AdminPage;
+	
+	/**
+	 * Admin Menu Class.
+	 *
+	 * @name Settings
+	 * @phpstan-use CallerTrait<Init>
+	 * @method Init get_caller()
+	 */
+	
+	class Settings extends AdminPage {
+		
+		use SingletonTrait;
+		
+		public function add_settings(): array {
+			return array(
+				'general' => 'General',
+				
+				//'pure' => 'Pure',
+				'basic'   => array(
+					'name'     => 'Basic',
+					'sidebar'  => 25,
+				),
+				
+				'advance' => array(
+					'name'     => 'Advanced',
+					'icon'     => 'dashicons dashicons-analytics',
+					'sidebar'  => false,
+					'hidden'   => false,
+					'external' => false,
+				),
+				'rest' => 'Rest',
+			);
+		}
+		
+		// Naming Convention: add_<TAB ID>_settings_page()
     public function add_basic_settings_page() {
         echo 'custom page ui';
     }
+		
+		public function add_general_settings_fields() {
+			return array(
+				array(
+					'type'        => 'section',
+					'title'       => 'Section title',
+					'description' => 'Section description',
+				),
+				
+				array(
+					'id'          => 'field-text-mn',
+					'type'        => 'text',
+					'title'       => 'Input Type text',
+					'description' => 'Input Description',
+					'placeholder' => 'Placeholder',
+					'default'     => 'text field default',
+					'suffix'      => 'px',
+					'required'    => true,
+					'add_tag'     => array('PRO'),
+					// 'condition' => array('selector'=>$this->get_field_selector('grps')),
+					// 'html_datalist' => array('yes','no'),
+					// 'show_in_rest'    => array( 'name' => 'custom_rest_id' ),
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				
+				array(
+					'id'          => 'grps',
+					'type'        => 'toggle',
+					'title'       => 'Show Grpups',
+					'default'     => 'no',
+					'tooltip'      => 'Textarea Help tooltip',
+					'required'    => true,
+					'add_tag'    => array('NEW', '#d63639'),
+					// 'options'=>array('key'=> 'value','key2'=> 'value2')
+				),
+				
+				
+				array(
+					'condition'=>array('selector'=>$this->get_field_selector('grps')),
+					'id'          => 'input_group',
+					'type'        => 'group',
+					// 'show_in_rest'        => false,
+					'title'       => 'Input text 01 general',
+					'description' => 'Input desc of 01',
+					'tooltip'      => 'Input Group Help Tooltip',
+					'fields'      => array(
+						
+						array(
+							'id'          => 'inputaxxx',
+							'type'        => 'text',
+							'title'       => 'Single Toggle',
+							'placeholder' => 'Abcd',
+							'default'     => 'yes',
+							'html_datalist'=>array('yes','no'),
+							'class'=>array('large-text'),
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+						),
+						
+						array(
+							'id'          => 'field-color',
+							'type'        => 'color',
+							'title'       => 'Input Type Color',
+							'description' => 'Input Type Color',
+							'placeholder' => 'Placeholder',
+							'default'     => '#ffccff',
+							'html_datalist'=>array('#dddddd','#eeeeee'),
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+							// 'required'    => true,
+							//'class'       => array( 'large-text', 'code', 'custom-class' )
+						),
+						
+						array(
+							'id'          => 'inputakk',
+							'type'        => 'unit',
+							'title'       => 'Single Unit',
+							'placeholder' => '',
+							'default'     => '20px',
+							'units'=>     array('%','px'),
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+						),
+						
+						array(
+							'id'          => 'inputas',
+							'type'        => 'toggle',
+							'title'       => 'Single Toggle',
+							'placeholder' => 'Abcd',
+							'default'     => 'no',
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+							//'options'=>array('X', 'Y', 'Z'),
+						),
+						array(
+							'id'          => 'input2',
+							'type'        => 'checkbox',
+							'title'       => 'Single Checkbox',
+							'placeholder' => 'Abcd',
+							'default'     => 'yes',
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+						),
+						array(
+							//'show_in_rest'    => false,
+							'condition'=>array('selector'=>$this->get_group_field_selector('input_group','inputas')),
+							'id'                => 'input5',
+							'type'              => 'number',
+							'title'             => 'Width WW',
+							'description'       => 'Input desc of 01',
+							'placeholder'       => 'Abcd',
+							'default'           => '100',
+							'suffix'            => 'x',
+							'sanitize_callback' => 'absint',
+							'html_attributes'   => array( 'min' => 10 ),
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+						),
+						array(
+							//'show_in_rest'    => false,
+							'id'              => 'input45',
+							'type'            => 'textarea',
+							'title'           => 'Width',
+							'description'     => 'Input desc of 01',
+							'placeholder'     => 'Abcd',
+							'default'         => '100',
+							'suffix'          => 'x',
+							'html_attributes' => array( 'min' => 10 ),
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+						),
+						
+						
+						array(
+							'id'              => 'inputse2xx',
+							'type'            => 'select',
+							'title'           => 'Int value',
+							'description'     => 'Input desc of 01<code>rxxx</code>',
+							// 'default'     => array( 'home3', 'home1' ),
+							// 'multiple'    => true,
+							'default'         => '2',
+							'class'=>array('x', 'y'),
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+							'html_attributes' => array( 'data-demo' => true ),
+							'options'         => array(
+								'1' => 'Home One',
+								'2' => 'Home Two',
+								'3' => 'Home three',
+							)
+						),
+						
+						array(
+							'id'          => 'input_wi',
+							'type'        => 'radio',
+							'title'       => 'Width X',
+							'placeholder' => 'Abcd',
+							'default'     => 'y',
+							'options'     => array(
+								'x' => 'Home X',
+								'y' => 'Home Y',
+								'z' => 'Home Z',
+							),
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+						),
+						array(
+							'id'      => 'input_wx',
+							'type'    => 'checkbox',
+							'title'   => 'Multi Checkbox',
+							'default' => array( 'y', 'z' ),
+							'options' => array(
+								'x' => 'Home X',
+								'y' => 'Home Y',
+								'z' => 'Home Z',
+							),
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+						),
+						
+						array(
+							'id'      => 'input_wewdsf',
+							'type'    => 'toggle',
+							'title'   => 'Multi Toggle Checkbox',
+							'default' => array( 'y', 'z' ),
+							'options' => array(
+								'x' => 'Home X',
+								'y' => 'Home Y',
+								'z' => 'Home Z',
+							),
+							'tooltip'      => 'Textarea Help tooltip',
+							'required'    => true,
+						),
+					),
+				),
+				
+				////////////
+				array(
+					'id'           => 'field-password',
+					'type'         => 'password',
+					'title'        => 'Input Type Password',
+					'description'  => 'Input Description',
+					'placeholder'  => 'Placeholder',
+					'default'      => 'text field default',
+					//'suffix'       => 'px',
+					'required'     => true,
+					'tooltip'      => 'Password Help tooltip',
+					'condition'=>array('selector'=>$this->get_field_selector('field-textarea')),
+					
+					//'show_in_rest' => array( 'name' => 'custom_rest_id' ),
+					//'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				array(
+					'id'           => 'field-textarea',
+					'type'         => 'textarea',
+					'title'        => 'Input Type text',
+					'description'  => 'Input Description',
+					'placeholder'  => 'Placeholder',
+					'default'      => '',
+					'suffix'       => 'px',
+					'required'     => true,
+					'tooltip'      => 'Textarea Help tooltip',
+					//'show_in_rest' => array( 'name' => 'custom_rest_id' ),
+					//'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				array(
+					'id'          => 'field-text',
+					'type'        => 'text',
+					'title'       => 'Input Type text',
+					'description' => 'Input Description',
+					'placeholder' => 'Placeholder',
+					'default'     => 'text field default',
+					'suffix'      => 'px',
+					'required'    => true,
+					// 'html_datalist'=>array('yes','no'),
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				array(
+					'id'          => 'field-number',
+					'type'        => 'number',
+					'title'       => 'Input Type Number',
+					'description' => 'Input Type Number',
+					'placeholder' => '',
+					'default'     => '1',
+					'suffix'      => 'px',
+					// 'required'    => true,
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				///////
+				
+				array(
+					'id'          => 'field-color',
+					'type'        => 'color',
+					'title'       => 'Input Type Color',
+					'description' => 'Input Type Color',
+					'placeholder' => 'Placeholder',
+					'default'     => '#ffccff',
+					'html_datalist'=>array('#dddddd','#eeeeee'),
+					// 'required'    => true,
+					// 'show_in_rest'    => 'fieldColor',
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				array(
+					'id'          => 'field-radio',
+					'type'        => 'radio',
+					'title'       => 'Input Type Radio',
+					'description' => 'Input Type Radio',
+					'placeholder' => 'Placeholder',
+					'default'     => 'y',
+					'options'     => array(
+						'x' => 'Home X',
+						'y' => 'Home Y',
+						'z' => 'Home Z',
+					)
+					// 'required'    => true,
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				// license
+				array(
+					'id'          => 'license',
+					'type'        => 'code',
+					'title'       => 'License',
+					'private'     => true,
+					'show_in_rest' => false,
+					'description' => 'Input for license',
+					'placeholder' => 'xxxx-xxxx-xxxx',
+					//'class'       => 'code'
+				),
+				
+				array(
+					'id'          => 'input-single-check',
+					'type'        => 'checkbox',
+					'title'       => 'Single Checkbox Full',
+					'description' => 'Single Checkbox Full desc',
+					'default'     => 'yes',
+					'full_width'=>true,
+					'add_tag'    => array('NEW', '#d63639'),
+				),
+				
+				array(
+					'id'          => 'input-single-toggle',
+					'type'        => 'toggle',
+					'title'       => 'Single Toggle Full',
+					'description' => 'Single Checkbox Full desc',
+					'default'     => 'yes',
+					// 'full_width'=>true
+				),
+				
+				array(
+					'id'      => 'input-multi-check',
+					'type'    => 'checkbox',
+					'title'   => 'Multiple Checkbox Full',
+					'description' => 'Multiple Checkbox  Full desc',
+					'default' => 'yes',
+					'options' => array(
+						'x'     => 'Home X',
+						'y'     => 'Home Y',
+						'new'   => array(
+							'label'       => 'New',
+							'description' => 'New Item',
+						),
+						'z'     => 'Home Z',
+						'alpha' => 'Alpha',
+						'yes' => 'YES',
+					
+					),
+				),
+				
+				array(
+					'id'      => 'input-multi-check-toggle',
+					'type'    => 'toggle',
+					'title'   => 'Multiple Toggle Full',
+					'default' => 'yes',
+					'options' => array(
+						'x'     => 'Home X',
+						'new'   => array(
+							'label'       => 'New',
+							'description' => 'New Item',
+						),
+						'y'     => 'Home Y',
+						'z'     => 'Home Z',
+						'alpha' => 'Alpha',
+					)
+				),
+				
+				array(
+					'id'          => 'inputr',
+					'type'        => 'radio',
+					'title'       => 'Input text 01 general',
+					'description' => 'Input desc of 01',
+					'default'     => 'home2',
+					'options'     => array(
+						'home'  => 'Home One',
+						'home2' => 'Home Twos',
+					)
+				),
+				
+				array(
+					'id'          => 'inputc',
+					'type'        => 'checkbox',
+					'title'       => 'Input text 01 general single checkbox',
+					'description' => 'Input desc of 01',
+					'default'     => 'home3',
+					'options'     => array(
+						'home1' => 'Home One',
+						'home3' => 'Home 3',
+						'home2' => 'Home 2',
+					)
+				),
+				
+				array(
+					'id'              => 'inputse',
+					'type'            => 'wc-enhanced-select',
+					'title'           => '2 Input text 01 general single selectbox',
+					'description'     => 'Input desc of 01<code>xxx</code>',
+					// 'default'     => array( 'home3', 'home1' ),
+					// 'multiple'    => true,
+					'default'         => 'home3',
+					'class'=>array('x', 'y'),
+					'html_attributes' => array( 'data-demo' => true ),
+					'options'         => array(
+						'home1' => 'Home One',
+						'home3' => 'Home 3',
+						'home2' => 'Home 2',
+					)
+				),
+				
+				array(
+					'id'              => 'inputse2xx',
+					'type'            => 'wc-enhanced-select',
+					'title'           => 'Int value',
+					'description'     => 'Input desc of 01<code>rxxx</code>',
+					// 'default'     => array( 'home3', 'home1' ),
+					// 'multiple'    => true,
+					'default'         => '2',
+					'class'=>array('x', 'y'),
+					'html_attributes' => array( 'data-demo' => true ),
+					'options'         => array(
+						'1' => 'Home One',
+						'2' => 'Home Two',
+						'3' => 'Home three',
+					)
+				),
+				
+				array(
+					'id'          => 'input2',
+					'type'        => 'text',
+					'title'       => 'Input text 02',
+					'description' => 'Input desc of 02',
+					'default'     => '',
+					'placeholder' => 'Abcd 02'
+				),
+				
+				array(
+					'id'          => 'inputunit',
+					'type'        => 'unit',
+					'title'       => 'Input text unit',
+					'description' => 'Input desc of unit',
+					'default'     => '10px',
+					'html_attributes' => array( 'min' => 0, 'max'=>100, 'step'=>5 ),
+					'units'=>array('px', '%', 'em', 'rem'),
+					'condition'=>array('selector'=>$this->get_field_selector('input2')),
+				),
+				
+				array(
+					'type'        => 'section',
+					'title'       => 'Section 02',
+					'description' => 'Section of 02',
+				),
+			);
+		}
+		
+		public function add_rest_settings_fields() {
+			return array(
+				array(
+					'type'        => 'section',
+					'title'       => 'Section rest',
+					'description' => 'Section description',
+				),
+				
+				array(
+					'id'           => 'field-textarea-x',
+					'type'         => 'textarea',
+					'title'        => 'Input Type text',
+					'description'  => 'Input Description',
+					'placeholder'  => 'Placeholder',
+					'default'      => 'text field default',
+					'suffix'       => 'px',
+					'required'     => true,
+					'add_tag'    => array('NEW'),
+					// 'show_in_rest' => array( 'name' => 'custom_rest_id' ),
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				array(
+					'id'          => 'field-text-x',
+					'type'        => 'text',
+					'title'       => 'Input Type text',
+					'description' => 'Input Description',
+					'placeholder' => 'Placeholder',
+					// 'default'     => 'text field default',
+					'suffix'      => 'px',
+					// 'required'    => true,
+					'add_tag'    => array('PRO', '#d63639'),
+					// 'show_in_rest'    => array('name'=>'fieldTextX'),
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				array(
+					'id'          => 'field-text-x-dep',
+					'type'        => 'unit',
+					'title'       => 'Input Type Unit extra comp',
+					'description' => 'Input Type Number',
+					'placeholder' => '',
+					'default'     => '10px',
+					'html_attributes' => array( 'min' => 0, 'max'=>100, 'step'=>5 ),
+					'units'=>array('px', '%', 'em', 'rem'),
+					'condition'=>array('selector'=> $this->get_field_selector('field-text-x')),
+					// 'required'    => true,
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				array(
+					'id'          => 'field-text-x-dep-text',
+					'type'        => 'text',
+					'title'       => 'Input Type Unit extra comp 2',
+					'description' => 'Input Type Number',
+					'placeholder' => '',
+					// 'default'     => '',
+					'condition'=>array('selector'=>$this->get_field_selector('field-text-x')),
+					// 'required'    => true,
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				
+				
+				array(
+					'id'          => 'field-number-x',
+					'type'        => 'number',
+					'title'       => 'Input Type Number',
+					'description' => 'Input Type Number',
+					'placeholder' => '',
+					'default'     => '1',
+					'suffix'      => 'px',
+					'add_tag'    => array('BETA', '#000'),
+					// 'required'    => true,
+					'show_in_rest'    => array('name'=>'fieldNumberX'),
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				array(
+					'id'          => 'field-extra2-x',
+					'type'        => 'number',
+					'title'       => 'Input Type Number extra',
+					'description' => 'Input Type Number',
+					'placeholder' => '',
+					'default'     => '1',
+					'suffix'      => 'px',
+					'show_in_rest'    => 'fieldExtraX',
+					// 'required'    => true,
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+				array(
+					'id'          => 'field-extra2-unit',
+					'type'        => 'unit',
+					'title'       => 'Input Type Unit extra',
+					'description' => 'Input Type Number',
+					'placeholder' => '',
+					'default'     => '10px',
+					'show_in_rest'    => 'fieldExtra2Unit',
+					'html_attributes' => array( 'min' => 0, 'max'=>100, 'step'=>5 ),
+					'units'=>array('px', '%', 'em', 'rem'),
+					// 'required'    => true,
+					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+				),
+				
+			);
+		}
+	}
+```
+
+### REST API
+
+- URL will be: `/wp-json/<page_slug>/<rest_api_version>/settings`
+- Default IS: `/wp-json/<page_slug>/v1/settings`
+- Example: `/wp-json/plugin-a/v1/settings`
+
+### WordPress Data Store Usages example
+
+```js
+import { select } from '@wordpress/data';
+
+// For a single record (no ID needed if your endpoint returns one object)
+const settings = select( 'core' ).getEntityRecord( '<parent_slug>', '<page_slug>' );
+const settings = wp.data.select( 'core' ).getEntityRecord( '<parent_slug>', '<page_slug>' );
+
+// Or use the resolver hook in a component
+import { useEntityRecord } from '@wordpress/core-data';
+
+function MyComponent() {
+  const { record, isResolving } = useEntityRecord( 'storepress', '<page_slug>' );
+
+  if ( isResolving ) return <p>Loading...</p>;
+
+  return <div>{ record?.['field-text'] }</div>;
 }
 ```
+
+NOTE: If parent menu is a page like:
+
+```php
+public function parent_menu(): string {
+		return 'edit.php?post_type=wporg_product';
+}
+```
+
+It will create like:
+
+```js
+select( 'core' ).getEntityRecord( '<show_in_rest>', '<rest_api_base>' );
+select( 'core' ).getEntityRecord( 'plugin-name/v1', 'settings' );
+```
+
+- See: [@wordpress/core-data](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-core-data/)
+
 
 ### Section data structure
 
@@ -752,102 +1225,53 @@ array(
 ),
 ```
 
-### Plugin `Settings.php` file
+### `AbstractProPluginInCompatibility`  class usages example
+
+- Show notice for incompatible pro or extended plugin.
 
 ```php
 <?php
-namespace Plugin_A;
-
-class Settings extends AdminSettings {
-    use \StorePress\AdminUtils\Singleton;
-}
+	
+	namespace StorePress\Example\Integrations;
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	use StorePress\AdminUtils\Abstracts\AbstractProPluginInCompatibility;
+	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+	use StorePress\Example\Init;
+	
+	/**
+	 * Updater Class.
+	 *
+	 * @name ProPluginInCompatibility
+	 * @phpstan-use CallerTrait<Init>
+	 * @method Init get_caller()
+	 */
+	
+	class ProPluginInCompatibility extends AbstractProPluginInCompatibility {
+		
+		use SingletonTrait;
+		
+		public function compatible_version(): string {
+			return '3.0.0';
+		}
+		
+		public function pro_plugin_file(): string {
+			return 'plugin-pro/plugin-pro.php'; // OR FILE CONSTANCE OF PRO PLUGIN FILE.
+		}
+		
+		public function localize_notice_format(): string {
+			// translators: 1: Extended Plugin Name. 2: Extended Plugin Version. 3: Extended Plugin Compatible Version.
+			return 'You are using an incompatible version of <strong>%1$s - (%2$s)</strong>. Please upgrade to version <strong>%3$s</strong> or upper.';
+		}
+	}
+	
 ```
 
-- Now use `Settings::instance();` on `Plugin::init()`
+### `AbstractUpdater`  class usages example
 
-### REST API
-
-- URL will be: `/wp-json/<page_id>/<rest_api_version>/settings`
-- Default IS: `/wp-json/<page_id>/v1/settings`
-- Example: `/wp-json/plugin-a/v1/settings`
-
-### WordPress Data Store Usages example
-
-```js
-import { select } from '@wordpress/data';
-
-// For a single record (no ID needed if your endpoint returns one object)
-const settings = select( 'core' ).getEntityRecord( '<parent_menu>', '<page_id>' );
-
-// Or use the resolver hook in a component
-import { useEntityRecord } from '@wordpress/core-data';
-
-function MyComponent() {
-  const { record, isResolving } = useEntityRecord( 'storepress', '<page_id>' );
-
-  if ( isResolving ) return <p>Loading...</p>;
-
-  return <div>{ record?.['field-text'] }</div>;
-}
-```
-
-NOTE: If parent menu is a page like:
-
-```php
-public function parent_menu(): string {
-		return 'edit.php?post_type=wporg_product';
-}
-```
-
-It will create like:
-
-```js
-select( 'core' ).getEntityRecord( '<show_in_rest>', '<rest_api_base>' );
-select( 'core' ).getEntityRecord( 'plugin-name/v1', 'settings' );
-```
-
-- See: [@wordpress/core-data](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-core-data/)
-
-### Upgrade Notice
-
-- Show notice for incompatible extended plugin.
-
-```php
-namespace Plugin_A;
-
-class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
-
-    use \StorePress\AdminUtils\Singleton;
-    
-    public function plugin_file(): string {
-        return plugin_a()->get_pro_plugin_file();
-    }
-   
-    public function compatible_version(): string {
-        return '3.0.0'; // passed from parent plugin
-    }
-    
-    public function localize_notice_format(): string {
-        return __( 'You are using an incompatible version of <strong>%1$s - (%2$s)</strong>. Please upgrade to version <strong>%3$s</strong> or upper.', 'plugin-x');
-    }
-    
-    // Optional
-    public function show_admin_notice(): bool {
-        return true;
-    }
-    
-    // Optional
-    public function show_plugin_row_notice(): bool {
-        return true;
-    }
-}
-```
-
-- Now use `Upgrade_Notice::instance();` on `Plugin::init()`
-
-### Plugin Update
-
-- NOTE: Update server and client server should not be same WordPress setup.
+- NOTE: Update server and client server should not be in same WordPress setup.
 
 - You must add `Update URI:` on plugin file header to perform update.
 
@@ -860,67 +1284,62 @@ class Upgrade_Notice extends \StorePress\AdminUtils\Upgrade_Notice {
 */
 ```
 
-### Plugin `Updater.php` file
+### `Updater.php` file
 
 ```php
 <?php
-
-namespace Plugin_A;
-
-class Updater extends \StorePress\AdminUtils\Updater {
-
-		use \StorePress\AdminUtils\Singleton;
-    
-    public function plugin_file(): string {
-        return plugin_a()->get_plugin_file();
-    }
-    
-    public function license_key(): string {
-        return plugin_a()->get_option( 'license' );
-    }
-    
-    public function product_id(): int {
-        return 100;
-    }
-    
-     /**
-		 * Translatable Strings.
-		 *
-		 * @abstract
-		 *
-		 * @return array{
-		 *      license_key_empty_message     : string,
-		 *      check_update_link_text        : string,
-		 *      rollback_changelog_title      : string,
-		 *      rollback_action_running       : string,
-		 *      rollback_action_button        : string,
-		 *      rollback_cancel_button        : string,
-		 *      rollback_current_version      : string,
-		 *      rollback_last_updated         : string,
-		 *      rollback_view_changelog       : string,
-		 *      rollback_page_title           : string,
-		 *      rollback_link_text            : string,
-		 *      rollback_failed               : string,
-		 *      rollback_success              : string,
-		 *      rollback_plugin_not_available : string,
-		 *      rollback_no_access            : string,
-		 *      rollback_not_available        : string,
-		 *      rollback_no_target_version    : string,
-		 *  } Associative array of translatable strings with their default English values.
-		 */
+<?php
+	
+	namespace StorePress\Example\Integrations;
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	use StorePress\AdminUtils\Abstracts\AbstractUpdater;
+	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+	use StorePress\Example\Init;
+	
+	/**
+	 * Updater Class.
+	 *
+	 * @name Updater
+	 * @phpstan-use CallerTrait<Init>
+	 * @method Init get_caller()
+	 */
+	
+	class Updater extends AbstractUpdater {
+		
+		use SingletonTrait;
+		
+		public function license_key(): string {
+			// $this->get_caller()->get_container()->get( Settings::class)->get_option( 'license' )
+			return 'hello';
+		}
+		
+		public function product_id(): int {
+			return 123450;
+		}
+		
+		public function update_server_path(): string {
+			return '/storepress-admin-utils/wp-json/plugin-updater/v1/check-update';
+		}
+		
 		public function localize_strings(): array {
+			
+			$name = $this->get_plugin_name();
+			
 			return array(
 				'license_key_empty_message'     => 'License key is not available.',
-				'check_update_link_text'        => 'Check Update',
+				'check_update_link_text'        => sprintf('Check Update %s', $name),
 				'rollback_changelog_title'      => 'Changelog',
 				'rollback_action_running'       => 'Rolling back',
-				'rollback_action_button'        => 'Rollback',
+				'rollback_action_button'        => sprintf('Rollback %s', $name),
 				'rollback_cancel_button'        => 'Cancel',
 				'rollback_current_version'      => 'Current version',
 				'rollback_last_updated'         => 'Last updated %s ago.',
-				'rollback_view_changelog'       => 'View Changelog',
-				'rollback_page_title'           => 'Rollback Plugin',
-				'rollback_link_text'            => 'Rollback',
+				'rollback_view_changelog'       => sprintf('View Changelog for %s', $name),
+				'rollback_page_title'           => sprintf( 'Rollback Plugin %s', $name),
+				'rollback_link_text'            => sprintf('Rollback %s', $name),
 				'rollback_failed'               => 'Rollback failed.',
 				'rollback_success'              => 'Rollback success: %s rolled back to version %s.',
 				'rollback_plugin_not_available' => 'Plugin is not available.',
@@ -929,145 +1348,74 @@ class Updater extends \StorePress\AdminUtils\Updater {
 				'rollback_no_target_version'    => 'Plugin version not selected.',
 			);
 		}
-    
-    // Without hostname. Host name will prepend from Update URI Header.
-    public function update_server_path(): string {
-        return '/updater-api/wp-json/plugin-updater/v1/check-update';
-    }
-     
-    // If you need to send additional arguments to update server.
-    // Check get_request_args() method.
-    public function additional_request_args(): array {
-        return array(
-            'domain'=> $this->get_client_hostname();
-        );
-    }
-}
+		
+		// If you need to send additional arguments to update server.
+		// Check get_request_args() method.
+		public function additional_request_args(): array {
+			return array( 'domain'=> $this->get_client_hostname() );
+		}
+	}
 ```
 
-- Now use `Updater::instance();` on `Plugin::init()`
-
-## Plugin Deactivate Feedback `InactiveFeedback.php`
+## `AbstractDeactivationFeedback`  class usages example
 
 ```php
 <?php
 	
-	namespace StorePress\A;
+	namespace StorePress\Example\Integrations;
 	
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
-	class InactiveFeedback extends \StorePress\AdminUtils\Deactivation_Feedback {
+	use StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedback;
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\Example\Init;
+	
+	/**
+	 * Changelog Dialog Class.
+	 *
+	 * @name DeactivationFeedback
+	 * @phpstan-use CallerTrait<Init>
+	 * @method Init get_caller()
+	 */
+	
+	class DeactivationFeedback extends AbstractDeactivationFeedback {
 		
-		use \StorePress\AdminUtils\Singleton;
+		use SingletonTrait;
 		
-		// Where to send feedback data.
-		public function api_url(): string {
-			return 'https://state.example.com/wp-json/feedback/v1/deactivate';
-		}
-		
-		public function reasons(): array {
-			$current_user = wp_get_current_user();
-			
-			return array(
-				'temporary_deactivation' => array(
-					'title' => esc_html__( 'It\'s a temporary deactivation.', 'text-domain' ),
-				),
-				
-				'dont_know_about' => array(
-					'title' => esc_html__( 'I couldn\'t understand how to make it work.', 'text-domain' ),
-					'message' => __( 'Its Your Plugin X.', 'text-domain' ),
-				),
-				
-				'no_longer_needed' => array(
-					'title' => esc_html__( 'I no longer need the plugin.', 'text-domain' ),
-				),
-				
-				'found_a_better_plugin' => array(
-					'title' => esc_html__( 'I found a better plugin.', 'text-domain' ),
-					'input' => array(
-						'placeholder'=>esc_html__( 'Please let us know which one', 'text-domain' ),
-					),
-				),
-				
-				'broke_site_layout' => array(
-					'title' => __( 'The plugin <strong>broke my layout</strong> or some functionality.', 'text-domain' ),
-					'message' => __( '<a target="_blank" href="#">Please open a support ticket</a>, we will fix it immediately.', 'text-domain' ),
-				),
-				
-				'plugin_setup_help' => array(
-					'title' => __( 'I need someone to <strong>setup this plugin.</strong>', 'text-domain' ),
-					'input' => array(
-						'placeholder'=>esc_html__( 'Your email address.', 'woo-variation-swatches' ),
-						'value'=>sanitize_email( $current_user->user_email )
-					),
-					'message' => __( 'Please provide your email address to contact with you <br />and help you to set up and configure this plugin.', 'text-domain' ),
-				),
-				
-				'plugin_config_too_complicated' => array(
-					'title' => __( 'The plugin is <strong>too complicated to configure.</strong>', 'text-domain' ),
-					'message' => __( '<a target="_blank" href="#">Have you checked our documentation?</a>.', 'text-domain' ),
-				),
-				
-				'need_specific_feature' => array(
-					'title' => esc_html__( 'I need specific feature that you don\'t support.', 'text-domain' ),
-					'input' => array(
-						'placeholder'=>esc_html__( 'Please share with us.', 'text-domain' ),
-					),
-				),
-				
-				'other' => array(
-					'title' => esc_html__( 'Other', 'text-domain' ),
-					'input' => array(
-						'placeholder'=>esc_html__( 'Please share the reason', 'text-domain' ),
-					),
-				)
-			);
-		}
-		
-		public function options(): array {
-			return plugin_a()->get_settings()->get_options();
-		}
-		
+		/**
+		 * Get deactivation title.
+		 *
+		 * @return string
+		 */
 		public function title(): string {
-			return 'QUICK FEEDBACK';
+			return 'QUICK FEEDBACK from plugin B';
 		}
 		
 		public function sub_title(): string {
 			return 'May we have a little info about why you are deactivating?';
 		}
 		
-		public function plugin_file(): string {
-			return plugin_a()->get_plugin_file();
-		}
 		/**
-		 * Get Dialog Button.
+		 * Set API URL to send feedback.
 		 *
-		 * @return array<int, mixed>
-		 * array(
-		 *     array(
-		 *         'type'       => 'button',
-		 *         'label'      => __( 'Send feedback & Deactivate' ),
-		 *         'attributes' => array(
-		 *             'disabled'        => true,
-		 *             'type'            => 'submit',
-		 *             'data-action'     => 'submit',
-		 *             'data-label'      => __( 'Send feedback & Deactivate' ),
-		 *             'data-processing' => __( 'Deactivate...' ),
-		 *             'class'           => array( 'button', 'button-primary' ),
-		 *          ),
-		 *         'spinner'    => true,
-		 *     ),
-		 *
-		 *     array(
-		 *         'type'       => 'link',
-		 *         'label'      => __( 'Skip & Deactivate' ),
-		 *         'attributes' => array(
-		 *             'href'  => '#',
-		 *             'class' => array( 'skip-deactivate' ),
-		 *         ),
-		 *     ),
-		 * )
+		 * @return string
+		 * @example https://example.com/wp-json/__NAMESPACE__/v1/deactivate
 		 */
+		public function api_url(): string {
+			return 'http://sites.local/storepress-admin-utils/wp-json/feedback/v1/deactivate';
+		}
+		
+		/**
+		 * Get saved settings data.
+		 *
+		 * @return array<string, mixed>
+		 */
+		public function options(): array {
+			// $this->get_caller()->get_container()->get( Settings::class)->get_options();
+			return array();
+		}
+		
 		public function get_buttons(): array {
 			
 			return array(
@@ -1095,21 +1443,214 @@ class Updater extends \StorePress\AdminUtils\Updater {
 			);
 		}
 		
+		public function get_reasons(): array {
+			$current_user = wp_get_current_user();
+			$name = $this->get_plugin_name();
+			
+			return array(
+				'temporary_deactivation' => array(
+					'title'             => esc_html__( 'It\'s a temporary deactivation.', 'woo-variation-swatches' ),
+				),
+				
+				'dont_know_about' => array(
+					'title'             => esc_html__( 'I couldn\'t understand how to make it work.', 'woo-variation-swatches' ),
+					'message'             => sprintf( 'Its Plugin %s.', $name),
+				),
+				
+				'no_longer_needed' => array(
+					'title'             => esc_html__( 'I no longer need the plugin.', 'woo-variation-swatches' ),
+				),
+				
+				'found_a_better_plugin' => array(
+					'title'             => esc_html__( 'I found a better plugin.', 'woo-variation-swatches' ),
+					'input' => array(
+						'placeholder'=>esc_html__( 'Please let us know which one', 'woo-variation-swatches' ),
+					),
+				),
+				
+				'broke_site_layout' => array(
+					'title'             => __( 'The plugin <strong>broke my layout</strong> or some functionality.', 'woo-variation-swatches' ),
+					'message'           => __( '<a target="_blank" href="https://getwooplugins.com/tickets/">Please open a support ticket</a>, we will fix it immediately.', 'woo-variation-swatches' ),
+				),
+				
+				'plugin_setup_help' => array(
+					'title'             => __( 'I need someone to <strong>setup this plugin.</strong>', 'woo-variation-swatches' ),
+					'input' => array(
+						'placeholder'=>esc_html__( 'Your email address.', 'woo-variation-swatches' ),
+						'value'=>sanitize_email( $current_user->user_email )
+					),
+					'message'             => __( 'Please provide your email address to contact with you <br>and help you to set up and configure this plugin.', 'woo-variation-swatches' ),
+				),
+				
+				'plugin_config_too_complicated' => array(
+					'title'             => __( 'The plugin is <strong>too complicated to configure.</strong>', 'woo-variation-swatches' ),
+					'message'             => __( '<a target="_blank" href="https://getwooplugins.com/documentation/woocommerce-variation-swatches/">Have you checked our documentation?</a>.', 'woo-variation-swatches' ),
+				),
+				
+				'need_specific_feature' => array(
+					'title'             => esc_html__( 'I need specific feature that you don\'t support.', 'woo-variation-swatches' ),
+					
+					'input' => array(
+						'placeholder'=>esc_html__( 'Please share with us.', 'woo-variation-swatches' ),
+					),
+				),
+				
+				'other' => array(
+					'title'             => esc_html__( 'Other', 'woo-variation-swatches' ),
+					'input' => array(
+						'placeholder'=>esc_html__( 'Please share the reason', 'woo-variation-swatches' ),
+					),
+				)
+			);
+		}
+		
 		/**
 		 * Dialog width.  - Optional.
 		 *
 		 * @return string
 		 */
-		public function get_dialog_width(): string {
+		/*public function get_dialog_width(): string {
 			return ''; // 600px
+		}*/
+	}
+```
+
+
+## `BaseServiceContainer` class usages example
+
+```php
+<?php
+
+	declare( strict_types=1 );
+
+	namespace StorePress\Example\ServiceContainers;
+
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+
+	use StorePress\AdminUtils\ServiceContainers\BaseServiceContainer;
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+
+	/**
+	 * Dependency Injection Container Class.
+	 *
+	 * Extends the base service container to provide plugin-specific dependency
+	 * injection capabilities. Uses the singleton pattern to ensure a single
+	 * container instance throughout the plugin's lifecycle. Inherits service
+	 * registration, resolution, and management functionality from BaseServiceContainer.
+	 *
+	 * @name ServiceContainer
+	 */
+	class ServiceContainer extends BaseServiceContainer {
+		use SingletonTrait;
+	}
+```
+
+
+## `AbstractServiceProvider` class usages example
+
+```php
+<?php
+
+	declare( strict_types=1 );
+
+	namespace StorePress\Example\ServiceProviders;
+
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	use StorePress\AdminUtils\Abstracts\AbstractServiceProvider;
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+	use StorePress\Example\Integrations\DeactivationFeedback;
+	use StorePress\Example\Integrations\ProPluginInCompatibility;
+	use StorePress\Example\Services\Settings;
+	use StorePress\Example\Integrations\Updater;
+	use StorePress\Example\ServiceContainers\ServiceContainer;
+	
+	/**
+	 * Plugin Service Provider Class.
+	 *
+	 * Extends AbstractServiceProvider to manage plugin-specific service registration
+	 * and bootstrapping. Uses the singleton pattern to ensure a single provider
+	 * instance manages all service lifecycle operations. Registers the Updater
+	 * service and handles its initialization during the boot phase.
+	 *
+	 * @name ServiceProvider
+	 */
+	class ServiceProvider extends AbstractServiceProvider {
+		
+		use SingletonTrait;
+		
+		public function get_container(): ServiceContainer {
+			return ServiceContainer::instance();
+		}
+
+		/**
+		 * Register services with the container.
+		 *
+		 * Registers the Updater service as a factory closure that instantiates
+		 * the Updater with the caller (Init) instance. Called during the service
+		 * provider initialization phase before boot().
+		 *
+		 * @return void
+		 * @since 2.0.0
+		 */
+		public function register(): void {
+			
+			$this->get_container()->register(
+				Updater::class,
+				function () {
+					return Updater::instance( $this->get_caller() );
+				}
+			);
+			
+			$this->get_container()->register(
+				DeactivationFeedback::class,
+				function () {
+					return DeactivationFeedback::instance( $this->get_caller() );
+				}
+			);
+			
+			$this->get_container()->register(
+				ProPluginInCompatibility::class,
+				function () {
+					return ProPluginInCompatibility::instance( $this->get_caller() );
+				}
+			);
+			
+			/*$this->get_container()->register(
+				AdminMenu::class,
+				function () {
+					return AdminMenu::instance( $this->get_caller() );
+				}
+			);*/
+			$this->get_container()->register(
+				Settings::class,
+				function () {
+					return Settings::instance( $this->get_caller() );
+				}
+			);
+		}
+
+		/**
+		 * Bootstrap services after all providers are registered.
+		 *
+		 * Initializes registered services by resolving the Updater service
+		 * from the container. Called after all services are registered to
+		 * perform any necessary setup or initialization logic.
+		 *
+		 * @return void
+		 * @since 2.0.0
+		 */
+		public function boot(): void {
+			$this->get_container()->get( Updater::class );
+			$this->get_container()->get( DeactivationFeedback::class );
+			$this->get_container()->get( ProPluginInCompatibility::class );
+			//$this->get_container()->get( AdminMenu::class );
+			$this->get_container()->get( Settings::class );
 		}
 	}
 ```
 
-- Now use `InactiveFeedback::instance();` on `Plugin::init()`
-
-
-## Update Server
+## Preparing Update Server
 
 ```php
 <?php
@@ -1208,7 +1749,7 @@ function updater_get_plugin( WP_REST_Request $request ) {
 }
 ```
 
-## Feedback Server
+## Preparing Feedback Server
 
 ```php
 <?php
@@ -1247,3 +1788,12 @@ function store_deactivate_data( WP_REST_Request $request ) {
     return rest_ensure_response( true );
 }
 ```
+
+## Best Practices to write plugin based on this package.
+
+1. **Use Singleton Pattern** - All services should use `SingletonTrait`
+2. **Use CallerTrait** - Access the `Init` instance and container
+3. **Register Before Boot** - Always register services before booting
+4. **Lazy Loading** - Services are only instantiated when resolved
+5. **Single Responsibility** - Each service handles one concern
+6. **Extend Base Classes** - Use abstract classes from AdminUtils

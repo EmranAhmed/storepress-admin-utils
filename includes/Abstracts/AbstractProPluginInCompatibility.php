@@ -1,6 +1,6 @@
 <?php
 	/**
-	 * Abstract Plugin Upgrade Notice Class File.
+	 * Abstract Plugin Upgrade Notice File.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
@@ -9,33 +9,61 @@
 
 	declare( strict_types=1 );
 
-	namespace StorePress\AdminUtils;
+	namespace StorePress\AdminUtils\Abstracts;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
+	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
+	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
+	use StorePress\AdminUtils\Traits\PluginCommonTrait;
+
+if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompatibility' ) ) {
+
 	/**
 	 * Abstract Plugin Upgrade Notice Class.
 	 *
-	 * @name Upgrade_Notice
+	 * @name AbstractProPluginInCompatibility
 	 */
-	abstract class Upgrade_Notice {
+	abstract class AbstractProPluginInCompatibility {
 
-		use Common;
-		use Plugin;
+		use HelperMethodsTrait;
+		use PluginCommonTrait;
+		use CallerTrait;
+		use MethodShouldImplementTrait;
 
 		/**
 		 * Plugin Data.
 		 *
-		 * @var array<string, string|bool>
+		 * @var array<string, mixed>
 		 */
-		private array $data = array();
+		protected array $plugin_data = array();
 
 		/**
-		 * Class construct.
+		 * Updater Plugin Admin Init.
+		 *
+		 * @param object $caller Caller Object.
 		 */
-		protected function __construct() {
-			add_action( 'admin_init', array( $this, 'init' ), 9 );
+		public function __construct( object $caller ) {
+			$this->set_caller( $caller );
+			$this->hooks();
+			$this->init();
+		}
+
+		/**
+		 * Init method
+		 *
+		 * @return void
+		 */
+		public function init(): void {}
+
+		/**
+		 * Register WordPress hooks.
+		 *
+		 * @return void
+		 */
+		public function hooks(): void {
+			add_action( 'admin_init', array( $this, 'loaded' ), 9 );
 			add_action( 'admin_init', array( $this, 'deactivate' ), 12 );
 		}
 
@@ -47,17 +75,22 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		abstract public function compatible_version(): string;
 
 		/**
-		 * Init Plugin Info.
+		 * Check if current user has capability to update plugins.
+		 *
+		 * @return bool
+		 */
+		public function has_capability(): bool {
+			return current_user_can( 'update_plugins' );
+		}
+
+		/**
+		 * Init Hook.
 		 *
 		 * @return void
 		 */
-		public function init(): void {
+		public function loaded(): void {
 
-			if ( ! current_user_can( 'update_plugins' ) ) {
-				return;
-			}
-
-			if ( ! function_exists( 'get_plugin_data' ) ) {
+			if ( ! $this->has_capability() ) {
 				return;
 			}
 
@@ -66,8 +99,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 			if ( ! file_exists( $plugin_file ) ) {
 				return;
 			}
-
-			$this->data = get_plugin_data( $plugin_file );
 
 			if ( $this->is_compatible() ) {
 				return;
@@ -79,17 +110,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		}
 
 		/**
-		 * Deactivate incompatible version.
+		 * Deactivate plugin.
 		 *
 		 * @return void
 		 */
 		public function deactivate(): void {
 
-			if ( ! current_user_can( 'update_plugins' ) ) {
-				return;
-			}
-
-			if ( ! function_exists( 'get_plugin_data' ) ) {
+			if ( ! $this->has_capability() ) {
 				return;
 			}
 
@@ -119,6 +146,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 * Show notice while try to activate incompatible version of extended plugin.
 		 *
 		 * @return void
+		 * @throws \WP_Exception Exception If "localize_notice_format" is not overridden in subclass.
 		 */
 		public function admin_notice(): void {
 
@@ -139,6 +167,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 * Show notice on plugin row.
 		 *
 		 * @return void
+		 * @throws \WP_Exception Exception If "localize_notice_format" is not overridden in subclass.
 		 */
 		public function row_notice(): void {
 			global $wp_list_table;
@@ -191,7 +220,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 * @return bool
 		 */
 		private function is_compatible(): bool {
-			$current_version  = sanitize_text_field( (string) $this->data['Version'] );
+			$current_version  = $this->get_plugin_version();
 			$required_version = $this->compatible_version();
 
 			return version_compare( $current_version, $required_version, '>=' );
@@ -201,11 +230,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		 * Notice string.
 		 *
 		 * @return string
+		 * @throws \WP_Exception Throw Exception If "localize_notice_format" is not overridden in subclass.
 		 */
 		public function get_notice_content(): string {
 
-			$name               = sanitize_text_field( (string) $this->data['Name'] );
-			$version            = sanitize_text_field( (string) $this->data['Version'] );
+			$name               = $this->get_plugin_name();
+			$version            = $this->get_plugin_version();
 			$compatible_version = $this->compatible_version();
 
 			return sprintf( $this->localize_notice_format(), $name, $version, $compatible_version );
@@ -214,17 +244,34 @@ if ( ! class_exists( '\StorePress\AdminUtils\Upgrade_Notice' ) ) {
 		/**
 		 * Notice string format.
 		 *
-		 * @abstract
+		 * @abstract Must be overridden in subclass.
 		 * @return string
+		 * @throws \WP_Exception This method should be overridden in subclass.
 		 */
 		public function localize_notice_format(): string {
 
-			/* translators: %s: Method name. */
-			$message = sprintf( esc_html__( "Method '%s' not implemented. Must be overridden in subclass." ), __METHOD__ );
-			wp_trigger_error( __METHOD__, $message );
+			$this->subclass_should_implement( __FUNCTION__ );
 
 			// translators: 1: Extended Plugin Name. 2: Extended Plugin Version. 3: Extended Plugin Compatible Version.
 			return 'You are using an incompatible version of <strong>%1$s - (%2$s)</strong>. Please upgrade to version <strong>%3$s</strong> or upper.';
+		}
+
+		/**
+		 * Pro or dependent plugin file.
+		 *
+		 * @return string
+		 */
+		abstract public function pro_plugin_file(): string;
+
+		/**
+		 * Pro plugin file.
+		 *
+		 * @abstract Must be overridden in subclass.
+		 * @return string
+		 * @throws \WP_Exception This method should be overridden in subclass.
+		 */
+		public function plugin_file(): string {
+			return $this->pro_plugin_file();
 		}
 	}
 }

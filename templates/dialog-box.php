@@ -3,10 +3,12 @@
 	 * DialogBox Template File.
 	 *
 	 * @package StorePress/AdminUtils
-	 * @var \StorePress\AdminUtils\Dialog $this - Settings Class Instance.
+	 * @var AbstractDialog $this - Dialog Class Instance.
 	 * @since 1.0.0
 	 * @version 1.0.0
 	 */
+
+	use StorePress\AdminUtils\Abstracts\AbstractDialog;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
@@ -31,7 +33,7 @@
 					<h2><?php echo esc_html( $this->get_sub_title() ); ?></h2>
 				<?php } ?>
 
-				<?php echo wp_kses( $this->get_contents(), $this->get_kses_allowed_dialog_html() ); ?>
+				<?php echo wp_kses( $this->get_content(), $this->get_kses_allowed_dialog_html() ); ?>
 			</div>
 			<?php if ( $this->has_buttons() ) { ?>
 			<div class="storepress-admin-utils-dialog-box_footer"> <?php echo wp_kses( $this->generate_button_markup(), $this->get_kses_allowed_dialog_html() ); ?> </div>

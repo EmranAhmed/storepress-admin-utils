@@ -9,17 +9,17 @@
 
 	declare( strict_types=1 );
 
-	namespace StorePress\AdminUtils;
+	namespace StorePress\AdminUtils\Traits;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-if ( ! trait_exists( '\StorePress\AdminUtils\Common' ) ) {
+if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 	/**
 	 * Common Trait.
 	 *
-	 * @name Common
+	 * @name HelperMethodsTrait
 	 */
-	trait Common {
+	trait HelperMethodsTrait {
 
 		/**
 		 * Get data if set, otherwise return a default value or null. Prevents notices when data is not set.
@@ -596,6 +596,28 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Common' ) ) {
 			}
 
 			return $result;
+		}
+
+		/**
+		 * Removes leading forward slashes and backslashes if they exist.
+		 *
+		 * @param string $value Value from which trailing slashes will be removed.
+		 *
+		 * @return string String without the heading slashes.
+		 */
+		public function unleadingslashit( string $value ): string {
+			return ltrim( $value, '/\\' );
+		}
+
+		/**
+		 * Appends a leading slash on a string.
+		 *
+		 * @param string $value Value to which trailing slash will be added.
+		 *
+		 * @return string String with trailing slash added.
+		 */
+		public function leadingslashit( string $value ): string {
+			return '/' . $this->unleadingslashit( $value );
 		}
 
 		/**

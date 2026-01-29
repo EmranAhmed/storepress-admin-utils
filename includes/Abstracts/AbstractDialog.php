@@ -9,25 +9,31 @@
 
 	declare( strict_types=1 );
 
-	namespace StorePress\AdminUtils;
+	namespace StorePress\AdminUtils\Abstracts;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
+	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
+	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
+	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
+
+if ( ! class_exists( '\StorePress\AdminUtils\AbstractDialog' ) ) {
 	/**
 	 * Abstract Dialog Class.
 	 *
-	 * @name Dialog
+	 * @name AbstractDialog
 	 */
-	abstract class Dialog {
+	abstract class AbstractDialog {
 
-		use Common;
-		use Package;
+		use HelperMethodsTrait;
+		use InternalPackageTrait;
+		use MethodShouldImplementTrait;
 
 		/**
 		 * Dialog Scripts Init.
 		 */
 		public function __construct() {
+			$this->hooks();
 			$this->init();
 		}
 
@@ -36,10 +42,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 		 *
 		 * @return void
 		 */
-		public function init(): void {
+		public function hooks(): void {
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 20 );
-			add_action( 'admin_footer', array( $this, 'markup' ), 20 );
+			add_action( 'admin_footer', array( $this, 'render' ), 20 );
 		}
+
+		/**
+		 * Init method
+		 *
+		 * @return void
+		 */
+		public function init(): void {}
 
 		/**
 		 * Set Dialog Unique ID.
@@ -101,37 +114,39 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 		}
 
 		/**
-		 * Dialog Contents.
+		 * Dialog Content.
 		 *
 		 * @return string
 		 */
-		abstract public function contents(): string;
+		abstract public function content(): string;
 
 		/**
-		 * Get Dialog Title.
+		 * Get Dialog Content.
 		 *
 		 * @return string
 		 */
-		public function get_contents(): string {
-			return $this->contents();
+		public function get_content(): string {
+			return $this->content();
 		}
 
 		/**
 		 * Get Dialog Button.
 		 *
+		 * @abstract Method should be overridden in subclass.
+		 *
 		 * @return array<int, mixed>
 		 * @throws \WP_Exception Method should be overridden in subclass.
 		 * @example
-		 *             array(
-		 *             array(
-		 *             'type' => 'link',
-		 *             'label'      => __( 'Buy Now' ),
-		 *             'attributes' => array(
-		 *             'href'  => '#',
-		 *             // 'data-action' => 'submit',
-		 *             'class' => array( 'button', 'button-primary' ),
-		 *             ),
-		 *             ),
+		 * array(
+		 * array(
+		 *     'type' => 'link',
+		 *     'label'      => __( 'Buy Now' ),
+		 *     'attributes' => array(
+		 *     'href'  => '#',
+		 *     // 'data-action' => 'submit',
+		 *     'class' => array( 'button', 'button-primary' ),
+		 *   ),
+		 * ),
 		 *
 		 *     array(
 		 *         'type'       => 'link',
@@ -146,9 +161,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 		 */
 		public function get_buttons(): array {
 
-			/* translators: %s: Method name. */
-			$message = sprintf( esc_html__( "Method '%s' not implemented. Must be overridden in subclass." ), __METHOD__ );
-			wp_trigger_error( __METHOD__, $message );
+			$this->subclass_should_implement( __FUNCTION__ );
 
 			return array(
 				array(
@@ -257,7 +270,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 			if ( ! $this->has_capability() ) {
 				return;
 			}
-			$this->register_package_admin_utils_script();
 			$this->register_package_scripts( 'dialog' );
 			$this->enqueue_package_scripts( 'dialog' );
 		}
@@ -267,11 +279,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Dialog' ) ) {
 		 *
 		 * @return void
 		 */
-		public function markup(): void {
+		public function render(): void {
 			if ( ! $this->has_capability() ) {
 				return;
 			}
-			include __DIR__ . '/../templates/dialog-box.php';
+
+			include $this->get_package_template_path() . '/dialog-box.php';
 		}
 	}
 }

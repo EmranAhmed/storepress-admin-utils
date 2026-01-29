@@ -1,6 +1,6 @@
 <?php
 	/**
-	 * Plugin Rollback API Class File.
+	 * Plugin Upgrader Class File.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
@@ -9,36 +9,70 @@
 
 	declare( strict_types=1 );
 
-	namespace StorePress\AdminUtils;
+	namespace StorePress\AdminUtils\Services\Internal\Updater;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	use Plugin_Upgrader;
 
-if ( ! class_exists( '\StorePress\AdminUtils\Plugin_Rollback' ) ) {
+if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Upgrader' ) ) {
 
 	/**
-	 * Plugin Rollback API Class.
+	 * Plugin Upgrader Class for Rollback Functionality.
 	 *
-	 * @name Plugin_Rollback
+	 * Extends WordPress Plugin_Upgrader to provide rollback capability.
+	 * Allows installing a specific version of a plugin from a provided
+	 * package URL instead of the latest version.
+	 *
+	 * @name Upgrader
+	 *
+	 * @see \Plugin_Upgrader For base upgrader functionality.
+	 * @see Rollback For the rollback service that uses this class.
+	 *
+	 * @example Usage:
+	 *          ```php
+	 *          $skin     = new WP_Ajax_Upgrader_Skin();
+	 *          $upgrader = new Upgrader( $skin );
+	 *          $result   = $upgrader->rollback(
+	 *              'plugin-folder/plugin-file.php',
+	 *              'https://example.com/plugin-1.0.0.zip'
+	 *          );
+	 *          ```
+	 *
+	 * @since 1.0.0
 	 */
-	class Plugin_Rollback extends Plugin_Upgrader {
+	class Upgrader extends Plugin_Upgrader {
 
 		/**
-		 * Upgrades a plugin.
+		 * Rollback a plugin to a specific version.
 		 *
-		 * @param string               $plugin             Path to the plugin file relative to the plugins directory.
-		 * @param string               $package            Path to the plugin zip file.
-		 * @param array<string, mixed> $args               {
-		 *   Optional. Other arguments for upgrading a plugin package. Default empty array.
+		 * Performs a plugin "upgrade" using a specific package URL instead of
+		 * fetching the latest version. This allows rolling back to any available
+		 * previous version.
+		 *
+		 * The process:
+		 * 1. Connects to filesystem
+		 * 2. Deactivates plugin before upgrade
+		 * 3. Deletes old plugin files
+		 * 4. Installs the specified package
+		 * 5. Reactivates the plugin
+		 * 6. Clears plugin cache
+		 *
+		 * @param string               $plugin  Path to the plugin file relative to the plugins directory.
+		 * @param string               $package URL or path to the plugin zip file for the target version.
+		 * @param array<string, mixed> $args    {
+		 *     Optional. Arguments for the rollback operation. Default empty array.
 		 *
 		 *     @type bool $clear_update_cache Whether to clear the plugin updates cache if successful.
 		 *                                    Default true.
 		 * }
-		 * @return bool|\WP_Error True if the upgrade was successful, false or a WP_Error object otherwise.
-		 * @since 1.13.0
 		 *
-		 * @see bulk_upgrade
+		 * @return bool|\WP_Error True if rollback successful, false or WP_Error on failure.
+		 *
+		 * @see \Plugin_Upgrader::bulk_upgrade() For similar upgrade logic.
+		 * @see \WP_Upgrader::run() For the core upgrade process.
+		 *
+		 * @since 1.0.0
 		 */
 		public function rollback( string $plugin, string $package, array $args = array() ) {
 			$defaults = array(
