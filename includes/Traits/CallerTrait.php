@@ -98,7 +98,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\CallerTrait' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @return ?ContainerInterface The service container instance.
+		 * @return ContainerInterface The service container instance.
 		 *
 		 * @see Fields::add() Uses container to create Field and Section instances.
 		 *
@@ -108,15 +108,14 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\CallerTrait' ) ) {
 		 *          $field = $container->get( Field::class, $field_config );
 		 *          ```
 		 */
-		public function get_container(): ?ContainerInterface {
+		public function get_container(): ContainerInterface {
 			$method_exists = method_exists( $this->get_caller(), 'get_container' );
 
-			if ( $method_exists ) {
-				return $this->get_caller()->get_container();
+			if ( ! $method_exists ) {
+				$this->subclass_should_implement( 'get_container', $this->get_caller() );
 			}
 
-			$this->subclass_should_implement( 'get_container', $this->get_caller() );
-			return null;
+			return $this->get_caller()->get_container();
 		}
 	}
 }
