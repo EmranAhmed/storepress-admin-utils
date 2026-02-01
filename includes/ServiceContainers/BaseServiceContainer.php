@@ -227,7 +227,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContai
 		public function get( string $id, ...$args ): object {
 
 			if ( ! $this->has( $id ) ) {
-				throw new RuntimeException( sprintf( 'Class "%s" not added.', esc_html( $id ) ) );
+				throw new RuntimeException( sprintf( 'Class "%s" not available in "%s" container.' . "\n\n", esc_html( $id ), esc_html( get_class( $this ) ) ) );
 			}
 
 			return $this->resolvers[ $id ]( $this, ...$args );

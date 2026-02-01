@@ -13,7 +13,7 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	use StorePress\AdminUtils\ServiceContainers\InternalServiceContainer;
+	use StorePress\AdminUtils\Interfaces\ContainerInterface;
 	use StorePress\AdminUtils\ServiceProviders\Internal\SettingsServiceProvider;
 	use StorePress\AdminUtils\Services\Internal\Settings\API;
 	use StorePress\AdminUtils\Services\Internal\Settings\Field;
@@ -80,9 +80,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 	 */
 	abstract class AbstractSettings extends AbstractAdminMenu {
 
+		use MethodShouldImplementTrait;
 		use CallerTrait;
 		use ManageServiceProviderTrait;
-		use MethodShouldImplementTrait;
 
 		// =========================================================================
 		// Properties
@@ -158,13 +158,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function __construct( object $caller ) {
-
-			$this->set_caller( $caller );
+			parent::__construct( $caller );
 			$this->register_service_provider( $this );
 			$this->register_services();
 			$this->register_rest_api();
-
-			parent::__construct( $caller );
 		}
 
 		/**
@@ -226,11 +223,43 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get service container.
+		 * Get service provider container.
 		 *
-		 * @return InternalServiceContainer
+		 * Returns the dependency injection container from the service provider.
+		 * This method overrides the parent container to use the internal
+		 * SettingsServiceProvider container for resolving dependencies.
+		 *
+		 * NOTE: We have to override this container because we use the container
+		 * internally for resolving Field, Fields, and API class instances.
+		 *
+		 * @return ContainerInterface The dependency injection container instance.
+		 *
+		 * @see get_service_provider()
+		 * @see SettingsServiceProvider::get_container()
+		 * @see get_all_fields()
+		 * @see display_fields()
+		 *
+		 * @example Get container and resolve a service:
+		 *          ```php
+		 *          $container = $this->get_container();
+		 *          $field = $container->get( Field::class, $field_data );
+		 *          ```
+		 *
+		 * @example Resolve Fields class for display:
+		 *          ```php
+		 *          $fields = $this->get_container()->get( Fields::class, $get_fields );
+		 *          $fields->display();
+		 *          ```
+		 *
+		 * @example Resolve API class for REST routes:
+		 *          ```php
+		 *          $api = $this->get_container()->get( API::class );
+		 *          $api->register_routes();
+		 *          ```
+		 *
+		 * @since 1.0.0
 		 */
-		public function get_container(): InternalServiceContainer {
+		public function get_container(): ContainerInterface {
 			return $this->get_service_provider()->get_container();
 		}
 
@@ -988,6 +1017,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		final public function display_fields(): void {
+
 			$fields_callback = $this->get_tab_fields_callback();
 			$page_callback   = $this->get_tab_page_callback();
 			$current_tab     = $this->get_current_tab();

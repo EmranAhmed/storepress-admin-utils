@@ -13,6 +13,7 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
+	use StorePress\AdminUtils\Interfaces\ContainerInterface;
 	use StorePress\AdminUtils\ServiceProviders\Internal\UpdaterServiceProvider;
 	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
@@ -623,7 +624,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 * @since 1.0.0
 		 */
 		public function plugin_banners(): array {
-
 			return array(
 				'low' => $this->get_package_image_url() . '/banner.svg',
 			);

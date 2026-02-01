@@ -35,6 +35,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 	 * @phpstan-use CallerTrait<AbstractSettings>
 	 *
 	 * @method AbstractSettings get_caller() Returns the parent AbstractSettings instance.
+	 * @method InternalServiceContainer get_container() Returns the parent AbstractSettings instance.
 	 *
 	 * @since 1.0.0
 	 *
@@ -166,28 +167,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		// =====================================================================
 		// Container and Settings Access
 		// =====================================================================
-
-		/**
-		 * Get the service container instance.
-		 *
-		 * Returns the InternalServiceContainer from the parent settings object.
-		 * Used to resolve Field and Section service instances.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @return InternalServiceContainer The service container instance.
-		 *
-		 * @see Fields::add() Uses container to create Field and Section instances.
-		 *
-		 * @example
-		 *          ```php
-		 *          $container = $this->get_container();
-		 *          $field = $container->get( Field::class, $field_config );
-		 *          ```
-		 */
-		public function get_container(): InternalServiceContainer {
-			return $this->get_caller()->get_container();
-		}
 
 		/**
 		 * Get the parent Settings object.

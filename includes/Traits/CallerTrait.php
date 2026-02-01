@@ -11,6 +11,8 @@
 
 	namespace StorePress\AdminUtils\Traits;
 
+	use StorePress\AdminUtils\Interfaces\ContainerInterface;
+
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 if ( ! trait_exists( '\StorePress\AdminUtils\Traits\CallerTrait' ) ) {
@@ -78,15 +80,43 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\CallerTrait' ) ) {
 		 * @throws \WP_Exception Throws exception, If method not available.
 		 */
 		public function plugin_file(): string {
+
 			$method_exists = method_exists( $this->get_caller(), 'get_plugin_file' );
 
-			if ( ! $method_exists ) {
-
-				$this->subclass_should_implement( 'get_plugin_file', $this->get_caller() );
-				return '';
+			if ( $method_exists ) {
+				return $this->get_caller()->get_plugin_file();
 			}
 
-			return $this->get_caller()->get_plugin_file();
+			$this->subclass_should_implement( 'get_plugin_file', $this->get_caller() );
+			return '';
+		}
+
+		/**
+		 * Get the service container instance from parent or caller class.
+		 *
+		 * Returns the InternalServiceContainer from the parent object.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return ?ContainerInterface The service container instance.
+		 *
+		 * @see Fields::add() Uses container to create Field and Section instances.
+		 *
+		 * @example
+		 *          ```php
+		 *          $container = $this->get_container();
+		 *          $field = $container->get( Field::class, $field_config );
+		 *          ```
+		 */
+		public function get_container(): ?ContainerInterface {
+			$method_exists = method_exists( $this->get_caller(), 'get_container' );
+
+			if ( $method_exists ) {
+				return $this->get_caller()->get_container();
+			}
+
+			$this->subclass_should_implement( 'get_container', $this->get_caller() );
+			return null;
 		}
 	}
 }

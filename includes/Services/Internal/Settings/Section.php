@@ -188,30 +188,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 		}
 
 		// =====================================================================
-		// Container Access Methods
-		// =====================================================================
-
-		/**
-		 * Get the service container instance.
-		 *
-		 * Returns the InternalServiceContainer from the parent settings object.
-		 * Used to resolve service instances when needed.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @return InternalServiceContainer The service container instance.
-		 *
-		 * @example
-		 *          ```php
-		 *          $container = $section->get_container();
-		 *          $field = $container->get( Field::class, $field_config );
-		 *          ```
-		 */
-		public function get_container(): InternalServiceContainer {
-			return $this->get_caller()->get_container();
-		}
-
-		// =====================================================================
 		// Section Identification Methods
 		// =====================================================================
 

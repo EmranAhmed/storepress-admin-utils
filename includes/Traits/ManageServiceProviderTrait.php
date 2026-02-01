@@ -15,6 +15,8 @@
 
 	namespace StorePress\AdminUtils\Traits;
 
+	use StorePress\AdminUtils\Interfaces\ContainerInterface;
+
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 if ( ! trait_exists( '\StorePress\AdminUtils\Traits\ManageServiceProviderTrait' ) ) {
@@ -198,6 +200,15 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\ManageServiceProviderTrait' 
 		 */
 		public function boot_services(): void {
 			$this->get_service_provider()->boot();
+		}
+
+		/**
+		 * Service Container for Internal use.
+		 *
+		 * @return ContainerInterface
+		 */
+		public function get_service_container(): ContainerInterface {
+			return $this->get_service_provider()->get_container();
 		}
 	}
 }

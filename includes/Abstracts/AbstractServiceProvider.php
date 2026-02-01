@@ -13,6 +13,7 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
+	use StorePress\AdminUtils\Interfaces\ContainerInterface;
 	use StorePress\AdminUtils\Traits\CallerTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractServiceProvider' ) ) {
@@ -52,9 +53,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractServiceProvider' 
 		/**
 		 * Container.
 		 *
-		 * @return object
+		 * @return ContainerInterface
 		 */
-		public function get_container(): object {
+		public function get_container(): ContainerInterface {
 			return $this->get_caller()->get_container();
 		}
 
