@@ -99,7 +99,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\Internal\InternalPackageTrai
 		 *
 		 * @since 1.0.0
 		 */
-		public function get_package_template_path(): string {
+		public function get_package_templates_path(): string {
 			return sprintf( '%s/%s/templates', $this->vendor_path(), $this->package_name );
 		}
 
@@ -114,7 +114,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\Internal\InternalPackageTrai
 		 *
 		 * @since 1.0.0
 		 */
-		public function get_package_image_path(): string {
+		public function get_package_images_path(): string {
 			return sprintf( '%s/%s/images', $this->vendor_path(), $this->package_name );
 		}
 
@@ -129,7 +129,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\Internal\InternalPackageTrai
 		 *
 		 * @since 1.0.0
 		 */
-		public function get_package_image_url(): string {
+		public function get_package_images_url(): string {
 			return sprintf( '%s/%s/images', $this->vendor_url(), $this->package_name );
 		}
 
@@ -299,7 +299,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\Internal\InternalPackageTrai
 		 *
 		 * @since 1.0.0
 		 */
-		public function register_package_storepress_utils_script(): string {
+		final public function register_package_storepress_utils_script(): string {
 
 			$js_file    = sprintf( '%s/storepress-utils.js', $this->get_package_build_path() );
 			$asset_file = sprintf( '%s/storepress-utils.asset.php', $this->get_package_build_path() );

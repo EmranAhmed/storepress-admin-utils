@@ -14,13 +14,16 @@
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	use StorePress\AdminUtils\Interfaces\ContainerInterface;
+	use StorePress\AdminUtils\Interfaces\HasServiceProviderInterface;
+
 	use StorePress\AdminUtils\ServiceProviders\Internal\SettingsServiceProvider;
 	use StorePress\AdminUtils\Services\Internal\Settings\API;
 	use StorePress\AdminUtils\Services\Internal\Settings\Field;
 	use StorePress\AdminUtils\Services\Internal\Settings\Fields;
+
 	use StorePress\AdminUtils\Traits\CallerTrait;
-	use StorePress\AdminUtils\Traits\ManageServiceProviderTrait;
 	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
+	use StorePress\AdminUtils\Traits\RegisterServiceProviderTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
@@ -33,7 +36,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 	 * @name AbstractSettings
 	 *
 	 * @phpstan-use CallerTrait<object>
-	 * @phpstan-use ManageServiceProviderTrait<SettingsServiceProvider>
+	 * @phpstan-use RegisterServiceProviderTrait<SettingsServiceProvider>
 	 *
 	 * @method SettingsServiceProvider get_service_provider() Returns the SettingsServiceProvider instance that owns this provider.
 	 *
@@ -78,11 +81,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	abstract class AbstractSettings extends AbstractAdminMenu {
+	abstract class AbstractSettings extends AbstractAdminMenu implements HasServiceProviderInterface {
 
 		use MethodShouldImplementTrait;
 		use CallerTrait;
-		use ManageServiceProviderTrait;
+		use RegisterServiceProviderTrait;
 
 		// =========================================================================
 		// Properties
@@ -158,10 +161,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function __construct( object $caller ) {
-			parent::__construct( $caller );
 			$this->register_service_provider( $this );
 			$this->register_services();
 			$this->register_rest_api();
+			parent::__construct( $caller );
 		}
 
 		/**
@@ -220,47 +223,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 */
 		public function service_provider( object $caller ): SettingsServiceProvider {
 			return new SettingsServiceProvider( $caller );
-		}
-
-		/**
-		 * Get service provider container.
-		 *
-		 * Returns the dependency injection container from the service provider.
-		 * This method overrides the parent container to use the internal
-		 * SettingsServiceProvider container for resolving dependencies.
-		 *
-		 * NOTE: We have to override this container because we use the container
-		 * internally for resolving Field, Fields, and API class instances.
-		 *
-		 * @return ContainerInterface The dependency injection container instance.
-		 *
-		 * @see get_service_provider()
-		 * @see SettingsServiceProvider::get_container()
-		 * @see get_all_fields()
-		 * @see display_fields()
-		 *
-		 * @example Get container and resolve a service:
-		 *          ```php
-		 *          $container = $this->get_container();
-		 *          $field = $container->get( Field::class, $field_data );
-		 *          ```
-		 *
-		 * @example Resolve Fields class for display:
-		 *          ```php
-		 *          $fields = $this->get_container()->get( Fields::class, $get_fields );
-		 *          $fields->display();
-		 *          ```
-		 *
-		 * @example Resolve API class for REST routes:
-		 *          ```php
-		 *          $api = $this->get_container()->get( API::class );
-		 *          $api->register_routes();
-		 *          ```
-		 *
-		 * @since 1.0.0
-		 */
-		public function get_container(): ContainerInterface {
-			return $this->get_service_provider()->get_container();
 		}
 
 		// =========================================================================
@@ -673,7 +635,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 						}
 
 						// @TODO Get Field.
-						$_field = $this->get_container()->get( Field::class, $field );
+						$_field = $this->get_internal_container()->get( Field::class, $field );
 
 						$all_fields[ $field['id'] ] = $_field;
 					}
@@ -722,7 +684,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 				foreach ( $fields as $field ) {
 					if ( 'section' !== $field['type'] ) {
 						// @TODO Get Field.
-						$_field                           = $this->get_container()->get( Field::class, $field );
+						$_field                           = $this->get_internal_container()->get( Field::class, $field );
 						$available_fields[ $field['id'] ] = $_field;
 					}
 				}
@@ -925,7 +887,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function render(): void {
-			include_once $this->get_package_template_path() . '/classic-template.php';
+			include_once $this->get_package_templates_path() . '/classic-template.php';
 		}
 
 		/**
@@ -1036,7 +998,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 					settings_fields( $this->get_option_group_name() );
 
 					// @TODO Get Fields.
-					$fields = $this->get_container()->get( Fields::class, $get_fields );
+					$fields = $this->get_internal_container()->get( Fields::class, $get_fields );
 					$fields->display();
 
 					$this->display_buttons();
@@ -1934,7 +1896,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		public function rest_api_init(): void {
 
 			// @TODO Get API.
-			$this->get_container()->get( API::class )->register_routes();
+			$this->get_internal_container()->get( API::class )->register_routes();
 		}
 
 		/**

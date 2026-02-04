@@ -13,14 +13,15 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	use StorePress\AdminUtils\Interfaces\ContainerInterface;
+
+	use StorePress\AdminUtils\Interfaces\HasServiceProviderInterface;
 	use StorePress\AdminUtils\ServiceProviders\Internal\UpdaterServiceProvider;
 	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
-	use StorePress\AdminUtils\Traits\ManageServiceProviderTrait;
 	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
 	use StorePress\AdminUtils\Traits\PluginCommonTrait;
+	use StorePress\AdminUtils\Traits\RegisterServiceProviderTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 
@@ -33,8 +34,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 	 *
 	 * @name AbstractUpdater
 	 *
-	 * @phpstan-use ManageServiceProviderTrait<UpdaterServiceProvider, AbstractUpdater>
+	 * @phpstan-use RegisterServiceProviderTrait<UpdaterServiceProvider>
 	 * @phpstan-use CallerTrait<object>
+	 *
+	 * @method UpdaterServiceProvider get_service_provider() Returns the SettingsServiceProvider instance that owns this provider.
 	 *
 	 * @example Basic implementation:
 	 *          ```php
@@ -73,12 +76,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 	 *
 	 * @since 1.0.0
 	 */
-	abstract class AbstractUpdater {
+	abstract class AbstractUpdater implements HasServiceProviderInterface {
 
 		use HelperMethodsTrait;
 		use PluginCommonTrait;
 		use InternalPackageTrait;
-		use ManageServiceProviderTrait;
+		use RegisterServiceProviderTrait;
 		use CallerTrait;
 		use MethodShouldImplementTrait;
 
@@ -625,7 +628,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 */
 		public function plugin_banners(): array {
 			return array(
-				'low' => $this->get_package_image_url() . '/banner.svg',
+				'low' => $this->get_package_images_url() . '/banner.svg',
 			);
 		}
 
@@ -669,7 +672,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 */
 		public function plugin_icons(): array {
 			return array(
-				'svg' => $this->get_package_image_url() . '/icon.svg',
+				'svg' => $this->get_package_images_url() . '/icon.svg',
 			);
 		}
 

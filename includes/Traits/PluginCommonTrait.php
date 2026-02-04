@@ -244,7 +244,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @return string
 		 * @since 1.0.0
 		 */
-		public function include_path(): string {
+		public function includes_path(): string {
 			return $this->get_plugin_dir_path() . '/includes';
 		}
 
@@ -254,8 +254,18 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @return string
 		 * @since 1.0.0
 		 */
-		public function template_path(): string {
+		public function templates_path(): string {
 			return $this->get_plugin_dir_path() . '/templates';
+		}
+
+		/**
+		 * Get Templates path.
+		 *
+		 * @return string
+		 * @since 1.0.0
+		 */
+		public function languages_path(): string {
+			return $this->get_plugin_dir_path() . '/languages';
 		}
 
 		/**

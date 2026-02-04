@@ -18,6 +18,7 @@
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	use StorePress\AdminUtils\Abstracts\AbstractSettings;
+	use StorePress\AdminUtils\Interfaces\ContainerInterface;
 	use StorePress\AdminUtils\ServiceContainers\InternalServiceContainer;
 	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
@@ -34,8 +35,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 	 *
 	 * @phpstan-use CallerTrait<AbstractSettings>
 	 *
-	 * @method AbstractSettings get_caller() Returns the parent AbstractSettings instance.
-	 * @method InternalServiceContainer get_container() Returns the parent AbstractSettings instance.
+	 * @method AbstractSettings get_caller() Returns the parent AbstractSettings instance
 	 *
 	 * @since 1.0.0
 	 *
@@ -189,6 +189,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 */
 		public function get_settings(): AbstractSettings {
 			return $this->get_caller();
+		}
+
+		public function get_container(): ContainerInterface {
+			return $this->get_settings()->get_internal_container();
 		}
 
 		// =====================================================================

@@ -19,7 +19,7 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-if ( ! trait_exists( '\StorePress\AdminUtils\Traits\ManageServiceProviderTrait' ) ) {
+if ( ! trait_exists( '\StorePress\AdminUtils\Traits\RegisterServiceProviderTrait' ) ) {
 	/**
 	 * Trait for managing service provider registration.
 	 *
@@ -54,7 +54,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\ManageServiceProviderTrait' 
 	 *          $container->boot_services();
 	 *          ```
 	 */
-	trait ManageServiceProviderTrait {
+	trait RegisterServiceProviderTrait {
 
 		// =====================================================================
 		// Properties
@@ -203,12 +203,22 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\ManageServiceProviderTrait' 
 		}
 
 		/**
-		 * Service Container for Internal use.
+		 * Service Container for Current Service Provider.
 		 *
 		 * @return ContainerInterface
 		 */
 		public function get_service_container(): ContainerInterface {
 			return $this->get_service_provider()->get_container();
+		}
+
+		/**
+		 * Service Container for Current Service Provider for Internal use.
+		 * Alias of get_service_container method
+		 *
+		 * @return ContainerInterface
+		 */
+		final public function get_internal_container(): ContainerInterface {
+			return $this->get_service_container();
 		}
 	}
 }

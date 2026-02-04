@@ -138,7 +138,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$this->init();
 		}
 
-
 		/**
 		 * Initialize settings.
 		 *

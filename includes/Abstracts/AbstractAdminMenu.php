@@ -41,6 +41,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 	 *
 	 * @name AbstractAdminMenu
 	 *
+	 * @phpstan-use CallerTrait<AbstractAdminMenu>
+	 * @phpstan-use PluginCommonTrait<AbstractAdminMenu>
+	 * @phpstan-use HelperMethodsTrait<AbstractAdminMenu>
+	 * @phpstan-use InternalPackageTrait<AbstractAdminMenu>
+	 * @phpstan-use MethodShouldImplementTrait<AbstractAdminMenu>
+	 *
 	 * @see HelperMethodsTrait For helper utility methods.
 	 * @see PluginCommonTrait For plugin-related methods.
 	 * @see CallerTrait For caller object management.

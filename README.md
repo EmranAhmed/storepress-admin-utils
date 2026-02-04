@@ -444,6 +444,8 @@ example/
 		public function get_default_sidebar(): void {
 			echo 'Hello from default sidebar';
 			
+			// include_once $this->get_templates_path() . '/sidebar.php'
+			
 		}
 		
 		public function localize_strings(): array {
@@ -459,9 +461,8 @@ example/
 			);
 		}
 		
-		
-		
-		   // Adding custom scripts.
+
+		// Adding custom scripts.
     public function enqueue_scripts(): void {
         parent::enqueue_scripts();
         if ( $this->has_field_type( 'wc-enhanced-select' ) ) {
@@ -1352,7 +1353,7 @@ array(
 		// If you need to send additional arguments to update server.
 		// Check get_request_args() method.
 		public function additional_request_args(): array {
-			return array( 'domain'=> $this->get_client_hostname() );
+			return array( 'host'=> $this->get_client_hostname() );
 		}
 	}
 ```
@@ -1389,7 +1390,7 @@ array(
 		 * @return string
 		 */
 		public function title(): string {
-			return 'QUICK FEEDBACK from plugin B';
+			return 'QUICK FEEDBACK';
 		}
 		
 		public function sub_title(): string {

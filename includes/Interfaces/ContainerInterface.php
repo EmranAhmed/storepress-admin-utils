@@ -2,13 +2,12 @@
 	/**
 	 * Container Interface File.
 	 *
-	 * Defines the contract for dependency injection containers used throughout
-	 * the admin utilities framework. Implementations provide service registration,
-	 * resolution, and existence checking capabilities.
+	 * Defines the contract for service container implementations that manage
+	 * service registration and resolution for dependency injection patterns.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      2.0.0
-	 * @version    1.0.0
+	 * @version    3.1.0
 	 */
 
 	declare( strict_types=1 );
@@ -222,5 +221,44 @@ if ( ! interface_exists( '\StorePress\AdminUtils\Interfaces\ContainerInterface' 
 		 *          ```
 		 */
 		public function has( string $id ): bool;
+
+		/**
+		 * List all registered service identifiers.
+		 *
+		 * Returns an array of all service identifiers (class names or aliases)
+		 * that have been registered with the container. Useful for debugging,
+		 * introspection, and service discovery.
+		 *
+		 * @since 3.1.0
+		 *
+		 * @return array<int, string> Array of registered service identifiers.
+		 *
+		 * @see ContainerInterface::register() To register services.
+		 * @see ContainerInterface::has() To check individual service existence.
+		 *
+		 * @example List all registered services:
+		 *          ```php
+		 *          $services = $container->list();
+		 *          foreach ( $services as $service_id ) {
+		 *              echo "Registered: {$service_id}\n";
+		 *          }
+		 *          ```
+		 *
+		 * @example Debug available services:
+		 *          ```php
+		 *          if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+		 *              error_log( 'Container services: ' . implode( ', ', $container->list() ) );
+		 *          }
+		 *          ```
+		 *
+		 * @example Service discovery:
+		 *          ```php
+		 *          $services = $container->list();
+		 *          $loggers = array_filter( $services, function ( $id ) {
+		 *              return str_contains( $id, 'Logger' );
+		 *          } );
+		 *          ```
+		 */
+		public function list(): array;
 	}
 }

@@ -14,11 +14,12 @@
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	use StorePress\AdminUtils\Abstracts\AbstractUpdater;
+	use StorePress\AdminUtils\Interfaces\HasServiceProviderInterface;
 	use StorePress\AdminUtils\ServiceProviders\Internal\RollbackServiceProvider;
 	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
-	use StorePress\AdminUtils\Traits\ManageServiceProviderTrait;
+	use StorePress\AdminUtils\Traits\RegisterServiceProviderTrait;
 	use WP_Ajax_Upgrader_Skin;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback' ) ) {
@@ -33,9 +34,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 	 * @name Rollback
 	 *
 	 * @phpstan-use CallerTrait<AbstractUpdater>
-	 * @phpstan-use ManageServiceProviderTrait<RollbackServiceProvider, Rollback>
+	 * @phpstan-use RegisterServiceProviderTrait<RollbackServiceProvider>
 	 *
 	 * @method AbstractUpdater get_caller() Returns the parent AbstractUpdater instance.
+	 * @method RollbackServiceProvider get_service_provider() Returns the parent AbstractUpdater instance.
 	 *
 	 * @see AbstractUpdater For plugin updater integration.
 	 * @see RollbackServiceProvider For service provider integration.
@@ -46,12 +48,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 	 *
 	 * @since 1.0.0
 	 */
-	class Rollback {
+	class Rollback implements HasServiceProviderInterface {
 
 		use HelperMethodsTrait;
 		use InternalPackageTrait;
 		use CallerTrait;
-		use ManageServiceProviderTrait;
+		use RegisterServiceProviderTrait;
 
 		/**
 		 * Plugin information from plugins API.
@@ -594,13 +596,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 *
 		 * @return void
 		 *
-		 * @see get_package_template_path()
+		 * @see get_package_templates_path()
 		 *
 		 * @since 1.0.0
 		 */
 		public function settings_template(): void {
 
-			include_once $this->get_package_template_path() . '/rollback-template.php';
+			include_once $this->get_package_templates_path() . '/rollback-template.php';
 
 			wp_print_request_filesystem_credentials_modal();
 			wp_print_admin_notice_templates();
