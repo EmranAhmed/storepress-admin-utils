@@ -1,6 +1,6 @@
 <?php
 	/**
-	 * Changelog Dialog Class File.
+	 * Deactivation Feedback Dialog Class File.
 	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
@@ -15,66 +15,102 @@
 
 	use StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedback;
 	use StorePress\AdminUtils\Abstracts\AbstractDialog;
-	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Interfaces\DeactivationFeedbackInterface;
 	use StorePress\AdminUtils\Traits\SingletonTrait;
 
+
 if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\DeactivationFeedback\Dialog' ) ) {
+
 	/**
-	 * Changelog Dialog Class.
+	 * Deactivation Feedback Dialog Class.
+	 *
+	 * Renders the plugin deactivation feedback dialog with reasons, inputs, and action buttons.
 	 *
 	 * @name Dialog
-	 * @phpstan-use CallerTrait<AbstractDeactivationFeedback>
-	 * @method AbstractDeactivationFeedback get_caller()
+	 *
+	 * @phpstan-use SingletonTrait<Dialog>
+	 *
+	 * @since 1.0.0
 	 */
 	class Dialog extends AbstractDialog {
 
 		use SingletonTrait;
-		use CallerTrait;
 
 		/**
-		 * Instance.
+		 * Deactivation feedback owner instance.
 		 *
-		 * @param AbstractDeactivationFeedback $caller Caller Class.
+		 * @var AbstractDeactivationFeedback
+		 *
+		 * @since 1.0.0
 		 */
-		public function __construct( AbstractDeactivationFeedback $caller ) {
-			$this->set_caller( $caller );
+		protected AbstractDeactivationFeedback $feedback;
+
+		/**
+		 * Constructor.
+		 *
+		 * @param AbstractDeactivationFeedback $feedback The deactivation feedback owner instance.
+		 *
+		 * @since 1.0.0
+		 */
+		public function __construct( AbstractDeactivationFeedback $feedback ) {
+			$this->feedback = $feedback;
 			parent::__construct();
+		}
+
+		/**
+		 * Get the deactivation feedback owner instance.
+		 *
+		 * @return AbstractDeactivationFeedback
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_feedback(): AbstractDeactivationFeedback {
+			return $this->feedback;
 		}
 
 		/**
 		 * Dialog ID.
 		 *
 		 * @return string
+		 *
+		 * @since 1.0.0
 		 */
 		public function id(): string {
-			return $this->get_caller()->get_dialog_id();
+			return $this->get_feedback()->get_dialog_id();
 		}
 
 		/**
-		 * Dialog Title.
+		 * Dialog title.
 		 *
 		 * @return string
+		 *
+		 * @since 1.0.0
 		 */
 		public function title(): string {
-			return $this->get_caller()->get_title();
+			return $this->get_feedback()->get_title();
 		}
 
 		/**
-		 * Dialog Title.
+		 * Dialog subtitle.
 		 *
 		 * @return string
+		 *
+		 * @since 1.0.0
 		 */
 		public function get_sub_title(): string {
-			return $this->get_caller()->sub_title();
+			return $this->get_feedback()->sub_title();
 		}
 
 		/**
-		 * Dialog Contents.
+		 * Dialog contents HTML built from deactivation reasons.
 		 *
 		 * @return string
+		 *
+		 * @throws \WP_Exception If get_reasons method not overriden in sub-class.
+		 * @since 1.0.0
 		 */
 		public function content(): string {
-			$reasons = $this->get_caller()->get_reasons();
+			$reasons = $this->get_feedback()->get_reasons();
 
 			$html = array();
 
@@ -129,27 +165,45 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\DeactivationFeedb
 		 * Action buttons.
 		 *
 		 * @return array<int, mixed>
+		 *
+		 * @throws \WP_Exception If get_buttons method not overriden in sub-class.
+		 * @since 1.0.0
 		 */
 		public function get_buttons(): array {
-			return $this->get_caller()->get_buttons();
+			return $this->get_feedback()->get_buttons();
 		}
 
 		/**
 		 * Check has permission.
 		 *
 		 * @return bool
+		 *
+		 * @since 1.0.0
 		 */
 		public function has_capability(): bool {
-			return $this->get_caller()->is_plugins_page();
+			return $this->get_feedback()->is_plugins_page();
 		}
 
 		/**
-		 * Width.
+		 * Dialog width.
 		 *
 		 * @return string
+		 *
+		 * @since 1.0.0
 		 */
 		public function width(): string {
-			return $this->get_caller()->get_dialog_width();
+			return $this->get_feedback()->get_dialog_width();
+		}
+
+		/**
+		 * Get plugin file absolute or relative path.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 */
+		public function plugin_file(): string {
+			return $this->get_feedback()->get_plugin_file();
 		}
 	}
 }

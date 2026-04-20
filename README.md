@@ -75,44 +75,10 @@ To use StorePress Admin Utils, developers typically extend the core classes prov
 composer require storepress/admin-utils
 ```
 
-## Plugin Directory Structure
-
-```
-example/
-│
-├── example.php                            # Main plugin entry point, registers hooks, initializes Init class
-├── composer.json                          # Composer dependencies & PSR-4 autoloading configuration
-├── CLAUDE.md                              # AI assistant guidance for codebase conventions
-├── README.md                              # Plugin Readme file
-├── CHANGELOG.md                           # Plugin Changelog file
-│
-└── includes/                              # PHP source files (PSR-4: StorePress\Example\)
-    │
-    ├── Init.php                           # Plugin bootstrap: loads autoloader, registers/boots services
-    ├── functions.php                      # Utility functions.
-    │
-    ├── Features/                          # Feature modules
-    │   ├── Blocks.php                     # Gutenberg blocks.    
-    │
-    ├── Integrations/                      # Classes that integrate with WordPress/external systems
-    │   ├── AdminPage.php                  # Base settings page with sidebar and localized strings
-    │   ├── DeactivationFeedback.php       # Collects user feedback on plugin deactivation via dialog
-    │   ├── ProPluginInCompatibility.php   # Checks pro plugin version compatibility (v3.0.0+)
-    │   └── Updater.php                    # Handles plugin updates from custom server with rollback
-    │
-    ├── ServiceContainers/                 # Dependency injection
-    │   └── ServiceContainer.php           # DI container singleton for registering/resolving services
-    │
-    ├── ServiceProviders/                  # Service registration & bootstrapping
-    │   └── ServiceProvider.php            # Registers all services and boots them in correct order
-    │
-    └── Services/                          # Business logic services
-        └── Settings.php                   # Defines admin settings tabs and fields (General, Basic, Advanced, Rest)
-```
 
 ## Usage
 
-### Plugin entry file.
+### Plugin entry file `plugin-example.php`
 
 ```php
 <?php
@@ -129,11 +95,13 @@ example/
   
   defined( 'ABSPATH' ) || die( 'Keep Silent' );
   
-  use StorePress\Example\Init;
+  use StorePress\Example\Plugin;
+  
+  define('EXAMPLE_PLUGIN_FILE', __FILE__);
   
   // Include the main class.
-  if ( ! class_exists( Init::class, false ) ) {
-    require_once __DIR__ . '/includes/Init.php';
+  if ( ! class_exists( Plugin::class, false ) ) {
+    require_once __DIR__ . '/includes/Plugin.php';
   }
   
   /**
@@ -141,14 +109,44 @@ example/
    *
    * @return Init
    */
-  function plugin_example(): Init {
-    return Init::instance(__FILE__);
+  function plugin_example(): Plugin {
+    return Plugin::instance();
   }
   
   add_action( 'plugins_loaded', 'plugin_example' );
 ```
 
-### Sample `Init.php` file
+### Sample `includes/functions.php` file
+
+```php
+<?php
+	namespace StorePress\Example;
+	
+	use StorePress\Example\Containers\Container;
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	function get_container(): Container {
+		return Container::instance();
+	}
+	
+	function get_plugin_file(): string {
+		return constant( 'EXAMPLE_PLUGIN_FILE' );
+	}
+	
+	function get_pro_plugin_file(): string {
+		
+		if( defined( 'EXAMPLE_PLUGIN_PRO_FILE' ) ) {
+			return constant( 'EXAMPLE_PLUGIN_PRO_FILE' );
+		}
+		
+		return 'example-plugin-pro/example-plugin-pro.php';
+	}
+
+
+```
+
+### Sample `includes/Plugin.php` file
 
 ```php
 <?php
@@ -157,7 +155,7 @@ example/
 	 *
 	 * Handles plugin bootstrap, dependency loading, and service provider initialization.
 	 *
-	 * @package    StorePress/B
+	 * @package    StorePress/Example
 	 * @since      1.0.0
 	 * @version    1.0.0
 	 */
@@ -168,8 +166,11 @@ example/
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
-	use StorePress\Example\ServiceContainers\ServiceContainer;
-	use StorePress\Example\ServiceProviders\ServiceProvider;
+	use StorePress\Example\ServiceProviders\ProCompatibilityServiceProvider;
+	use StorePress\Example\ServiceProviders\ServiceProviders;
+	use StorePress\Example\ServiceProviders\SettingsServiceProvider;
+	use StorePress\Example\ServiceProviders\DeactivationServiceProvider;
+	use StorePress\Example\ServiceProviders\UpdaterServiceProvider;
 	
 	/**
 	 * Plugin Initialization Class.
@@ -191,7 +192,7 @@ example/
 	 * // Get the plugin file path.
 	 * $plugin_file = plugin_b()->get_plugin_file();
 	 */
-	class Init {
+	class Plugin {
 
 		// =====================================================================
 		// Properties
@@ -231,9 +232,9 @@ example/
 		 *     return Init::instance( __FILE__ );
 		 * }
 		 */
-		public static function instance( string $plugin_file ): self {
+		public static function instance(): self {
 			static $instance = null;
-			return $instance ??= new self( $plugin_file );
+			return $instance ??= new self();
 		}
 
 		// =====================================================================
@@ -246,25 +247,14 @@ example/
 		 * Loads vendor autoloaders and functions, registers the service provider,
 		 * boots the service provider, and runs initialization hooks.
 		 *
-		 * @param string $plugin_file The absolute path to the main plugin file.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see Init::includes()          Loads required files.
-		 * @see Init::service_provider()  Gets the service provider instance.
-		 * @see Init::hooks()             Registers WordPress hooks.
 		 */
-		public function __construct( string $plugin_file ) {
-
-			$this->plugin_file = $plugin_file;
+		public function __construct() {
 
 			$this->includes();
 
-			$this->service_provider()->register();
-
-			$this->service_provider()->boot();
-
 			$this->hooks();
+			
+			$this->init();
 		}
 
 		// =====================================================================
@@ -331,7 +321,7 @@ example/
 		 * // Returns: plugin-b/plugin-b.php
 		 */
 		public function get_plugin_file(): string {
-			return $this->plugin_file;
+			return constant( 'EXAMPLE_PLUGIN_FILE' );
 		}
 
 		// =====================================================================
@@ -361,65 +351,18 @@ example/
 		// =====================================================================
 		// Service Container Methods
 		// =====================================================================
-
-		/**
-		 * Get the service provider instance.
-		 *
-		 * Returns the singleton instance of ServiceProvider which manages
-		 * dependency injection and service registration for the plugin.
-		 *
-		 * @return ServiceProvider The service provider instance.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see ServiceProvider::instance() Creates or returns the provider instance.
-		 *
-		 * @example
-		 * // Access the service provider.
-		 * $provider = $init->service_provider();
-		 *
-		 * @example
-		 * // Register a new service.
-		 * $init->service_provider()->register();
-		 *
-		 * @example
-		 * // Boot all registered services.
-		 * $init->service_provider()->boot();
-		 */
-		public function service_provider(): ServiceProvider {
-			return ServiceProvider::instance( $this );
+		
+		public function get_service_providers(): array {
+			return array(
+				UpdaterServiceProvider::class=>UpdaterServiceProvider::class,
+				DeactivationServiceProvider::class=>DeactivationServiceProvider::class,
+				SettingsServiceProvider::class=>SettingsServiceProvider::class,
+				ProCompatibilityServiceProvider::class=>ProCompatibilityServiceProvider::class
+			);
 		}
 
-		/**
-		 * Get the dependency injection container.
-		 *
-		 * Provides access to the service container for resolving dependencies
-		 * registered with the service provider.
-		 *
-		 * @return ServiceContainer The dependency injection container.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see Init::service_provider()       Gets the service provider.
-		 * @see ServiceProvider::get_container() Gets the container from provider.
-		 *
-		 * @example
-		 * // Get a registered service.
-		 * $settings = $init->get_container()->get( Settings::class );
-		 *
-		 * @example
-		 * // Check if a service is registered.
-		 * if ( $init->get_container()->has( Updater::class ) ) {
-		 *     $updater = $init->get_container()->get( Updater::class );
-		 * }
-		 *
-		 * @example
-		 * // Access from global function.
-		 * $container = plugin_b()->get_container();
-		 * $settings = $container->get( Settings::class );
-		 */
-		public function get_container(): ServiceContainer {
-			 return $this->service_provider()->get_container();
+		public function service_providers(): ServiceProviders {
+			return ServiceProviders::instance( $this->get_service_providers() );
 		}
 	}
 ```
@@ -525,17 +468,13 @@ example/
 	
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
-	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\SingletonTrait;
-	use StorePress\Example\Init;
 	use StorePress\Example\Integrations\AdminPage;
 	
 	/**
 	 * Admin Menu Class.
 	 *
 	 * @name Settings
-	 * @phpstan-use CallerTrait<Init>
-	 * @method Init get_caller()
 	 */
 	
 	class Settings extends AdminPage {
@@ -1304,8 +1243,6 @@ array(
 	 * Updater Class.
 	 *
 	 * @name Updater
-	 * @phpstan-use CallerTrait<Init>
-	 * @method Init get_caller()
 	 */
 	
 	class Updater extends AbstractUpdater {
@@ -1376,8 +1313,6 @@ array(
 	 * Changelog Dialog Class.
 	 *
 	 * @name DeactivationFeedback
-	 * @phpstan-use CallerTrait<Init>
-	 * @method Init get_caller()
 	 */
 	
 	class DeactivationFeedback extends AbstractDeactivationFeedback {
@@ -1517,18 +1452,18 @@ array(
 ```
 
 
-## `BaseServiceContainer` class usages example
+## `includes/Containers/Container` class usages example
 
 ```php
 <?php
 
 	declare( strict_types=1 );
 
-	namespace StorePress\Example\ServiceContainers;
+	namespace StorePress\Example\Containers;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	use StorePress\AdminUtils\ServiceContainers\BaseServiceContainer;
+	use StorePress\AdminUtils\ServiceContainers\ServiceContainer;
 	use StorePress\AdminUtils\Traits\SingletonTrait;
 
 	/**
@@ -1539,115 +1474,10 @@ array(
 	 * container instance throughout the plugin's lifecycle. Inherits service
 	 * registration, resolution, and management functionality from BaseServiceContainer.
 	 *
-	 * @name ServiceContainer
+	 * @name Container
 	 */
-	class ServiceContainer extends BaseServiceContainer {
+	class Container extends ServiceContainer {
 		use SingletonTrait;
-	}
-```
-
-
-## `AbstractServiceProvider` class usages example
-
-```php
-<?php
-
-	declare( strict_types=1 );
-
-	namespace StorePress\Example\ServiceProviders;
-
-	defined( 'ABSPATH' ) || die( 'Keep Silent' );
-	
-	use StorePress\AdminUtils\Abstracts\AbstractServiceProvider;
-	use StorePress\AdminUtils\Traits\SingletonTrait;
-	use StorePress\Example\Integrations\DeactivationFeedback;
-	use StorePress\Example\Integrations\ProPluginInCompatibility;
-	use StorePress\Example\Services\Settings;
-	use StorePress\Example\Integrations\Updater;
-	use StorePress\Example\ServiceContainers\ServiceContainer;
-	
-	/**
-	 * Plugin Service Provider Class.
-	 *
-	 * Extends AbstractServiceProvider to manage plugin-specific service registration
-	 * and bootstrapping. Uses the singleton pattern to ensure a single provider
-	 * instance manages all service lifecycle operations. Registers the Updater
-	 * service and handles its initialization during the boot phase.
-	 *
-	 * @name ServiceProvider
-	 */
-	class ServiceProvider extends AbstractServiceProvider {
-		
-		use SingletonTrait;
-		
-		public function get_container(): ServiceContainer {
-			return ServiceContainer::instance();
-		}
-
-		/**
-		 * Register services with the container.
-		 *
-		 * Registers the Updater service as a factory closure that instantiates
-		 * the Updater with the caller (Init) instance. Called during the service
-		 * provider initialization phase before boot().
-		 *
-		 * @return void
-		 * @since 2.0.0
-		 */
-		public function register(): void {
-			
-			$this->get_container()->register(
-				Updater::class,
-				function () {
-					return Updater::instance( $this->get_caller() );
-				}
-			);
-			
-			$this->get_container()->register(
-				DeactivationFeedback::class,
-				function () {
-					return DeactivationFeedback::instance( $this->get_caller() );
-				}
-			);
-			
-			$this->get_container()->register(
-				ProPluginInCompatibility::class,
-				function () {
-					return ProPluginInCompatibility::instance( $this->get_caller() );
-				}
-			);
-			
-			/*$this->get_container()->register(
-				AdminMenu::class,
-				function () {
-					return AdminMenu::instance( $this->get_caller() );
-				}
-			);*/
-			$this->get_container()->register(
-				Settings::class,
-				function () {
-					return Settings::instance( $this->get_caller() );
-				}
-			);
-		}
-
-		/**
-		 * Bootstrap services after all providers are registered.
-		 *
-		 * Initializes registered services by resolving the Updater service
-		 * from the container. Called after all services are registered to
-		 * perform any necessary setup or initialization logic.
-		 *
-		 * @return void
-		 * @since 2.0.0
-		 */
-		public function boot(): void {
-			$this->get_container()->get( Updater::class );
-			$this->get_container()->get( DeactivationFeedback::class );
-			$this->get_container()->get( ProPluginInCompatibility::class );
-			//$this->get_container()->get( AdminMenu::class );
-			$this->get_container()->get( Settings::class );
-		}
 	}
 ```
 
@@ -1790,10 +1620,9 @@ function store_deactivate_data( WP_REST_Request $request ) {
 }
 ```
 
-## Best Practices to write plugin based on this package.
+## Best Practices to write plugin based on this package
 
 1. **Use Singleton Pattern** - All services should use `SingletonTrait`
-2. **Use CallerTrait** - Access the `Init` instance and container
 3. **Register Before Boot** - Always register services before booting
 4. **Lazy Loading** - Services are only instantiated when resolved
 5. **Single Responsibility** - Each service handles one concern

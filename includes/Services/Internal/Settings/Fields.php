@@ -18,64 +18,28 @@
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	use StorePress\AdminUtils\Abstracts\AbstractSettings;
-	use StorePress\AdminUtils\Interfaces\ContainerInterface;
-	use StorePress\AdminUtils\ServiceContainers\InternalServiceContainer;
-	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Factory\FieldsFactory;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' ) ) {
 	/**
 	 * Admin Settings Fields Class.
 	 *
-	 * Manages a collection of settings fields organized into sections. This class
-	 * processes field configuration arrays, automatically groups fields into sections,
-	 * and provides coordinated rendering of all fields within a settings tab.
+	 * Manages a collection of settings fields organized into sections. Processes field
+	 * configuration arrays, automatically groups fields into sections, and provides
+	 * coordinated rendering of all fields within a settings tab.
 	 *
 	 * @name Fields
-	 *
-	 * @phpstan-use CallerTrait<AbstractSettings>
-	 *
-	 * @method AbstractSettings get_caller() Returns the parent AbstractSettings instance
 	 *
 	 * @since 1.0.0
 	 *
 	 * @see Field For individual field handling.
 	 * @see Section For section management.
 	 * @see AbstractSettings For the parent settings class.
-	 *
-	 * @example Basic usage:
-	 *          ```php
-	 *          $fields = new Fields( $settings, array(
-	 *              array( 'type' => 'section', 'title' => 'General Settings' ),
-	 *              array( 'id' => 'name', 'type' => 'text', 'title' => 'Name' ),
-	 *              array( 'id' => 'email', 'type' => 'email', 'title' => 'Email' ),
-	 *          ) );
-	 *          $fields->display();
-	 *          ```
-	 *
-	 * @example Multiple sections:
-	 *          ```php
-	 *          $fields = new Fields( $settings, array(
-	 *              array( 'type' => 'section', 'title' => 'Basic Info' ),
-	 *              array( 'id' => 'name', 'type' => 'text', 'title' => 'Name' ),
-	 *              array( 'type' => 'section', 'title' => 'Advanced' ),
-	 *              array( 'id' => 'api_key', 'type' => 'password', 'title' => 'API Key' ),
-	 *          ) );
-	 *          ```
-	 *
-	 * @example Fields without explicit section:
-	 *          ```php
-	 *          // Auto-generates a section for fields without explicit section
-	 *          $fields = new Fields( $settings, array(
-	 *              array( 'id' => 'option1', 'type' => 'text', 'title' => 'Option 1' ),
-	 *              array( 'id' => 'option2', 'type' => 'text', 'title' => 'Option 2' ),
-	 *          ) );
-	 *          ```
 	 */
 	class Fields {
 
 		use HelperMethodsTrait;
-		use CallerTrait;
 
 		// =====================================================================
 		// Properties
@@ -94,6 +58,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		private array $sections = array();
 
 		/**
+		 * Raw field configuration arrays before processing.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @var array<int, array<string, mixed>>
+		 */
+		private array $fields = array();
+
+		/**
 		 * Last processed section ID.
 		 *
 		 * Tracks the current section being populated with fields.
@@ -105,6 +78,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 */
 		private string $last_section_id = '';
 
+		/**
+		 * Parent settings object that manages these fields.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @var AbstractSettings
+		 */
+		protected AbstractSettings $settings;
+
+		/**
+		 * Factory instance for creating Field and Section objects.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @var FieldsFactory
+		 */
+		protected FieldsFactory $factory;
+
 		// =====================================================================
 		// Constructor and Initialization
 		// =====================================================================
@@ -115,13 +106,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 * Initializes the fields collection with the given settings context
 		 * and processes the provided fields configuration array.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param AbstractSettings                 $settings Parent settings object that manages these fields.
 		 * @param array<int, array<string, mixed>> $fields   Array of field configuration arrays.
+		 * @param FieldsFactory|null               $factory  Optional. Factory class name for creating fields/sections. Default FieldsFactory::class.
 		 *
-		 * @see Fields::add() For field processing logic.
-		 * @see Fields::init() For custom initialization.
+		 * @since   1.0.0
+		 *
+		 * @see     Fields::add() For field processing logic.
+		 * @see     Fields::init() For custom initialization.
 		 *
 		 * @example Basic construction:
 		 *          ```php
@@ -138,9 +130,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *          ) );
 		 *          ```
 		 */
-		public function __construct( AbstractSettings $settings, array $fields ) {
-			$this->set_caller( $settings );
-			$this->add( $fields );
+		public function __construct( AbstractSettings $settings, array $fields, ?FieldsFactory $factory = null ) {
+
+			$this->settings = $settings;
+			$this->fields   = $fields;
+			$this->factory  = $factory ?? FieldsFactory::instance();
+
+			$this->add();
 			$this->init();
 		}
 
@@ -163,6 +159,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *          ```
 		 */
 		public function init(): void {}
+
+		/**
+		 * Get the fields factory instance.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return FieldsFactory
+		 */
+		public function get_factory(): FieldsFactory {
+			return $this->factory;
+		}
 
 		// =====================================================================
 		// Container and Settings Access
@@ -188,11 +195,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *          ```
 		 */
 		public function get_settings(): AbstractSettings {
-			return $this->get_caller();
-		}
-
-		public function get_container(): ContainerInterface {
-			return $this->get_settings()->get_internal_container();
+			return $this->settings;
 		}
 
 		// =====================================================================
@@ -207,8 +210,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 * If no section is defined, an auto-generated section is created.
 		 *
 		 * @since 1.0.0
-		 *
-		 * @param array<int, array<string, mixed>> $fields Array of field configuration arrays.
 		 *
 		 * @return void
 		 *
@@ -232,23 +233,22 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *          ) );
 		 *          ```
 		 */
-		public function add( array $fields ): void {
+		public function add(): void {
 			/**
 			 * Fields configuration array.
 			 *
 			 * @var array<string, string|string[]> $field Individual field configuration.
 			 */
-			foreach ( $fields as $field ) {
+			foreach ( $this->fields as $field ) {
 
-				$_field = $this->get_container()->get( Field::class, $field );
+				$_field = $this->get_factory()->create_field( $this->get_settings(), $field );
 
 				$section_id = $this->get_section_id();
 
 				// Create section when field type is 'section'.
 				if ( $this->is_section( $field ) ) {
-
-					$_section = $this->get_container()->get(
-						Section::class,
+					$_section = $this->get_factory()->create_section(
+						$this->get_settings(),
 						array(
 							'_id'         => $section_id,
 							'title'       => $_field->get_attribute( 'title' ),
@@ -263,8 +263,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 				// Generate section id when section not available on a tab.
 				if ( $this->is_empty_string( $this->last_section_id ) ) {
 
-					$_section = $this->get_container()->get(
-						Section::class,
+					$_section = $this->get_factory()->create_section(
+						$this->get_settings(),
 						array(
 							'_id' => $section_id,
 						)
@@ -279,6 +279,28 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 					$this->sections[ $this->last_section_id ]->add_field( $_field );
 				}
 			}
+		}
+
+		/**
+		 * Get all regular fields (excluding sections) as Field objects.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return array<string, Field> Field objects keyed by field ID.
+		 */
+		public function get_fields(): array {
+			$available_fields = array();
+
+			foreach ( $this->fields as $field ) {
+
+				if ( $this->is_section( $field ) ) {
+					continue;
+				}
+
+				$available_fields[ $this->get_field_id( $field ) ] = $this->get_factory()->create_field( $this->get_settings(), $field );
+			}
+
+			return $available_fields;
 		}
 
 		// =====================================================================

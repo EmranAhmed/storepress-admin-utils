@@ -15,23 +15,22 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	use RuntimeException;
-	use StorePress\AdminUtils\Interfaces\ContainerInterface;
+	use Psr\Container\ContainerInterface;
 
-if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContainer' ) ) {
+if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\ServiceContainer' ) ) {
 
 	/**
-	 * BaseServiceContainer Class.
+	 * ServiceContainer Class.
 	 *
 	 * A simple DI container with support for service registration, resolution, and lifecycle management.
 	 * Services can be registered as singletons (resolved once) or factories (resolved each time).
 	 *
-	 * @name BaseServiceContainer
+	 * @name ServiceContainer
 	 *
 	 * @example Basic Usage
 	 * ```php
 	 * // Create container instance
-	 * $container = new BaseServiceContainer();
+	 * $container = new ServiceContainer();
 	 *
 	 * // Register a simple service
 	 * $container->register( MyService::class, function ( $container ) {
@@ -87,7 +86,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContai
 	 *
 	 * @since 2.0.0
 	 */
-	class BaseServiceContainer implements ContainerInterface {
+	class ServiceContainer implements ContainerInterface {
 
 		// =========================================================================
 		// Properties
@@ -99,7 +98,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContai
 		 * Maps service identifiers to their resolver callbacks. Each resolver is a callable
 		 * that receives the container instance and returns the resolved service.
 		 *
-		 * @var array<string, callable(BaseServiceContainer): mixed>
+		 * @var array<string, callable(ServiceContainer): mixed>
 		 *
 		 * @since 2.0.0
 		 */
@@ -118,12 +117,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContai
 		 *
 		 * @template T of object
 		 *
-		 * @param class-string<T> $id       Service identifier (typically class name).
-		 * @param callable        $resolver Resolver callback that returns the service instance.
+		 * @param string   $id       Service identifier (typically class name).
+		 * @param callable $resolver Resolver callback that returns the service instance.
+		 *
+		 * @phpstan-param class-string<T> $id
+		 * @phpstan-param callable(self, mixed...): T $resolver
 		 *
 		 * @return self Returns the container instance for method chaining.
-		 *
-		 * @phpstan-param callable(self, mixed...): T $resolver
 		 *
 		 * @example Register a simple service
 		 * ```php
@@ -141,8 +141,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContai
 		 * ```
 		 *
 		 * @since 2.0.0
-		 *
-		 * @phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 		 */
 		public function register( string $id, callable $resolver ): self {
 
@@ -160,9 +158,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContai
 		 *
 		 * @template T of object
 		 *
-		 * @param class-string<T> $id       Service identifier (typically class name).
-		 * @param callable        $resolver Resolver callback that returns the service instance.
+		 * @param string   $id      Service identifier (typically class name).
+		 * @param callable $resolver Resolver callback that returns the service instance.
 		 *
+		 * @phpstan-param class-string<T> $id
 		 * @phpstan-param callable(self, mixed...): T $resolver
 		 *
 		 * @return self Returns the container instance for method chaining.
@@ -177,8 +176,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContai
 		 * ```
 		 *
 		 * @since 2.0.0
-		 *
-		 * @phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 		 */
 		public function overwrite( string $id, callable $resolver ): self {
 			return $this->remove( $id )->register( $id, $resolver );
@@ -196,12 +193,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContai
 		 *
 		 * @template T of object
 		 *
-		 * @param class-string<T> $id      Service identifier.
-		 * @param mixed           ...$args Additional arguments to pass to the resolver.
+		 * @param string $id      Service identifier.
 		 *
-		 * @return T The resolved service instance.
+		 * @phpstan-param class-string<T> $id
 		 *
-		 * @throws RuntimeException If service with the given ID is not registered.
+		 * @return object The resolved service instance.
+		 * @phpstan-return T
+		 *
+		 * @throws DependencyNotAvailableException If service with the given ID is not registered.
 		 *
 		 * @example Resolve a registered service
 		 * ```php
@@ -213,24 +212,25 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\BaseServiceContai
 		 *
 		 * @example Resolve with additional arguments
 		 * ```php
-		 * $container->register( Report::class, function ( $container, $type, $date ) {
-		 *     return new Report( $type, $date );
+		 * $container->register( Report::class, function ( $container ) {
+		 *     return static function( $type, $date ) use ( $container ){
+		 *         return new Report( $type, $date );
+		 *     };
 		 * } );
 		 *
-		 * $report = $container->get( Report::class, 'sales', '2024-01-01' );
+		 * $report_class = $container->get( Report::class );
+		 * $report = $report_class('analitics', '20-10-30')
 		 * ```
 		 *
 		 * @since 2.0.0
-		 *
-		 * @phpcs:disable Squiz.Commenting.FunctionComment.IncorrectTypeHint
 		 */
-		public function get( string $id, ...$args ): object {
+		public function get( string $id ): object {
 
 			if ( ! $this->has( $id ) ) {
-				throw new RuntimeException( sprintf( 'Class "%s" not available in "%s" container.' . "\n\n", esc_html( $id ), esc_html( get_class( $this ) ) ) );
+				throw new DependencyNotAvailableException( esc_html( $id ) );
 			}
 
-			return $this->resolvers[ $id ]( $this, ...$args );
+			return $this->resolvers[ $id ]( $this );
 		}
 
 		/**

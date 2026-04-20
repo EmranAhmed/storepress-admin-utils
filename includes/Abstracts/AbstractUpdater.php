@@ -13,15 +13,10 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-
-	use StorePress\AdminUtils\Interfaces\HasServiceProviderInterface;
-	use StorePress\AdminUtils\ServiceProviders\Internal\UpdaterServiceProvider;
-	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Factory\UpdaterFactory;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
 	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
-	use StorePress\AdminUtils\Traits\PluginCommonTrait;
-	use StorePress\AdminUtils\Traits\RegisterServiceProviderTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 
@@ -33,11 +28,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 	 * and force update checking.
 	 *
 	 * @name AbstractUpdater
-	 *
-	 * @phpstan-use RegisterServiceProviderTrait<UpdaterServiceProvider>
-	 * @phpstan-use CallerTrait<object>
-	 *
-	 * @method UpdaterServiceProvider get_service_provider() Returns the SettingsServiceProvider instance that owns this provider.
 	 *
 	 * @example Basic implementation:
 	 *          ```php
@@ -71,18 +61,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 	 *          My_Plugin_Updater::instance( $this );
 	 *          ```
 	 *
-	 * @see UpdaterServiceProvider For service provider integration.
-	 * @see Rollback For plugin rollback functionality.
-	 *
 	 * @since 1.0.0
 	 */
-	abstract class AbstractUpdater implements HasServiceProviderInterface {
+	abstract class AbstractUpdater {
 
 		use HelperMethodsTrait;
-		use PluginCommonTrait;
 		use InternalPackageTrait;
-		use RegisterServiceProviderTrait;
-		use CallerTrait;
 		use MethodShouldImplementTrait;
 
 		/**
@@ -93,29 +77,36 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		protected array $plugin_data = array();
 
 		/**
-		 * Constructor.
+		 * Factory instance responsible for creating updater-related objects.
 		 *
-		 * Initializes the plugin updater by setting up the caller, registering
-		 * service providers, and initializing hooks.
-		 *
-		 * @param object $caller The caller class instance (typically the main plugin class).
-		 *
-		 * @throws \WP_Exception When plugin file header is missing "Update URI" or "Tested up to" fields.
-		 *
-		 * @see set_caller()
-		 * @see register_service_provider()
-		 * @see register_services()
-		 * @see hooks()
-		 * @see init()
+		 * @var UpdaterFactory
 		 *
 		 * @since 1.0.0
 		 */
-		public function __construct( object $caller ) {
-			$this->set_caller( $caller );
-			$this->register_service_provider( $this );
-			$this->register_services();
+		protected UpdaterFactory $factory;
+
+		/**
+		 * Constructor.
+		 *
+		 * @param UpdaterFactory|null $factory Fully-qualified class name of the factory to instantiate.
+		 *
+		 * @since 1.0.0
+		 */
+		public function __construct( ?UpdaterFactory $factory = null ) {
+			$this->factory = $factory ?? UpdaterFactory::instance();
 			$this->hooks();
 			$this->init();
+		}
+
+		/**
+		 * Get the updater factory instance.
+		 *
+		 * @return UpdaterFactory
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_factory(): UpdaterFactory {
+			return $this->factory;
 		}
 
 		/**
@@ -131,23 +122,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		public function init(): void {}
 
 		/**
-		 * Create service provider instance.
-		 *
-		 * Returns a new UpdaterServiceProvider instance for managing updater services.
-		 *
-		 * @param object $caller The caller class instance.
-		 *
-		 * @return UpdaterServiceProvider The service provider instance.
-		 *
-		 * @see UpdaterServiceProvider
-		 *
-		 * @since 1.0.0
-		 */
-		public function service_provider( object $caller ): UpdaterServiceProvider {
-			return new UpdaterServiceProvider( $caller );
-		}
-
-		/**
 		 * Register WordPress action hooks.
 		 *
 		 * Sets up hooks for loading services and initializing the updater
@@ -160,11 +134,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *
 		 * @since 1.0.0
 		 */
-		public function hooks(): void {
+		final public function hooks(): void {
 			// Initialize updater on wp_loaded hook.
 			add_action( 'wp_loaded', array( $this, 'loaded' ) );
 			// Load additional services on wp_loaded hook (priority 12).
-			add_action( 'wp_loaded', array( $this, 'load_services' ), 12 );
+			add_action( 'wp_loaded', array( $this, 'load_rollback' ), 12 );
 		}
 
 		/**
@@ -201,7 +175,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *
 		 * @since 1.0.0
 		 */
-		public function loaded(): void {
+		final public function loaded(): void {
 
 			if ( ! $this->has_capability() ) {
 				return;
@@ -256,12 +230,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *
 		 * @since 1.0.0
 		 */
-		public function load_services(): void {
+		public function load_rollback(): void {
 			if ( ! $this->has_capability() ) {
 				return;
 			}
 
-			$this->boot_services();
+			$this->get_factory()->create_rollback( $this );
 		}
 
 		/**

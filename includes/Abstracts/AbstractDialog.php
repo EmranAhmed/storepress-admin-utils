@@ -109,7 +109,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\AbstractDialog' ) ) {
 		 * @see self::enqueue_scripts() For script/style registration.
 		 * @see self::render() For dialog HTML output.
 		 */
-		public function hooks(): void {
+		final public function hooks(): void {
 			// Enqueue dialog scripts and styles with priority 20.
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 20 );
 

@@ -13,121 +13,57 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	use StorePress\AdminUtils\Interfaces\ContainerInterface;
-	use StorePress\AdminUtils\Interfaces\HasServiceProviderInterface;
-
-	use StorePress\AdminUtils\ServiceProviders\Internal\SettingsServiceProvider;
-	use StorePress\AdminUtils\Services\Internal\Settings\API;
+	use StorePress\AdminUtils\Factory\SettingsFactory;
 	use StorePress\AdminUtils\Services\Internal\Settings\Field;
-	use StorePress\AdminUtils\Services\Internal\Settings\Fields;
-
-	use StorePress\AdminUtils\Traits\CallerTrait;
-	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
-	use StorePress\AdminUtils\Traits\RegisterServiceProviderTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 	/**
-	 * Abstract Settings Class.
-	 *
-	 * Provides a framework for building WordPress admin settings pages with
-	 * tabbed navigation, fields, sidebars, and REST API support.
+	 * Abstract base class for WordPress settings pages with tabs, fields, and REST API.
 	 *
 	 * @name AbstractSettings
 	 *
-	 * @phpstan-use CallerTrait<object>
-	 * @phpstan-use RegisterServiceProviderTrait<SettingsServiceProvider>
-	 *
-	 * @method SettingsServiceProvider get_service_provider() Returns the SettingsServiceProvider instance that owns this provider.
-	 *
-	 * @example Basic implementation:
-	 *          ```php
-	 *          class My_Settings extends AbstractSettings {
-	 *              use Singleton;
-	 *
-	 *              public function plugin_file(): string {
-	 *                  return MY_PLUGIN_FILE;
-	 *              }
-	 *
-	 *              public function settings_id(): string {
-	 *                  return 'my_plugin_settings';
-	 *              }
-	 *
-	 *              public function page_id(): string {
-	 *                  return 'my-plugin';
-	 *              }
-	 *
-	 *              public function add_settings(): array {
-	 *                  return array( 'general' => 'General Settings' );
-	 *              }
-	 *          }
-	 *          ```
-	 *
-	 * @example With tabs:
-	 *          ```php
-	 *          public function add_settings(): array {
-	 *              return array(
-	 *                  'general' => 'General',
-	 *                  'advanced' => array(
-	 *                      'name'    => 'Advanced',
-	 *                      'sidebar' => false,
-	 *                  ),
-	 *              );
-	 *          }
-	 *          ```
-	 *
-	 * @see AbstractAdminMenu For menu registration methods.
-	 * @see SettingsServiceProvider For service provider integration.
-	 *
 	 * @since 1.0.0
 	 */
-	abstract class AbstractSettings extends AbstractAdminMenu implements HasServiceProviderInterface {
-
-		use MethodShouldImplementTrait;
-		use CallerTrait;
-		use RegisterServiceProviderTrait;
+	abstract class AbstractSettings extends AbstractAdminMenu {
 
 		// =========================================================================
 		// Properties
 		// =========================================================================
 
 		/**
-		 * Fields callback function name convention.
+		 * Fields callback method name convention.
 		 *
-		 * Used to generate method names for tab-specific field callbacks.
+		 * @var string
 		 *
-		 * @var string $fields_callback_fn_name_convention
-		 *
-		 * @example 'add_general_settings_fields' for 'general' tab.
+		 * @since 1.0.0
 		 */
 		protected string $fields_callback_fn_name_convention = 'add_%s_settings_fields';
 
 		/**
-		 * Sidebar callback function name convention.
+		 * Sidebar callback method name convention.
 		 *
-		 * Used to generate method names for tab-specific sidebar callbacks.
+		 * @var string
 		 *
-		 * @var string $sidebar_callback_fn_name_convention
-		 *
-		 * @example 'add_general_settings_sidebar' for 'general' tab.
+		 * @since 1.0.0
 		 */
 		protected string $sidebar_callback_fn_name_convention = 'add_%s_settings_sidebar';
 
 		/**
-		 * Page callback function name convention.
+		 * Page callback method name convention.
 		 *
-		 * Used to generate method names for tab-specific page callbacks.
+		 * @var string
 		 *
-		 * @var string $page_callback_fn_name_convention
-		 *
-		 * @example 'add_general_settings_page' for 'general' tab.
+		 * @since 1.0.0
 		 */
 		protected string $page_callback_fn_name_convention = 'add_%s_settings_page';
 
 		/**
-		 * Store all saved options.
+		 * Cached saved options.
 		 *
-		 * @var array<string, mixed> $options
+		 * @var array<string, mixed>
+		 *
+		 * @since 1.0.0
 		 */
 		protected array $options = array();
 
@@ -136,15 +72,22 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Get settings ID.
+		 * Get settings ID used as the option name in wp_options.
 		 *
-		 * Returns the unique identifier used as the option name in wp_options table.
-		 *
-		 * @return string The settings ID.
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
 		abstract public function settings_id(): string;
+
+		/**
+		 * Factory instance for creating settings components.
+		 *
+		 * @var SettingsFactory
+		 *
+		 * @since 3.1.0
+		 */
+		protected SettingsFactory $factory;
 
 		// =========================================================================
 		// Constructor and Initialization Methods
@@ -153,29 +96,33 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Constructor.
 		 *
-		 * Initializes the settings page by setting up the caller, registering
-		 * service providers, and calling parent constructor.
-		 *
-		 * @param object $caller The caller class instance (typically the main plugin class).
+		 * @param SettingsFactory|null $factory Factory class name. Default SettingsFactory.
 		 *
 		 * @since 1.0.0
 		 */
-		public function __construct( object $caller ) {
-			$this->register_service_provider( $this );
-			$this->register_services();
+		public function __construct( ?SettingsFactory $factory = null ) {
+
+			$this->factory = $factory ?? SettingsFactory::instance();
+
 			$this->register_rest_api();
-			parent::__construct( $caller );
+			parent::__construct();
 		}
 
 		/**
-		 * Initialize settings page.
+		 * Get the settings factory instance.
 		 *
-		 * Registers admin scripts and plugin action links.
+		 * @return SettingsFactory
+		 *
+		 * @since 3.1.0
+		 */
+		public function get_factory(): SettingsFactory {
+			return $this->factory;
+		}
+
+		/**
+		 * Register admin scripts and plugin action links.
 		 *
 		 * @return void
-		 *
-		 * @see register_admin_scripts()
-		 * @see plugin_action_links()
 		 *
 		 * @since 1.0.0
 		 */
@@ -183,21 +130,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 			// Register admin scripts on admin_enqueue_scripts hook.
 			add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
+
 			// Add settings link to plugin action links.
-			add_filter( 'plugin_action_links_' . $this->get_plugin_basename(), array( $this, 'plugin_action_links' ), 15 );
+			foreach ( $this->get_plugin_basenames() as $basename ) {
+				add_filter( 'plugin_action_links_' . $basename, array( $this, 'plugin_action_links' ), 15 );
+			}
 
 			$this->settings_actions();
 		}
 
 		/**
-		 * Settings page initialization.
-		 *
-		 * Enqueues scripts and displays settings messages.
+		 * Enqueue scripts and display settings messages on page load.
 		 *
 		 * @return void
-		 *
-		 * @see enqueue_scripts()
-		 * @see settings_messages()
 		 *
 		 * @since 1.0.0
 		 */
@@ -207,51 +152,26 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		// =========================================================================
-		// Service Provider Methods
-		// =========================================================================
-
-		/**
-		 * Create service provider instance.
-		 *
-		 * Returns a new SettingsServiceProvider instance for managing settings services.
-		 *
-		 * @param object $caller The caller class instance.
-		 *
-		 * @return SettingsServiceProvider The service provider instance.
-		 *
-		 * @since 1.0.0
-		 */
-		public function service_provider( object $caller ): SettingsServiceProvider {
-			return new SettingsServiceProvider( $caller );
-		}
-
-		// =========================================================================
 		// Settings Configuration Methods
 		// =========================================================================
 
 		/**
-		 * Get settings ID wrapper.
+		 * Public accessor for the settings ID.
 		 *
-		 * Returns the settings ID from the abstract method.
-		 *
-		 * @return string The settings ID.
-		 *
-		 * @see settings_id()
+		 * @return string
 		 *
 		 * @since 1.0.0
+		 *
+		 * @see self::settings_id()
 		 */
 		public function get_settings_id(): string {
 			return $this->settings_id();
 		}
 
 		/**
-		 * Add settings tabs.
+		 * Define settings tabs. Override in subclass.
 		 *
-		 * Override this method in subclass to define settings tabs.
-		 *
-		 * @return array<string, mixed> Array of tab configurations.
-		 *
-		 * @throws \WP_Exception Throw exception if this method is not implemented in subclass.
+		 * @return array<string, mixed>
 		 *
 		 * @since 1.0.0
 		 */
@@ -262,26 +182,22 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get settings tabs.
+		 * Get settings tabs defined in add_settings().
 		 *
-		 * Returns the settings tabs defined in add_settings().
-		 *
-		 * @return array<string, mixed> Array of tab configurations.
-		 *
-		 * @see add_settings()
+		 * @return array<string, mixed>
 		 *
 		 * @since 1.0.0
+		 *
+		 * @see self::add_settings()
 		 */
 		final public function get_settings(): array {
 			return $this->add_settings();
 		}
 
 		/**
-		 * Control displaying reset button.
+		 * Whether to show the reset button. Default true.
 		 *
-		 * Override this method to hide the reset button on settings pages.
-		 *
-		 * @return bool True to show reset button, false to hide.
+		 * @return bool
 		 *
 		 * @since 1.0.0
 		 */
@@ -290,9 +206,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Translatable strings.
-		 *
-		 * Override this method in subclass to provide localized strings.
+		 * Translatable strings. Override in subclass for localization.
 		 *
 		 * @return array{
 		 *     'unsaved_warning_text': string,
@@ -303,9 +217,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *     'settings_updated_message_text': string,
 		 *     'settings_deleted_message_text': string,
 		 *     'settings_tab_not_available_text': string
-		 * } Array of localized strings.
-		 *
-		 * @throws \WP_Exception Throw exception if this method is not implemented in subclass.
+		 * }
 		 *
 		 * @since 1.0.0
 		 */
@@ -327,13 +239,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Get localized string by key.
 		 *
-		 * Retrieves a specific localized string from localize_strings().
-		 *
 		 * @param string $string_key The localized string key.
 		 *
-		 * @return string The localized string or empty string if not found.
-		 *
-		 * @see localize_strings()
+		 * @return string Empty string if not found.
 		 *
 		 * @since 1.0.0
 		 */
@@ -344,11 +252,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Add new allowed tags on fields markup.
+		 * Additional allowed HTML tags for field output. Override to customize.
 		 *
-		 * Override this method to add custom allowed HTML tags for field output.
-		 *
-		 * @return array<string, mixed> Array of allowed HTML tags.
+		 * @return array<string, mixed>
 		 *
 		 * @since 1.0.0
 		 */
@@ -361,11 +267,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Get default tab name.
+		 * Get default tab name. Default 'general'.
 		 *
-		 * Returns the default tab identifier used when no tab is specified.
-		 *
-		 * @return string The default tab name.
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -374,15 +278,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get current active tab.
+		 * Get current active tab from URL query or default.
 		 *
-		 * Determines the current tab from the URL query parameter or falls back
-		 * to the default tab.
-		 *
-		 * @return string The current tab identifier.
-		 *
-		 * @see default_tab_name()
-		 * @see get_tabs()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -399,15 +297,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get all tabs configuration.
+		 * Get all tabs configuration with callbacks.
 		 *
-		 * Processes the settings array and generates tab configurations including
-		 * callbacks for fields, sidebars, and custom pages.
-		 *
-		 * @return array<int|string, mixed> Array of tab configurations.
-		 *
-		 * @see get_settings()
-		 * @see default_tab_name()
+		 * @return array<int|string, mixed>
 		 *
 		 * @since 1.0.0
 		 */
@@ -435,14 +327,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 					'css-classes'   => array(),
 					'sidebar'       => true,
 					'sidebar_width' => 20,
-					/**
-					 * More item.
-					 *
-					 * @example:
-					 * 'page_callback'    => null,
-					 * 'fields_callback'  => null,
-					 * 'sidebar_callback' => null,
-					 */
+					// page_callback, fields_callback, sidebar_callback are added below.
 				);
 
 				if ( is_array( $tab ) ) {
@@ -471,17 +356,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get single tab configuration.
+		 * Get a single tab configuration by ID, or the current tab if empty.
 		 *
-		 * Retrieves the configuration for a specific tab by ID. If no ID is provided,
-		 * returns the current active tab configuration.
+		 * @param string $tab_id Optional. Tab identifier. Default empty string.
 		 *
-		 * @param string $tab_id Optional. The tab identifier. Default empty string.
-		 *
-		 * @return array<string, mixed> The tab configuration array.
-		 *
-		 * @see get_tabs()
-		 * @see get_current_tab()
+		 * @return array<string, mixed>
 		 *
 		 * @since 1.0.0
 		 */
@@ -500,9 +379,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Check if current tab has save button.
 		 *
-		 * @return bool True if tab has save button, false otherwise.
-		 *
-		 * @see get_tab()
+		 * @return bool
 		 *
 		 * @since 1.0.0
 		 */
@@ -515,9 +392,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Check if current tab has sidebar.
 		 *
-		 * @return bool True if tab has sidebar, false otherwise.
-		 *
-		 * @see get_tab()
+		 * @return bool
 		 *
 		 * @since 1.0.0
 		 */
@@ -528,11 +403,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get current tab sidebar width.
+		 * Get current tab sidebar width percentage.
 		 *
-		 * @return int The sidebar width percentage.
-		 *
-		 * @see get_tab()
+		 * @return int
 		 *
 		 * @since 1.0.0
 		 */
@@ -543,12 +416,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get sidebar width CSS variable.
+		 * Get sidebar width CSS variable string. Empty if no sidebar.
 		 *
-		 * @return string CSS variable string or empty string if no sidebar.
-		 *
-		 * @see has_sidebar()
-		 * @see get_sidebar_width()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -563,9 +433,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Get tab page callback.
 		 *
-		 * @return callable|null The page callback or null.
-		 *
-		 * @see get_tab()
+		 * @return callable|null
 		 *
 		 * @since 1.0.0
 		 */
@@ -578,9 +446,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Get tab fields callback.
 		 *
-		 * @return callable|null The fields callback or null.
-		 *
-		 * @see get_tab()
+		 * @return callable|null
 		 *
 		 * @since 1.0.0
 		 */
@@ -593,9 +459,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Get tab sidebar callback.
 		 *
-		 * @return callable|null The sidebar callback or null.
-		 *
-		 * @see get_tab()
+		 * @return callable|null
 		 *
 		 * @since 1.0.0
 		 */
@@ -610,11 +474,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Get all fields from all tabs.
+		 * Get all fields from all tabs indexed by field ID.
 		 *
-		 * @return Field[] Array of Field objects indexed by field ID.
-		 *
-		 * @see get_tabs()
+		 * @return Field[]
 		 *
 		 * @since 1.0.0
 		 */
@@ -629,15 +491,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 				if ( is_callable( $fields_callback ) ) {
 					$fields = $fields_callback();
-					foreach ( $fields as $field ) {
-						if ( 'section' === $field['type'] ) {
-							continue;
-						}
 
-						// @TODO Get Field.
-						$_field = $this->get_internal_container()->get( Field::class, $field );
+					$current_fields = $this->get_factory()->create_fields( $this, $fields )->get_fields();
 
-						$all_fields[ $field['id'] ] = $_field;
+					foreach ( $current_fields as $field ) {
+						$all_fields[ $field->get_id() ] = $field;
 					}
 				}
 			}
@@ -646,13 +504,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get field by ID.
+		 * Get field by ID from all tabs.
 		 *
 		 * @param string $field_id The field ID.
 		 *
-		 * @return Field|null The Field object or null if not found.
-		 *
-		 * @see get_all_fields()
+		 * @return Field|null
 		 *
 		 * @since 1.0.0
 		 */
@@ -665,29 +521,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Get available fields for current tab.
 		 *
-		 * @return Field[] Array of Field objects for current tab.
-		 *
-		 * @see get_tab_fields_callback()
+		 * @return Field[]
 		 *
 		 * @since 1.0.0
 		 */
-		private function get_available_fields(): array {
+		public function get_available_fields(): array {
 			$field_cb         = $this->get_tab_fields_callback();
 			$available_fields = array();
 			if ( is_callable( $field_cb ) ) {
-				$fields = $field_cb();
-				/**
-				 * Field
-				 *
-				 * @var array<string, mixed> $field
-				 */
-				foreach ( $fields as $field ) {
-					if ( 'section' !== $field['type'] ) {
-						// @TODO Get Field.
-						$_field                           = $this->get_internal_container()->get( Field::class, $field );
-						$available_fields[ $field['id'] ] = $_field;
-					}
-				}
+				$fields           = $field_cb();
+				$available_fields = $this->get_factory()->create_fields( $this, $fields )->get_fields();
 			}
 
 			return $available_fields;
@@ -698,26 +541,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @param string $field_id The field ID.
 		 *
-		 * @return Field|null The Field object or null if not found.
-		 *
-		 * @see get_available_fields()
+		 * @return Field|null
 		 *
 		 * @since 1.0.0
-		 *
-		 * @phpstan-ignore-next-line
 		 */
-		private function get_available_field( string $field_id ): ?Field {
+		public function get_available_field( string $field_id ): ?Field {
 			$fields = $this->get_available_fields();
 
 			return $fields[ $field_id ] ?? null;
 		}
 
 		/**
-		 * Get all registered field types.
+		 * Get all unique registered field types across tabs.
 		 *
-		 * @return string[] Array of unique field types.
-		 *
-		 * @see get_tabs()
+		 * @return string[]
 		 *
 		 * @since 1.0.0
 		 */
@@ -746,9 +583,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @param string $field_type The field type to check.
 		 *
-		 * @return bool True if field type exists, false otherwise.
-		 *
-		 * @see get_registered_field_types()
+		 * @return bool
 		 *
 		 * @since 1.0.0
 		 */
@@ -759,13 +594,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Check for duplicate field IDs.
-		 *
-		 * Triggers an error if duplicate field IDs are found.
+		 * Check for duplicate field IDs and trigger error if found.
 		 *
 		 * @return void
-		 *
-		 * @see get_tabs()
 		 *
 		 * @since 1.0.0
 		 */
@@ -780,11 +611,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 				if ( is_callable( $fields_callback ) ) {
 					$fields = $fields_callback();
-					/**
-					 * Fields.
-					 *
-					 * @var array<string, mixed> $field
-					 */
+					/* @var array<string, mixed> $field */
 					foreach ( $fields as $field ) {
 						if ( 'section' === $field['type'] ) {
 							continue;
@@ -813,9 +640,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * Get generated field HTML ID attribute.
 		 *
 		 * @param string     $field_id  The field ID.
-		 * @param int|string $option_id Optional. The option ID. Default empty string.
+		 * @param int|string $option_id Optional. Default empty string.
 		 *
-		 * @return string The generated HTML ID.
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -827,11 +654,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * Get field CSS selector.
 		 *
 		 * @param string     $field_id  The field ID.
-		 * @param int|string $option_id Optional. The option ID. Default empty string.
+		 * @param int|string $option_id Optional. Default empty string.
 		 *
-		 * @return string The CSS selector string.
-		 *
-		 * @see get_field_id()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -844,9 +669,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @param string     $group_id  The group ID.
 		 * @param string     $field_id  The field ID.
-		 * @param int|string $option_id Optional. The option ID. Default empty string.
+		 * @param int|string $option_id Optional. Default empty string.
 		 *
-		 * @return string The generated HTML ID.
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -859,11 +684,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @param string     $group_id  The group ID.
 		 * @param string     $field_id  The field ID.
-		 * @param int|string $option_id Optional. The option ID. Default empty string.
+		 * @param int|string $option_id Optional. Default empty string.
 		 *
-		 * @return string The CSS selector string.
-		 *
-		 * @see get_group_field_id()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -876,13 +699,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Display settings page template.
-		 *
-		 * Override this method for custom UI page.
+		 * Display settings page template. Override for custom UI.
 		 *
 		 * @return void
-		 *
-		 * @see https://developer.wordpress.org/coding-standards/wordpress-coding-standards/php/#naming-conventions
 		 *
 		 * @since 1.0.0
 		 */
@@ -891,13 +710,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Display tabs navigation.
-		 *
-		 * Used in UI template.
+		 * Display tabs navigation. Used in UI template.
 		 *
 		 * @return void
-		 *
-		 * @see get_navs()
 		 *
 		 * @since 1.0.0
 		 */
@@ -908,10 +723,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Get navigation HTML items.
 		 *
-		 * @return string[] Array of navigation HTML strings.
-		 *
-		 * @see get_tabs()
-		 * @see get_current_tab()
+		 * @return string[]
 		 *
 		 * @since 1.0.0
 		 */
@@ -921,12 +733,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			$current_tab = $this->get_current_tab();
 
 			$navs = array();
-			/**
-			 * Available tabs.
-			 *
-			 * @var array<int|string, mixed> $tab
-			 */
 
+			/* @var array<int|string, mixed> $tab */
 			foreach ( $tabs as $tab_id => $tab ) {
 
 				if ( true === $tab['hidden'] ) {
@@ -960,6 +768,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 					)
 				);
 
+				// @TODO: Update with common script. // $this->>get_html_attributes()
+
 				$navs[] = sprintf( '<a %s target="%s" href="%s" class="%s">%s</span><span>%s</span></a>', $attrs, esc_attr( $tab_target ), esc_url( $tab_url ), esc_attr( implode( ' ', $tab['css-classes'] ) ), wp_kses_post( $icon ), esc_html( $tab['name'] ) );
 			}
 
@@ -967,14 +777,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Display settings fields.
-		 *
-		 * Used in UI template.
+		 * Display settings fields. Used in UI template.
 		 *
 		 * @return void
-		 *
-		 * @see get_tab_fields_callback()
-		 * @see get_tab_page_callback()
 		 *
 		 * @since 1.0.0
 		 */
@@ -998,7 +803,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 					settings_fields( $this->get_option_group_name() );
 
 					// @TODO Get Fields.
-					$fields = $this->get_internal_container()->get( Fields::class, $get_fields );
+					$fields = $this->get_factory()->create_fields( $this, $get_fields );
+
 					$fields->display();
 
 					$this->display_buttons();
@@ -1013,13 +819,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Display custom page content.
-		 *
-		 * Used in UI template.
+		 * Display custom page content. Used in UI template.
 		 *
 		 * @return void
-		 *
-		 * @see get_tab_page_callback()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1032,14 +834,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Display sidebar content.
-		 *
-		 * Used in UI template.
+		 * Display sidebar content. Used in UI template.
 		 *
 		 * @return void
-		 *
-		 * @see get_tab_sidebar()
-		 * @see get_default_sidebar()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1055,9 +852,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get default sidebar content.
-		 *
-		 * Triggers an error to indicate the method should be overridden.
+		 * Default sidebar content. Override or create tab-specific sidebar method.
 		 *
 		 * @return void
 		 *
@@ -1074,11 +869,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Display action buttons (submit and reset).
+		 * Display submit and reset action buttons.
 		 *
 		 * @return void
-		 *
-		 * @see get_reset_button()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1090,12 +883,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get reset button HTML.
+		 * Get reset button HTML. Empty string if hidden.
 		 *
-		 * @return string The reset button HTML or empty string if hidden.
-		 *
-		 * @see show_reset_button()
-		 * @see get_reset_uri()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1114,16 +904,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Get settings URI arguments.
+		 * Get settings URI query arguments.
 		 *
-		 * Builds an array of query arguments for the settings page URL.
+		 * @param array<string, mixed> $extra Optional. Additional arguments. Default empty array.
 		 *
-		 * @param array<string, mixed> $extra Optional. Additional arguments to merge. Default empty array.
-		 *
-		 * @return array<string, mixed> Array of URI arguments.
-		 *
-		 * @see get_current_tab()
-		 * @see get_current_page_slug()
+		 * @return array<string, mixed>
 		 *
 		 * @since 1.0.0
 		 */
@@ -1142,16 +927,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get settings page URI.
-		 *
-		 * Generates the full admin URL for the settings page.
+		 * Get full admin URL for the settings page.
 		 *
 		 * @param array<string, mixed> $extra Optional. Additional query arguments. Default empty array.
 		 *
-		 * @return string The settings page URL.
-		 *
-		 * @see is_submenu()
-		 * @see get_uri_args()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1167,9 +947,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @param string $tab_id The tab ID.
 		 *
-		 * @return string The tab URL.
-		 *
-		 * @see get_settings_uri()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1178,15 +956,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get action URI.
-		 *
-		 * Used on settings form action attribute.
+		 * Get form action URI.
 		 *
 		 * @param array<string, mixed> $extra Optional. Additional arguments. Default empty array.
 		 *
-		 * @return string The action URL.
-		 *
-		 * @see get_settings_uri()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1195,14 +969,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get reset URI.
+		 * Get reset URI with nonce.
 		 *
-		 * Used in UI template for reset action.
-		 *
-		 * @return string The reset URL with nonce.
-		 *
-		 * @see get_settings_uri()
-		 * @see get_nonce_action()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1213,9 +982,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Get nonce action string.
 		 *
-		 * @return string The nonce action string.
-		 *
-		 * @see get_option_group_name()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1226,14 +993,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get option group name.
+		 * Get option group name for settings_fields().
 		 *
-		 * Used in UI template for settings_fields().
-		 *
-		 * @return string The option group name.
-		 *
-		 * @see get_current_page_slug()
-		 * @see get_current_tab()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1249,14 +1011,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Handle settings form actions.
-		 *
-		 * Processes update and reset actions from the settings form.
+		 * Handle settings form update and reset actions.
 		 *
 		 * @return void
-		 *
-		 * @see process_actions()
-		 * @see get_nonce_action()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1279,14 +1036,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Process form actions.
+		 * Process form actions (update or reset).
 		 *
-		 * @param string $current_action The current action to process.
+		 * @param string $current_action The action to process.
 		 *
 		 * @return void
-		 *
-		 * @see process_action_update()
-		 * @see process_action_reset()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1304,10 +1058,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * Process update settings action.
 		 *
 		 * @return void
-		 *
-		 * @see wp_removable_query_args()
-		 * @see sanitize_fields()
-		 * @see update_options()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1331,6 +1081,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 			$this->update_options( $data );
 
+			/**
+			 * Fires after settings have been updated.
+			 *
+			 * @param AbstractSettings $settings The settings instance.
+			 *
+			 * @since 1.0.0
+			 */
+			do_action( 'storepress_admin_utils_services_settings_after_action_update', $this );
+
 			wp_safe_redirect(
 				$this->get_action_uri(
 					array( 'message' => 'updated' )
@@ -1344,15 +1103,21 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @return void
 		 *
-		 * @see wp_removable_query_args()
-		 * @see delete_options()
-		 *
 		 * @since 1.0.0
 		 */
 		public function process_action_reset(): void {
 			check_admin_referer( $this->get_nonce_action() );
 
 			$this->delete_options();
+
+			/**
+			 * Fires after settings have been reset.
+			 *
+			 * @param AbstractSettings $settings The settings instance.
+			 *
+			 * @since 1.0.0
+			 */
+			do_action( 'storepress_admin_utils_services_settings_after_action_reset', $this );
 
 			wp_safe_redirect(
 				$this->get_action_uri(
@@ -1363,13 +1128,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Sanitize form fields.
+		 * Sanitize form fields from POST data.
 		 *
 		 * @param array<string, mixed> $_post The POST data.
 		 *
-		 * @return array{ public: array<string, mixed>, private: array<string, mixed> } Sanitized data.
-		 *
-		 * @see get_available_fields()
+		 * @return array{ public: array<string, mixed>, private: array<string, mixed> }
 		 *
 		 * @since 1.0.0
 		 */
@@ -1450,13 +1213,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Get all saved options.
+		 * Get all saved options from wp_options.
 		 *
-		 * @param array<string, mixed> $default_value Optional. Default value. Default empty array.
+		 * @param array<string, mixed> $default_value Optional. Default empty array.
 		 *
-		 * @return bool|array<string, mixed>|null The options array or default value.
-		 *
-		 * @see get_settings_id()
+		 * @return bool|array<string, mixed>|null
 		 *
 		 * @since 1.0.0
 		 */
@@ -1470,14 +1231,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get single option value.
+		 * Get single option value by field ID.
 		 *
 		 * @param string $field_id      The field ID.
-		 * @param mixed  $default_value Optional. Default value. Default null.
+		 * @param mixed  $default_value Optional. Default null.
 		 *
-		 * @return mixed|null The option value or default.
-		 *
-		 * @see get_field()
+		 * @return mixed|null
 		 *
 		 * @since 1.0.0
 		 */
@@ -1492,11 +1251,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @param string $group_id      The group ID.
 		 * @param string $field_id      The field ID within the group.
-		 * @param mixed  $default_value Optional. Default value. Default null.
+		 * @param mixed  $default_value Optional. Default null.
 		 *
-		 * @return mixed|null The option value or default.
-		 *
-		 * @see get_field()
+		 * @return mixed|null
 		 *
 		 * @since 1.0.0
 		 */
@@ -1507,14 +1264,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Update options.
+		 * Update options with public/private data.
 		 *
 		 * @param array<string, mixed> $_data The data to update.
 		 *
 		 * @return void
-		 *
-		 * @see get_options()
-		 * @see before_update_options()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1537,13 +1291,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Before update options hook.
-		 *
-		 * Override this method to modify option data before saving.
+		 * Modify option data before saving. Override to customize.
 		 *
 		 * @param array<string, ?mixed> $_data The option data.
 		 *
-		 * @return array<string, ?mixed> The modified option data.
+		 * @return array<string, ?mixed>
 		 *
 		 * @since 1.0.0
 		 */
@@ -1554,9 +1306,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Delete all options.
 		 *
-		 * @return bool True on success, false on failure.
-		 *
-		 * @see get_settings_id()
+		 * @return bool
 		 *
 		 * @since 1.0.0
 		 */
@@ -1569,15 +1319,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Display settings messages.
-		 *
-		 * Handles message display based on query arguments from redirects.
+		 * Display settings messages based on redirect query arguments.
 		 *
 		 * @return void
-		 *
-		 * @see process_action_update()
-		 * @see process_action_reset()
-		 * @see wp_removable_query_args()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1603,9 +1347,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get message query argument value.
+		 * Get 'message' query argument value from URL.
 		 *
-		 * @return false|string The message value or false if not set.
+		 * @return false|string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1619,13 +1363,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Display settings messages in UI.
-		 *
-		 * Used in UI template.
+		 * Display settings errors/messages. Used in UI template.
 		 *
 		 * @return void
-		 *
-		 * @see get_current_page_slug()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1637,12 +1377,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * Add settings message.
 		 *
 		 * @param string $message The message text.
-		 * @param string $type    Optional. Message type: 'error', 'success', 'warning', 'info', 'updated'. Default 'updated'.
+		 * @param string $type    Optional. Default 'updated'.
 		 *
-		 * @return self Returns self for method chaining.
-		 *
-		 * @see get_current_page_slug()
-		 * @see get_settings_id()
+		 * @return self
 		 *
 		 * @since 1.0.0
 		 */
@@ -1657,11 +1394,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Check if current page is the settings admin page.
+		 * Check if current page is this settings admin page.
 		 *
-		 * @return bool True if on settings admin page, false otherwise.
-		 *
-		 * @see get_current_page_slug()
+		 * @return bool
 		 *
 		 * @since 1.0.0
 		 */
@@ -1671,16 +1406,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Plugin action links filter callback.
-		 *
-		 * Adds settings link to plugin action links.
+		 * Add settings link to plugin action links.
 		 *
 		 * @param string[] $links Existing plugin action links.
 		 *
-		 * @return string[] Modified plugin action links.
-		 *
-		 * @see get_settings_uri()
-		 * @see localize_strings()
+		 * @return string[]
 		 *
 		 * @since 1.0.0
 		 */
@@ -1702,14 +1432,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Register admin scripts.
-		 *
-		 * Registers the settings package scripts when on the settings admin page.
+		 * Register settings package scripts on the admin page.
 		 *
 		 * @return void
-		 *
-		 * @see is_admin_page()
-		 * @see register_package_scripts()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1722,14 +1447,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Enqueue scripts.
-		 *
-		 * Enqueues the settings package scripts and WooCommerce scripts if needed.
+		 * Enqueue settings scripts and WooCommerce scripts if needed.
 		 *
 		 * @return void
-		 *
-		 * @see enqueue_package_scripts()
-		 * @see has_field_type()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1747,27 +1467,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Determine if settings should be exposed via REST API.
+		 * Get REST API namespace. Return false to disable REST API.
 		 *
-		 * Returns the REST API namespace for this settings page. If empty string
-		 * or false is returned, the REST API will be disabled for this settings page.
-		 *
-		 * @return string|bool The REST namespace or false to disable REST API.
-		 *
-		 * @see rest_api_version()
-		 * @see rest_api_base()
-		 * @see get_page_slug()
-		 *
-		 * @example REST endpoint format:
-		 *          GET: /wp-json/<page-id>/<rest-api-version>/<rest-api-base>
-		 *          GET: /wp-json/my-plugin/v1/settings
-		 *
-		 * @example Disable REST API:
-		 *          ```php
-		 *          public function show_in_rest() {
-		 *              return false;
-		 *          }
-		 *          ```
+		 * @return string|bool
 		 *
 		 * @since 1.0.0
 		 */
@@ -1776,20 +1478,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get REST API version.
+		 * Get REST API version prefix. Default 'v1'.
 		 *
-		 * Override this method to change the REST API version prefix.
-		 *
-		 * @return string The REST API version string.
-		 *
-		 * @see show_in_rest()
-		 *
-		 * @example Override version:
-		 *          ```php
-		 *          public function rest_api_version(): string {
-		 *              return 'v2';
-		 *          }
-		 *          ```
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1798,20 +1489,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get REST API base path.
+		 * Get REST API base path. Default 'settings'.
 		 *
-		 * Override this method to change the REST API base endpoint.
-		 *
-		 * @return string The REST API base path.
-		 *
-		 * @see show_in_rest()
-		 *
-		 * @example Override base:
-		 *          ```php
-		 *          public function rest_api_base(): string {
-		 *              return 'options';
-		 *          }
-		 *          ```
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1820,17 +1500,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get WordPress Core Data entity kind.
+		 * Get WordPress Core Data entity kind for wp.data registration.
 		 *
-		 * Used for registering the settings with WordPress Data API (wp.data).
-		 * The entity kind is used to group related entities.
-		 *
-		 * @return string The entity kind string.
-		 *
-		 * @see is_submenu()
-		 * @see show_in_rest()
-		 * @see get_menu_slug()
-		 * @see rest_api_entity()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1839,17 +1511,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get WordPress Core Data entity name.
+		 * Get WordPress Core Data entity name for wp.data registration.
 		 *
-		 * Used for registering the settings with WordPress Data API (wp.data).
-		 * The entity name is the unique identifier within the entity kind.
-		 *
-		 * @return string The entity name string.
-		 *
-		 * @see is_submenu()
-		 * @see rest_api_base()
-		 * @see get_page_slug()
-		 * @see rest_api_entity()
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1858,21 +1522,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Get REST API capability for GET requests.
+		 * Get required capability for REST API GET requests.
 		 *
-		 * Returns the capability required to read settings via REST API.
-		 * Override this method to change the required capability.
-		 *
-		 * @return string The required capability string.
-		 *
-		 * @see get_capability()
-		 *
-		 * @example Override capability:
-		 *          ```php
-		 *          public function rest_get_capability(): string {
-		 *              return 'manage_woocommerce';
-		 *          }
-		 *          ```
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
@@ -1881,38 +1533,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Initialize REST API routes.
-		 *
-		 * Callback for the 'rest_api_init' action hook. Registers the REST API
-		 * routes for this settings page using the API service.
+		 * Callback for 'rest_api_init'. Registers REST API routes.
 		 *
 		 * @return void
-		 *
-		 * @see register_rest_api()
-		 * @see API::register_routes()
 		 *
 		 * @since 1.0.0
 		 */
 		public function rest_api_init(): void {
-
-			// @TODO Get API.
-			$this->get_internal_container()->get( API::class )->register_routes();
+			$this->get_factory()->create_rest_api( $this )->register_routes();
 		}
 
 		/**
-		 * Register WordPress Data API entity.
-		 *
-		 * Callback for the 'admin_enqueue_scripts' action hook. Adds an inline script
-		 * to register the settings entity with WordPress Core Data API for use
-		 * with Gutenberg and React-based admin interfaces.
+		 * Register settings entity with WordPress Core Data API (wp.data).
 		 *
 		 * @return void
-		 *
-		 * @see show_in_rest()
-		 * @see core_data_entity_name()
-		 * @see core_data_entity_kind()
-		 * @see rest_api_base()
-		 * @see get_page_title()
 		 *
 		 * @since 1.0.0
 		 */
@@ -1921,31 +1555,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			if ( $this->is_empty_string( $this->show_in_rest() ) ) {
 				return;
 			}
-
-			/**
-			 * Example usages.
-			 *
-			 * @example
-			 * ```js
-			 *
-			 * import { select } from '@wordpress/data';
-			 *
-			 * // For a single record (no ID needed if your endpoint returns one object)
-			 * const settings = select( 'core' ).getEntityRecord( '<menu_slug>', '<page_slug>' );
-			 * const settings = wp.data.select( 'core' ).getEntityRecord( '<menu_slug>', '<page_slug>' );
-			 *
-			 * // Or use the resolver hook in a component
-			 * import { useEntityRecord } from '@wordpress/core-data';
-			 *
-			 * function MyComponent() {
-			 * const { record, isResolving } = useEntityRecord( 'storepress', '<page_slug>' );
-			 *
-			 * if ( isResolving ) return <p>Loading...</p>;
-			 *
-			 * return <div>{ record?.['field-text'] }</div>;
-			 *
-			 * ```
-			 */
 
 			wp_add_inline_script(
 				'wp-data',
@@ -1967,22 +1576,18 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
-		 * Register REST API hooks.
-		 *
-		 * Registers the action hooks for REST API initialization and
-		 * WordPress Data API entity registration.
+		 * Register REST API and wp.data entity hooks.
 		 *
 		 * @return void
 		 *
-		 * @see rest_api_init()
-		 * @see rest_api_entity()
-		 *
 		 * @since 1.0.0
 		 */
-		public function register_rest_api(): void {
-			// Register REST API routes on rest_api_init hook.
+		final public function register_rest_api(): void {
+
+			// Register REST API routes.
 			add_action( 'rest_api_init', array( $this, 'rest_api_init' ) );
-			// Register Data API entity on admin_enqueue_scripts hook.
+
+			// Register WordPress Data API entity.
 			add_action( 'admin_enqueue_scripts', array( $this, 'rest_api_entity' ) );
 		}
 	}

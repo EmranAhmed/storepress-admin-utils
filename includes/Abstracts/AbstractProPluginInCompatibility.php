@@ -17,7 +17,6 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
 	use StorePress\AdminUtils\Traits\PluginCommonTrait;
@@ -50,12 +49,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 	 *
 	 * @phpstan-use HelperMethodsTrait<AbstractProPluginInCompatibility>
 	 * @phpstan-use PluginCommonTrait<AbstractProPluginInCompatibility>
-	 * @phpstan-use CallerTrait<AbstractProPluginInCompatibility>
 	 * @phpstan-use MethodShouldImplementTrait<AbstractProPluginInCompatibility>
 	 *
-	 * @see HelperMethodsTrait For helper utility methods.
-	 * @see PluginCommonTrait For plugin-related methods.
-	 * @see CallerTrait For caller object management.
+	 * @see   HelperMethodsTrait For helper utility methods.
+	 * @see   PluginCommonTrait For plugin-related methods.
 	 *
 	 * @since 1.0.0
 	 */
@@ -63,7 +60,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 
 		use HelperMethodsTrait;
 		use PluginCommonTrait;
-		use CallerTrait;
 		use MethodShouldImplementTrait;
 
 		// =====================================================================
@@ -92,8 +88,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 * Sets up the caller reference and registers hooks for checking plugin
 		 * compatibility on admin initialization.
 		 *
-		 * @param object $caller The caller object (typically the main plugin class instance).
-		 *
 		 * @since 1.0.0
 		 *
 		 * @example
@@ -110,8 +104,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 * // Initialize in base plugin:
 		 * new MyProPluginCheck( $this );
 		 */
-		public function __construct( object $caller ) {
-			$this->set_caller( $caller );
+		public function __construct() {
 			$this->hooks();
 			$this->init();
 		}
@@ -133,7 +126,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *     $this->setup_additional_checks();
 		 * }
 		 */
-		public function init(): void {}
+		public function init(): void {
+		}
 
 		// =====================================================================
 		// Hook Registration Methods
@@ -149,10 +143,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::loaded() Checks compatibility and shows notices.
-		 * @see self::deactivate() Optionally deactivates incompatible plugin.
+		 * @see   self::loaded() Checks compatibility and shows notices.
+		 * @see   self::deactivate() Optionally deactivates incompatible plugin.
 		 */
-		public function hooks(): void {
+		final public function hooks(): void {
 			// Check compatibility and display notices at priority 9.
 			add_action( 'admin_init', array( $this, 'loaded' ), 9 );
 			// Deactivate incompatible plugin at priority 12 (after loaded).
@@ -201,8 +195,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::loaded() Where this check is performed.
-		 * @see self::deactivate() Where this check is performed.
+		 * @see   self::loaded() Where this check is performed.
+		 * @see   self::deactivate() Where this check is performed.
 		 */
 		public function has_capability(): bool {
 			return current_user_can( 'update_plugins' );
@@ -223,10 +217,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::has_capability() For capability check.
-		 * @see self::is_compatible() For version comparison.
-		 * @see self::admin_notice() For admin notice display.
-		 * @see self::row_notice() For plugin row notice display.
+		 * @see   self::has_capability() For capability check.
+		 * @see   self::is_compatible() For version comparison.
+		 * @see   self::admin_notice() For admin notice display.
+		 * @see   self::row_notice() For plugin row notice display.
 		 */
 		public function loaded(): void {
 
@@ -234,9 +228,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 				return;
 			}
 
-			$plugin_file = $this->get_plugin_file();
+			$file = $this->get_plugin_absolute_file();
 
-			if ( ! file_exists( $plugin_file ) ) {
+			if ( ! is_file( $file ) ) {
 				return;
 			}
 
@@ -266,9 +260,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::has_capability() For capability check.
-		 * @see self::is_compatible() For version comparison.
-		 * @see self::deactivate_incompatible() For deactivation toggle.
+		 * @see   self::has_capability() For capability check.
+		 * @see   self::is_compatible() For version comparison.
+		 * @see   self::deactivate_incompatible() For deactivation toggle.
 		 */
 		public function deactivate(): void {
 
@@ -276,9 +270,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 				return;
 			}
 
-			$plugin_file = $this->get_plugin_file();
+			$file = $this->get_plugin_absolute_file();
 
-			if ( ! file_exists( $plugin_file ) ) {
+			if ( ! is_file( $file ) ) {
 				return;
 			}
 
@@ -314,8 +308,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::show_admin_notice() For notice toggle.
-		 * @see self::get_notice_content() For notice message.
+		 * @see   self::show_admin_notice() For notice toggle.
+		 * @see   self::get_notice_content() For notice message.
 		 */
 		public function admin_notice(): void {
 
@@ -344,8 +338,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::show_plugin_row_notice() For notice toggle.
-		 * @see self::get_notice_content() For notice message.
+		 * @see   self::show_plugin_row_notice() For notice toggle.
+		 * @see   self::get_notice_content() For notice message.
 		 */
 		public function row_notice(): void {
 			global $wp_list_table;
@@ -384,7 +378,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *     return false;
 		 * }
 		 *
-		 * @see self::row_notice() Where this is checked.
+		 * @see   self::row_notice() Where this is checked.
 		 */
 		public function show_plugin_row_notice(): bool {
 			return true;
@@ -411,7 +405,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *     return $screen && 'plugins' === $screen->id;
 		 * }
 		 *
-		 * @see self::admin_notice() Where this is checked.
+		 * @see   self::admin_notice() Where this is checked.
 		 */
 		public function show_admin_notice(): bool {
 			return true;
@@ -433,7 +427,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *     return true;
 		 * }
 		 *
-		 * @see self::deactivate() Where this is checked.
+		 * @see   self::deactivate() Where this is checked.
 		 */
 		public function deactivate_incompatible(): bool {
 			return false;
@@ -453,8 +447,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::compatible_version() For required version.
-		 * @see PluginCommonTrait::get_plugin_version() For current version.
+		 * @see   self::compatible_version() For required version.
+		 * @see   PluginCommonTrait::get_plugin_version() For current version.
 		 */
 		private function is_compatible(): bool {
 			$current_version  = $this->get_plugin_version();
@@ -479,10 +473,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::localize_notice_format() For message format.
-		 * @see PluginCommonTrait::get_plugin_name() For plugin name.
-		 * @see PluginCommonTrait::get_plugin_version() For current version.
-		 * @see self::compatible_version() For required version.
+		 * @see   self::localize_notice_format() For message format.
+		 * @see   PluginCommonTrait::get_plugin_name() For plugin name.
+		 * @see   PluginCommonTrait::get_plugin_version() For current version.
+		 * @see   self::compatible_version() For required version.
 		 */
 		public function get_notice_content(): string {
 
@@ -516,7 +510,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *     );
 		 * }
 		 *
-		 * @see self::get_notice_content() Where this format is used.
+		 * @see   self::get_notice_content() Where this format is used.
 		 */
 		public function localize_notice_format(): string {
 
@@ -566,8 +560,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::pro_plugin_file() The method this wraps.
-		 * @see PluginCommonTrait::get_plugin_file() Where this is used.
+		 * @see   self::pro_plugin_file() The method this wraps.
+		 * @see   PluginCommonTrait::get_plugin_file() Where this is used.
 		 */
 		public function plugin_file(): string {
 			return $this->pro_plugin_file();

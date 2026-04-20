@@ -14,7 +14,6 @@
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	use StorePress\AdminUtils\Abstracts\AbstractSettings;
-	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\API' ) ) {
@@ -26,10 +25,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\API' ) )
 	 * Extends WP_REST_Controller to integrate with WordPress REST API infrastructure.
 	 *
 	 * @name API
-	 *
-	 * @phpstan-use CallerTrait<AbstractSettings>
-	 *
-	 * @method AbstractSettings get_caller() Returns the parent AbstractSettings instance.
 	 *
 	 * @see \WP_REST_Controller For base REST controller methods.
 	 * @see AbstractSettings For settings page integration.
@@ -54,7 +49,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\API' ) )
 	class API extends \WP_REST_Controller {
 
 		use HelperMethodsTrait;
-		use CallerTrait;
 
 		/**
 		 * Required capability for API access.
@@ -84,6 +78,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\API' ) )
 		protected $rest_base = 'settings';
 
 		/**
+		 * Settings object.
+		 *
+		 * @var AbstractSettings
+		 */
+		protected AbstractSettings $settings;
+
+		/**
 		 * Constructor.
 		 *
 		 * Initializes the REST API controller with the parent settings instance.
@@ -95,8 +96,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\API' ) )
 		 * @since 1.0.0
 		 */
 		public function __construct( AbstractSettings $settings ) {
-			$this->set_caller( $settings );
 
+			$this->settings   = $settings;
 			$this->permission = $this->get_settings()->rest_get_capability();
 			$this->namespace  = $this->get_settings()->show_in_rest();
 			$this->rest_base  = $this->get_settings()->rest_api_base();
@@ -114,7 +115,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\API' ) )
 		 * @since 1.0.0
 		 */
 		public function get_settings(): AbstractSettings {
-			return $this->get_caller();
+			return $this->settings;
 		}
 
 		/**

@@ -26,7 +26,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Upgrader'
 	 *
 	 * @name Upgrader
 	 *
-	 * @see \Plugin_Upgrader For base upgrader functionality.
 	 * @see Rollback For the rollback service that uses this class.
 	 *
 	 * @example Usage:

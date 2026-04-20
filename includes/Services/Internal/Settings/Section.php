@@ -16,7 +16,6 @@
 	namespace StorePress\AdminUtils\Services\Internal\Settings;
 
 	use StorePress\AdminUtils\Abstracts\AbstractSettings;
-	use StorePress\AdminUtils\ServiceContainers\InternalServiceContainer;
 	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 
@@ -26,53 +25,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 	/**
 	 * Admin Settings Section Class.
 	 *
-	 * Manages a section within a settings page. Sections group related fields
-	 * together with an optional title and description. Each section renders
-	 * its fields within a form table structure.
+	 * Handles grouping of settings fields into logical sections with optional
+	 * titles and descriptions. Provides visual organization for settings pages.
 	 *
 	 * @name Section
 	 *
-	 * @phpstan-use CallerTrait<AbstractSettings>
-	 *
-	 * @method AbstractSettings get_caller() Returns the parent AbstractSettings instance.
-	 *
 	 * @since 1.0.0
 	 *
-	 * @see Field For individual field handling within sections.
-	 * @see Fields For the collection manager that creates sections.
-	 * @see AbstractSettings For the parent settings class.
-	 *
-	 * @example Basic section with title and description:
-	 *          ```php
-	 *          $section = new Section( $settings, array(
-	 *              '_id'         => 'general-section',
-	 *              'title'       => 'General Settings',
-	 *              'description' => 'Configure basic options.',
-	 *          ) );
-	 *          echo $section->display();
-	 *          ```
-	 *
-	 * @example Section without title (hidden section):
-	 *          ```php
-	 *          $section = new Section( $settings, array(
-	 *              '_id' => 'hidden-section',
-	 *          ) );
-	 *          ```
-	 *
-	 * @example Adding fields to a section:
-	 *          ```php
-	 *          $section = new Section( $settings, array(
-	 *              '_id'   => 'my-section',
-	 *              'title' => 'My Section',
-	 *          ) );
-	 *          $section->add_field( $field1 );
-	 *          $section->add_field( $field2 );
-	 *          ```
+	 * @see Field  For individual field handling.
+	 * @see Fields For the fields collection manager.
 	 */
 	class Section {
 
 		use HelperMethodsTrait;
-		use CallerTrait;
 
 		// =====================================================================
 		// Properties
@@ -88,6 +53,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 		 * @var array<string, mixed>
 		 */
 		private array $section;
+
+		/**
+		 * Parent settings object that manages this section.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @var AbstractSettings
+		 */
+		protected AbstractSettings $settings;
 
 		// =====================================================================
 		// Constructor and Initialization
@@ -125,7 +99,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 		 *          ```
 		 */
 		public function __construct( AbstractSettings $settings, array $section ) {
-			$this->set_caller( $settings );
+			$this->settings = $settings;
 			$this->add( $section );
 			$this->init();
 		}
@@ -185,6 +159,26 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 				)
 			);
 			return $this;
+		}
+
+		/**
+		 * Get the parent Settings object.
+		 *
+		 * Returns the AbstractSettings instance that this field belongs to.
+		 * Provides access to settings-level methods like get_options(), get_field_id(), etc.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return AbstractSettings The parent settings object.
+		 *
+		 * @example
+		 *          ```php
+		 *          $settings = $field->get_settings();
+		 *          $all_options = $settings->get_options();
+		 *          ```
+		 */
+		public function get_settings(): AbstractSettings {
+			return $this->settings;
 		}
 
 		// =====================================================================

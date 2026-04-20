@@ -2,10 +2,6 @@
 	/**
 	 * Abstract Admin Menu Class File.
 	 *
-	 * Provides an abstract base class for creating WordPress admin menu pages
-	 * with support for top-level menus, submenus, and menu separators.
-	 * This class handles menu registration, capability checks, and page rendering.
-	 *
 	 * @package    StorePress/AdminUtils
 	 * @since      1.0.0
 	 * @version    1.0.0
@@ -17,91 +13,63 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
 	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
 	use StorePress\AdminUtils\Traits\PluginCommonTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
+
 	/**
-	 * Abstract Admin Menu Class.
-	 *
-	 * Provides base functionality for creating WordPress admin menu pages
-	 * with support for top-level menus, submenus, and menu separators.
-	 * This class automates menu registration, duplicate menu removal,
-	 * and page initialization with proper capability checks.
-	 *
-	 * Features:
-	 * - Top-level menu creation with optional separators.
-	 * - Submenu page registration under parent menus.
-	 * - Automatic unique slug generation for duplicate page slugs.
-	 * - Capability-based access control.
-	 * - Page load and render lifecycle hooks.
+	 * Abstract base class for creating WordPress admin menu pages.
 	 *
 	 * @name AbstractAdminMenu
 	 *
-	 * @phpstan-use CallerTrait<AbstractAdminMenu>
-	 * @phpstan-use PluginCommonTrait<AbstractAdminMenu>
 	 * @phpstan-use HelperMethodsTrait<AbstractAdminMenu>
 	 * @phpstan-use InternalPackageTrait<AbstractAdminMenu>
 	 * @phpstan-use MethodShouldImplementTrait<AbstractAdminMenu>
-	 *
-	 * @see HelperMethodsTrait For helper utility methods.
-	 * @see PluginCommonTrait For plugin-related methods.
-	 * @see CallerTrait For caller object management.
 	 *
 	 * @since 1.0.0
 	 */
 	abstract class AbstractAdminMenu {
 
 		use HelperMethodsTrait;
-		use PluginCommonTrait;
 		use InternalPackageTrait;
-		use CallerTrait;
 		use MethodShouldImplementTrait;
 
 		/**
-		 * Static position counter for menu ordering.
+		 * Position counter for unique menu ordering.
 		 *
-		 * Used to ensure unique positions for menus and separators.
-		 * This counter increments with each menu/separator added to prevent
-		 * position conflicts in the WordPress admin menu.
-		 *
-		 * @var int Starting position offset for menu items.
+		 * @var int
 		 *
 		 * @since 1.0.0
 		 */
 		private static int $position = 2;
 
 		/**
-		 * Tracks usage count of page slugs.
+		 * Tracks usage count of page slugs for unique suffix generation.
 		 *
-		 * Used to generate unique slugs when the same base slug is used multiple times.
-		 * Maps page slug strings to their usage count for suffix generation.
-		 *
-		 * @var array<string, int> Associative array of slug => usage count.
+		 * @var array<string, int>
 		 *
 		 * @since 1.0.0
 		 */
 		private static array $slug_usages = array();
 
 		/**
-		 * The current page slug for this menu instance.
+		 * Current page slug, may include a numeric suffix for uniqueness.
 		 *
-		 * May include a numeric suffix if the base slug was already in use.
-		 * This is the actual slug used when registering the submenu page.
-		 *
-		 * @var string The unique page slug for this instance.
+		 * @var string
 		 *
 		 * @since 1.0.0
 		 */
 		private string $current_page_slug = '';
 
 		/**
-		 * Check is separator CSS added or not.
+		 * Whether separator CSS has been added.
 		 *
 		 * @var bool
+		 *
+		 * @since 1.0.0
 		 */
 		private static bool $is_separator_css_added = false;
 
@@ -110,59 +78,21 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		// =========================================================================
 
 		/**
-		 * Admin Menu Constructor.
-		 *
-		 * Initializes the admin menu by setting the caller and registering hooks.
-		 * This constructor is called when a child class instance is created.
-		 *
-		 * @param object $caller The caller object that instantiated this menu.
-		 *                       Typically, the main plugin class instance.
+		 * Constructor.
 		 *
 		 * @since 1.0.0
-		 *
-		 * @example Basic usage in a child class:
-		 * ```php
-		 * class MyPluginMenu extends AbstractAdminMenu {
-		 *     // Override methods as needed
-		 * }
-		 * $menu = new MyPluginMenu( $this );
-		 * ```
-		 *
-		 * @example With a plugin instance:
-		 * ```php
-		 * add_action( 'plugins_loaded', function() {
-		 *     $plugin = MyPlugin::instance();
-		 *     new MySettingsPage( $plugin );
-		 * } );
-		 * ```
-		 *
-		 * @see CallerTrait::set_caller() For setting the caller object.
-		 * @see AbstractAdminMenu::hooks() For hook registration.
-		 * @see AbstractAdminMenu::init() For additional initialization.
 		 */
-		public function __construct( object $caller ) {
-			$this->set_caller( $caller );
+		public function __construct() {
 			$this->hooks();
 			$this->init();
 		}
 
 		/**
-		 * Initialize the menu instance.
-		 *
-		 * Called after the constructor sets up hooks. Override this method
-		 * in child classes to perform additional initialization tasks.
+		 * Called after constructor sets up hooks. Override for additional initialization.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
-		 *
-		 * @example Override to add custom initialization:
-		 * ```php
-		 * public function init(): void {
-		 *     $this->load_dependencies();
-		 *     $this->setup_custom_hooks();
-		 * }
-		 * ```
 		 */
 		public function init(): void {}
 
@@ -173,54 +103,27 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		/**
 		 * Register WordPress hooks for admin menu functionality.
 		 *
-		 * Registers actions for menu creation, removal, and initialization.
-		 * This method is marked as final to prevent child classes from
-		 * overriding the core hook registration logic.
-		 *
-		 * Registered hooks:
-		 * - `admin_menu` (priority 9): Creates top-level menu via add_menu().
-		 * - `admin_menu` (priority 12): Creates submenu page via add_menu_page().
-		 * - `admin_menu` (priority 60): Removes duplicate entries via remove_menu().
-		 * - `admin_enqueue_scripts`: Adds inline CSS for menu separator styling.
-		 * - `admin_init`: Triggers page_init() for users with capability.
-		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see AbstractAdminMenu::add_menu() For top-level menu creation.
-		 * @see AbstractAdminMenu::add_menu_page() For submenu page creation.
-		 * @see AbstractAdminMenu::remove_menu() For duplicate menu removal.
-		 * @see AbstractAdminMenu::page_init() For page initialization.
+		 * @see self::add_menu()
+		 * @see self::add_menu_page()
+		 * @see self::remove_menu()
+		 * @see self::page_init()
 		 */
 		final public function hooks(): void {
 
-			/**
-			 * Register top-level menu at priority 9.
-			 *
-			 * @see AbstractAdminMenu::add_menu()
-			 */
+			// Register top-level menu at priority 9.
 			add_action( 'admin_menu', array( $this, 'add_menu' ), 9 );
 
-			/**
-			 * Register submenu page at priority 12.
-			 *
-			 * @see AbstractAdminMenu::add_menu_page()
-			 */
+			// Register submenu page at priority 12.
 			add_action( 'admin_menu', array( $this, 'add_menu_page' ), 12 );
 
-			/**
-			 * Remove duplicate menu entries at priority 60.
-			 *
-			 * @see AbstractAdminMenu::remove_menu()
-			 */
+			// Remove duplicate menu entries at priority 60.
 			add_action( 'admin_menu', array( $this, 'remove_menu' ), 60 );
 
-			/**
-			 * Add inline styles for menu separator.
-			 *
-			 * Fixes min-height for WordPress admin menu separators.
-			 */
+			// Add inline separator CSS fix.
 			add_action(
 				'admin_enqueue_scripts',
 				function () {
@@ -238,12 +141,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 				}
 			);
 
-			/**
-			 * Initialize admin page for users with proper capability.
-			 *
-			 * @see AbstractAdminMenu::page_init()
-			 * @see AbstractAdminMenu::has_capability()
-			 */
+			// Initialize admin page for users with proper capability.
 			add_action(
 				'admin_init',
 				function () {
@@ -261,36 +159,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		// =========================================================================
 
 		/**
-		 * Add top-level admin menu.
-		 *
-		 * Creates the parent menu page with optional separator.
-		 * Skips if this is a submenu or if the menu already exists.
-		 * This method is called via the `admin_menu` hook at priority 9.
+		 * Add top-level admin menu with optional separator. Skips if submenu or already exists.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Override menu properties in child class:
-		 * ```php
-		 * public function get_menu_title(): string {
-		 *     return 'My Plugin';
-		 * }
-		 *
-		 * public function get_menu_slug(): string {
-		 *     return 'my-plugin';
-		 * }
-		 *
-		 * public function get_menu_icon(): string {
-		 *     return 'dashicons-admin-settings';
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::is_submenu() For submenu detection.
-		 * @see AbstractAdminMenu::get_menu_slug() For menu slug.
-		 * @see AbstractAdminMenu::get_menu_title() For menu title.
-		 * @see AbstractAdminMenu::get_menu_icon() For menu icon.
-		 * @see AbstractAdminMenu::menu_separator() For separator creation.
+		 * @see self::is_submenu()
+		 * @see self::menu_separator()
 		 */
 		public function add_menu(): void {
 			// Bail if submenu.
@@ -326,48 +202,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		}
 
 		/**
-		 * Add submenu page under the parent menu.
-		 *
-		 * Handles unique slug generation for duplicate page slugs and
-		 * registers the submenu page with its callback and load action.
-		 * This method is called via the `admin_menu` hook at priority 12.
-		 *
-		 * Slug handling:
-		 * - First usage: Uses the slug as-is (e.g., "my-plugin").
-		 * - Subsequent usages: Appends a number suffix (e.g., "my-plugin-1").
+		 * Add submenu page with unique slug generation under the parent menu.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Override page properties in child class:
-		 * ```php
-		 * public function get_page_slug(): string {
-		 *     return 'my-plugin-settings';
-		 * }
-		 *
-		 * public function get_page_title(): string {
-		 *     return 'My Plugin Settings';
-		 * }
-		 *
-		 * public function get_page_menu_title(): string {
-		 *     return 'Settings';
-		 * }
-		 * ```
-		 *
-		 * @example Create submenu under existing WordPress page:
-		 * ```php
-		 * public function get_menu_slug(): string {
-		 *     return 'options-general.php'; // Settings menu
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::get_page_slug() For base page slug.
-		 * @see AbstractAdminMenu::get_current_page_slug() For actual registered slug.
-		 * @see AbstractAdminMenu::get_page_title() For browser title.
-		 * @see AbstractAdminMenu::get_page_menu_title() For menu item title.
-		 * @see AbstractAdminMenu::render() For page content rendering.
-		 * @see AbstractAdminMenu::page_loaded() For page load callback.
+		 * @see self::get_current_page_slug()
+		 * @see self::render()
+		 * @see self::page_loaded()
 		 */
 		public function add_menu_page(): void {
 
@@ -401,11 +244,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 				}
 			);
 
-			/**
-			 * Trigger page loaded callback when admin page is loaded.
-			 *
-			 * @see AbstractAdminMenu::page_loaded()
-			 */
+			// Trigger page_loaded() callback when this admin page is loaded.
 			add_action(
 				'load-' . $settings_page,
 				function () {
@@ -418,18 +257,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		}
 
 		/**
-		 * Remove duplicate submenu entry created by add_menu_page.
-		 *
-		 * WordPress adds a duplicate submenu item when creating a top-level menu.
-		 * This method removes that duplicate entry. Called via `admin_menu` hook
-		 * at priority 60 to ensure all menus are registered first.
+		 * Remove duplicate submenu entry created by WordPress for top-level menus.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see AbstractAdminMenu::is_submenu() For submenu detection.
-		 * @see AbstractAdminMenu::get_menu_slug() For menu slug.
+		 * @see self::is_submenu()
 		 */
 		public function remove_menu(): void {
 			if ( $this->is_submenu() ) {
@@ -447,30 +281,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		// =========================================================================
 
 		/**
-		 * Get the current page slug.
+		 * Get the unique page slug used in the WordPress admin URL.
 		 *
-		 * Returns the unique page slug, which may include a numeric suffix
-		 * if the same slug is used multiple times. This is the actual slug
-		 * used in the WordPress admin URL.
-		 *
-		 * @return string The current page slug.
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Get the current page URL:
-		 * ```php
-		 * $page_url = admin_url( 'admin.php?page=' . $this->get_current_page_slug() );
-		 * ```
-		 *
-		 * @example Check if current page matches:
-		 * ```php
-		 * $current_page = isset( $_GET['page'] ) ? sanitize_text_field( $_GET['page'] ) : '';
-		 * if ( $current_page === $this->get_current_page_slug() ) {
-		 *     // We're on this page
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::get_page_slug() For the base page slug.
+		 * @see self::get_page_slug()
 		 */
 		public function get_current_page_slug(): string {
 			return $this->current_page_slug;
@@ -481,54 +298,31 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		// =========================================================================
 
 		/**
-		 * Determine whether to add a menu separator before the menu.
+		 * Whether to add a menu separator before the top-level menu.
 		 *
-		 * Override this method to return false to disable the separator.
-		 * By default, a separator is added before top-level menus.
-		 *
-		 * @return bool True to add separator, false otherwise.
+		 * @return bool
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Disable menu separator:
-		 * ```php
-		 * public function add_menu_separator(): bool {
-		 *     return false;
-		 * }
-		 * ```
-		 *
-		 * @example Conditionally add separator:
-		 * ```php
-		 * public function add_menu_separator(): bool {
-		 *     return apply_filters( 'my_plugin_show_separator', true );
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::menu_separator() For separator creation.
+		 * @see self::menu_separator()
 		 */
 		public function add_menu_separator(): bool {
 			return true;
 		}
 
 		/**
-		 * Add a menu separator at the specified position.
+		 * Add a visual separator in the admin menu at the given position.
 		 *
-		 * Creates an empty menu item that acts as a visual separator
-		 * in the WordPress admin menu. This is a private method called
-		 * internally by add_menu().
-		 *
-		 * @param float  $position                   The menu position for the separator.
-		 * @param string $separator_additional_class Additional CSS class for the separator.
-		 *                                           Used to create a unique slug.
-		 * @param string $capability                 Required capability to view the separator.
-		 *                                           Default: 'manage_options'.
+		 * @param float  $position                  Menu position for the separator.
+		 * @param string $separator_additional_class Additional CSS class for unique slug.
+		 * @param string $capability                Required capability. Default 'manage_options'.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see AbstractAdminMenu::add_menu_separator() For separator enable/disable.
-		 * @see AbstractAdminMenu::add_menu() For usage context.
+		 * @see self::add_menu_separator()
+		 * @see self::add_menu()
 		 */
 		private function menu_separator( float $position, string $separator_additional_class = '', string $capability = 'manage_options' ): void {
 
@@ -558,76 +352,26 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		// =========================================================================
 
 		/**
-		 * Check if this menu is a submenu of an existing WordPress admin page.
+		 * Check if menu slug contains '.php', indicating a submenu of a core admin page.
 		 *
-		 * Determines if the menu slug contains '.php', indicating it should
-		 * be added as a submenu to a core WordPress admin page (e.g., Settings,
-		 * Tools, or other existing admin pages).
-		 *
-		 * @return bool True if this is a submenu, false otherwise.
+		 * @return bool
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Top-level menu (returns false):
-		 * ```php
-		 * public function get_menu_slug(): string {
-		 *     return 'my-plugin'; // Creates top-level menu
-		 * }
-		 * ```
-		 *
-		 * @example Submenu under Settings (returns true):
-		 * ```php
-		 * public function get_menu_slug(): string {
-		 *     return 'options-general.php'; // Adds under Settings
-		 * }
-		 * ```
-		 *
-		 * @example Submenu under Tools (returns true):
-		 * ```php
-		 * public function get_menu_slug(): string {
-		 *     return 'tools.php'; // Adds under Tools
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::get_menu_slug() For menu slug configuration.
+		 * @see self::get_menu_slug()
 		 */
 		public function is_submenu(): bool {
 			return false !== strpos( $this->get_menu_slug(), '.php' );
 		}
 
 		/**
-		 * Get the required capability to access the menu.
+		 * Get the required capability to access this menu. Default 'manage_options'.
 		 *
-		 * Override this method to change the required user capability.
-		 * Default capability is 'manage_options' (Administrator level).
-		 *
-		 * @return string The capability required to access this menu.
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Restrict to administrators only (default):
-		 * ```php
-		 * public function get_capability(): string {
-		 *     return 'manage_options';
-		 * }
-		 * ```
-		 *
-		 * @example Allow editors and above:
-		 * ```php
-		 * public function get_capability(): string {
-		 *     return 'edit_others_posts';
-		 * }
-		 * ```
-		 *
-		 * @example Use custom capability:
-		 * ```php
-		 * public function get_capability(): string {
-		 *     return 'my_plugin_manage_settings';
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::has_capability() For capability check.
-		 * @link https://developer.wordpress.org/plugins/users/roles-and-capabilities/
+		 * @see self::has_capability()
 		 */
 		public function get_capability(): string {
 			return 'manage_options';
@@ -636,21 +380,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		/**
 		 * Check if current user has the required capability.
 		 *
-		 * Wrapper around WordPress current_user_can() using this menu's
-		 * configured capability.
-		 *
-		 * @return bool True if user has capability, false otherwise.
+		 * @return bool
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Check access before performing action:
-		 * ```php
-		 * if ( $this->has_capability() ) {
-		 *     // User can access, proceed with action
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::get_capability() For capability value.
+		 * @see self::get_capability()
 		 */
 		public function has_capability(): bool {
 			return current_user_can( $this->get_capability() );
@@ -661,43 +395,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		// =========================================================================
 
 		/**
-		 * Get the menu position in the admin sidebar.
+		 * Get the menu position in the admin sidebar. Default 45.
 		 *
-		 * Override this method to change the menu position.
-		 * WordPress default menu positions:
-		 * - 2: Dashboard
-		 * - 4: Separator
-		 * - 5: Posts
-		 * - 10: Media
-		 * - 20: Pages
-		 * - 25: Comments
-		 * - 59: Separator
-		 * - 60: Appearance
-		 * - 65: Plugins
-		 * - 70: Users
-		 * - 75: Tools
-		 * - 80: Settings
-		 * - 99: Separator
-		 *
-		 * @return int The menu position (default: 45).
+		 * @return int
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Place after Comments menu:
-		 * ```php
-		 * public function get_menu_position(): int {
-		 *     return 26;
-		 * }
-		 * ```
-		 *
-		 * @example Place after Settings menu:
-		 * ```php
-		 * public function get_menu_position(): int {
-		 *     return 81;
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::add_menu() For position usage.
+		 * @see self::add_menu()
 		 */
 		public function get_menu_position(): int {
 			return 45;
@@ -706,21 +410,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		/**
 		 * Get the menu title displayed in the admin sidebar.
 		 *
-		 * Override this method to set a custom menu title.
-		 * This is the text shown in the WordPress admin sidebar.
-		 *
-		 * @return string The menu title.
+		 * @return string
 		 *
 		 * @since 1.0.0
-		 *
-		 * @example Set custom menu title:
-		 * ```php
-		 * public function get_menu_title(): string {
-		 *     return esc_html__( 'My Plugin', 'my-plugin' );
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::add_menu() For title usage.
 		 */
 		public function get_menu_title(): string {
 			$this->subclass_should_implement( __FUNCTION__ );
@@ -729,76 +421,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		}
 
 		/**
-		 * Get the menu slug used for URL and identification.
+		 * Get the menu slug. If it contains '.php', treated as a submenu.
 		 *
-		 * Override this method to set a custom menu slug.
-		 * If the slug contains '.php', it will be treated as a submenu
-		 * of an existing WordPress admin page.
-		 *
-		 * @return string The menu slug.
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Top-level menu:
-		 * ```php
-		 * public function get_menu_slug(): string {
-		 *     return 'my-plugin';
-		 * }
-		 * ```
-		 *
-		 * @example Submenu under Settings:
-		 * ```php
-		 * public function get_menu_slug(): string {
-		 *     return 'options-general.php';
-		 * }
-		 * ```
-		 *
-		 * @example Submenu under WooCommerce:
-		 * ```php
-		 * public function get_menu_slug(): string {
-		 *     return 'woocommerce';
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::is_submenu() For submenu detection.
+		 * @see self::is_submenu()
 		 */
 		public function get_menu_slug(): string {
 			return 'storepress';
 		}
 
 		/**
-		 * Get the menu icon displayed in the admin sidebar.
+		 * Get the menu icon (dashicon class, base64 SVG, or 'none').
 		 *
-		 * Override this method to set a custom dashicon or SVG icon.
-		 * Supports dashicons, base64-encoded SVG, or 'none'.
-		 *
-		 * @return string The dashicon class or base64 SVG.
+		 * @return string
 		 *
 		 * @since 1.0.0
-		 *
-		 * @example Use a dashicon:
-		 * ```php
-		 * public function get_menu_icon(): string {
-		 *     return 'dashicons-cart';
-		 * }
-		 * ```
-		 *
-		 * @example Use base64 SVG:
-		 * ```php
-		 * public function get_menu_icon(): string {
-		 *     return 'data:image/svg+xml;base64,' . base64_encode( $svg_content );
-		 * }
-		 * ```
-		 *
-		 * @example No icon:
-		 * ```php
-		 * public function get_menu_icon(): string {
-		 *     return 'none';
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::add_menu() For icon usage.
-		 * @link https://developer.wordpress.org/resource/dashicons/
 		 */
 		public function get_menu_icon(): string {
 			return 'dashicons-admin-generic';
@@ -809,31 +449,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		// =========================================================================
 
 		/**
-		 * Get the page slug for the submenu page.
+		 * Get the base page slug for the submenu page.
 		 *
-		 * Override this method to provide a unique page slug.
-		 * By default, returns the plugin slug from PluginCommonTrait.
-		 *
-		 * @return string The page slug.
+		 * @return string
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Custom page slug:
-		 * ```php
-		 * public function get_page_slug(): string {
-		 *     return 'my-plugin-settings';
-		 * }
-		 * ```
-		 *
-		 * @example Using plugin slug with suffix:
-		 * ```php
-		 * public function get_page_slug(): string {
-		 *     return $this->get_plugin_slug() . '-advanced';
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::get_current_page_slug() For actual registered slug.
-		 * @see PluginCommonTrait::get_plugin_slug() For default value source.
+		 * @see self::get_current_page_slug()
 		 */
 		public function get_page_slug(): string {
 			return $this->get_plugin_slug();
@@ -842,31 +464,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		/**
 		 * Get the page title displayed in the browser title bar.
 		 *
-		 * Override this method to provide the page title.
-		 * This is shown in the browser tab/title bar.
-		 *
-		 * @return string The page title.
+		 * @return string
 		 *
 		 * @since 1.0.0
-		 *
-		 * @example Custom page title:
-		 * ```php
-		 * public function get_page_title(): string {
-		 *     return esc_html__( 'My Plugin Settings', 'my-plugin' );
-		 * }
-		 * ```
-		 *
-		 * @example Dynamic page title:
-		 * ```php
-		 * public function get_page_title(): string {
-		 *     return sprintf(
-		 *         esc_html__( '%s - Settings', 'my-plugin' ),
-		 *         $this->get_plugin_name()
-		 *     );
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::add_menu_page() For title usage.
 		 */
 		public function get_page_title(): string {
 
@@ -876,36 +476,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		}
 
 		/**
-		 * Get the submenu page title displayed in the admin menu.
+		 * Get the submenu item title displayed in the admin menu.
 		 *
-		 * Override this method to provide the menu title.
-		 * By default, returns the plugin name from PluginCommonTrait.
-		 * This is the text shown in the submenu item.
-		 *
-		 * @return string The submenu page menu title.
+		 * @return string
 		 *
 		 * @since 1.0.0
-		 *
-		 * @example Custom menu title:
-		 * ```php
-		 * public function get_page_menu_title(): string {
-		 *     return esc_html__( 'Settings', 'my-plugin' );
-		 * }
-		 * ```
-		 *
-		 * @example Menu title with notification badge:
-		 * ```php
-		 * public function get_page_menu_title(): string {
-		 *     $count = $this->get_pending_count();
-		 *     if ( $count > 0 ) {
-		 *         return sprintf( 'Settings <span class="awaiting-mod">%d</span>', $count );
-		 *     }
-		 *     return 'Settings';
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::add_menu_page() For title usage.
-		 * @see PluginCommonTrait::get_plugin_name() For default value source.
 		 */
 		public function get_page_menu_title(): string {
 			return $this->get_plugin_name();
@@ -916,49 +491,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		// =========================================================================
 
 		/**
-		 * Initialize the admin page.
-		 *
-		 * Called during admin_init hook for users with proper capability.
-		 * Override this method to register settings, scripts, or other initialization.
-		 * This is called on every admin page load, not just this specific page.
+		 * Called on admin_init for users with capability. Override to register settings.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Register settings:
-		 * ```php
-		 * public function page_init(): void {
-		 *     register_setting(
-		 *         'my_plugin_options',
-		 *         'my_plugin_settings',
-		 *         array( 'sanitize_callback' => array( $this, 'sanitize_settings' ) )
-		 *     );
-		 * }
-		 * ```
-		 *
-		 * @example Add settings sections and fields:
-		 * ```php
-		 * public function page_init(): void {
-		 *     add_settings_section(
-		 *         'general_section',
-		 *         'General Settings',
-		 *         array( $this, 'render_section' ),
-		 *         $this->get_current_page_slug()
-		 *     );
-		 *
-		 *     add_settings_field(
-		 *         'enable_feature',
-		 *         'Enable Feature',
-		 *         array( $this, 'render_checkbox' ),
-		 *         $this->get_current_page_slug(),
-		 *         'general_section'
-		 *     );
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::hooks() For when this is called.
-		 * @see AbstractAdminMenu::page_loaded() For page-specific initialization.
+		 * @see self::page_loaded()
 		 */
 		public function page_init(): void {
 			$this->subclass_should_implement( __FUNCTION__ );
@@ -966,50 +505,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		}
 
 		/**
-		 * Handle page load event.
-		 *
-		 * Called when the specific admin page is loaded, before any output.
-		 * Override this method to enqueue scripts/styles or prepare data.
-		 * This is the ideal place for page-specific asset loading.
+		 * Called when this specific admin page is loaded. Override to enqueue assets.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Enqueue page-specific assets:
-		 * ```php
-		 * public function page_loaded(): void {
-		 *     wp_enqueue_style(
-		 *         'my-plugin-admin',
-		 *         plugins_url( 'assets/css/admin.css', MY_PLUGIN_FILE ),
-		 *         array(),
-		 *         MY_PLUGIN_VERSION
-		 *     );
-		 *
-		 *     wp_enqueue_script(
-		 *         'my-plugin-admin',
-		 *         plugins_url( 'assets/js/admin.js', MY_PLUGIN_FILE ),
-		 *         array( 'jquery' ),
-		 *         MY_PLUGIN_VERSION,
-		 *         true
-		 *     );
-		 * }
-		 * ```
-		 *
-		 * @example Add help tabs:
-		 * ```php
-		 * public function page_loaded(): void {
-		 *     $screen = get_current_screen();
-		 *     $screen->add_help_tab( array(
-		 *         'id'      => 'overview',
-		 *         'title'   => 'Overview',
-		 *         'content' => '<p>Help content here.</p>',
-		 *     ) );
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::add_menu_page() For when this is called.
-		 * @see AbstractAdminMenu::render() For page output.
+		 * @see self::render()
 		 */
 		public function page_loaded(): void {
 			$this->subclass_should_implement( __FUNCTION__ );
@@ -1017,44 +519,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		}
 
 		/**
-		 * Render the page template.
-		 *
-		 * Called when displaying the admin page content.
-		 * Override this method to output the page HTML.
-		 * This is called after page_loaded() and is responsible for
-		 * generating all visible page content.
+		 * Render the admin page content. Override to output page HTML.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @example Basic page template:
-		 * ```php
-		 * public function render(): void {
-		 *     ?>
-		 *     <div class="wrap">
-		 *         <h1><?php echo esc_html( $this->get_page_title() ); ?></h1>
-		 *         <form method="post" action="options.php">
-		 *             <?php
-		 *             settings_fields( 'my_plugin_options' );
-		 *             do_settings_sections( $this->get_current_page_slug() );
-		 *             submit_button();
-		 *             ?>
-		 *         </form>
-		 *     </div>
-		 *     <?php
-		 * }
-		 * ```
-		 *
-		 * @example Load template file:
-		 * ```php
-		 * public function render(): void {
-		 *     include plugin_dir_path( MY_PLUGIN_FILE ) . 'templates/admin-page.php';
-		 * }
-		 * ```
-		 *
-		 * @see AbstractAdminMenu::add_menu_page() For render callback registration.
-		 * @see AbstractAdminMenu::page_loaded() For pre-render setup.
+		 * @see self::page_loaded()
 		 */
 		public function render(): void {
 			$this->subclass_should_implement( __FUNCTION__ );

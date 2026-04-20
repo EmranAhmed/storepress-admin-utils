@@ -14,31 +14,66 @@
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	use StorePress\AdminUtils\Abstracts\AbstractDialog;
-	use StorePress\AdminUtils\Traits\CallerTrait;
-	use StorePress\AdminUtils\Traits\PluginFileTrait;
-	use StorePress\AdminUtils\Traits\SingletonTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Dialog' ) ) {
 	/**
 	 * Changelog Dialog Class.
 	 *
+	 * Renders a modal dialog displaying a plugin's changelog, used by the Rollback service.
+	 *
 	 * @name Dialog
-	 * @phpstan-use CallerTrait<Rollback>
-	 * @method Rollback get_caller()
+	 *
+	 * @since 1.0.0
+	 *
+	 * @see Rollback For the rollback service that owns this dialog.
+	 * @see AbstractDialog For the base dialog implementation.
 	 */
 	class Dialog extends AbstractDialog {
 
-		use SingletonTrait;
-		use CallerTrait;
+		/**
+		 * Rollback service instance that owns this dialog.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @var Rollback
+		 */
+		protected Rollback $rollback;
 
 		/**
-		 * Instance.
+		 * Construct Dialog instance.
 		 *
-		 * @param Rollback $caller Caller Class.
+		 * @since 1.0.0
+		 *
+		 * @param Rollback $rollback The rollback service instance.
 		 */
-		public function __construct( Rollback $caller ) {
-			$this->set_caller( $caller );
+		public function __construct( Rollback $rollback ) {
+
+			$this->rollback = $rollback;
 			parent::__construct();
+		}
+
+		/**
+		 * Get the rollback service instance.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return Rollback
+		 */
+		public function get_rollback(): Rollback {
+			return $this->rollback;
+		}
+
+		/**
+		 * Get the plugin file path from the rollback service.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return string Plugin file path (e.g. 'my-plugin/my-plugin.php').
+		 *
+		 * @see Rollback::get_plugin_file()
+		 */
+		public function plugin_file(): string {
+			return $this->get_rollback()->get_plugin_file();
 		}
 
 		/**
@@ -57,7 +92,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Dialog' )
 		 * @throws \WP_Exception Throw Exception If used method not overridden in subclass.
 		 */
 		public function title(): string {
-			$l10 = $this->get_caller()->get_localize_strings();
+			$l10 = $this->get_rollback()->get_localize_strings();
 			return $l10['rollback_changelog_title'];
 		}
 
@@ -67,7 +102,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Dialog' )
 		 * @return string
 		 */
 		public function content(): string {
-			$info = $this->get_caller()->get_plugin_info();
+			$info = $this->get_rollback()->get_plugin_info();
 			return $info['sections']['changelog'];
 		}
 

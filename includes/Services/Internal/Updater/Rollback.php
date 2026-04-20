@@ -14,52 +14,38 @@
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	use StorePress\AdminUtils\Abstracts\AbstractUpdater;
-	use StorePress\AdminUtils\Interfaces\HasServiceProviderInterface;
-	use StorePress\AdminUtils\ServiceProviders\Internal\RollbackServiceProvider;
-	use StorePress\AdminUtils\Traits\CallerTrait;
+	use StorePress\AdminUtils\Factory\RollbackFactory;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
-	use StorePress\AdminUtils\Traits\RegisterServiceProviderTrait;
-	use WP_Ajax_Upgrader_Skin;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback' ) ) {
-
 	/**
 	 * Plugin Rollback Class.
 	 *
-	 * Provides functionality for rolling back plugins to previous versions.
-	 * Includes an admin page for selecting versions and AJAX handling for
-	 * performing the actual rollback operation.
+	 * Provides rollback functionality allowing admins to downgrade a plugin to a
+	 * previously released version. Handles admin menu, AJAX processing, script
+	 * registration, and plugin API integration.
 	 *
 	 * @name Rollback
 	 *
-	 * @phpstan-use CallerTrait<AbstractUpdater>
-	 * @phpstan-use RegisterServiceProviderTrait<RollbackServiceProvider>
-	 *
-	 * @method AbstractUpdater get_caller() Returns the parent AbstractUpdater instance.
-	 * @method RollbackServiceProvider get_service_provider() Returns the parent AbstractUpdater instance.
-	 *
-	 * @see AbstractUpdater For plugin updater integration.
-	 * @see RollbackServiceProvider For service provider integration.
-	 * @see Upgrader For the actual rollback upgrade process.
-	 *
-	 * @example The rollback page URL format:
-	 *          admin.php?page=storepress-{plugin-slug}-rollback
-	 *
 	 * @since 1.0.0
+	 *
+	 * @see AbstractUpdater For the parent updater class.
+	 * @see Dialog          For the changelog dialog.
+	 * @see RollbackFactory For the factory that creates upgrader and dialog instances.
 	 */
-	class Rollback implements HasServiceProviderInterface {
+	class Rollback {
 
 		use HelperMethodsTrait;
 		use InternalPackageTrait;
-		use CallerTrait;
-		use RegisterServiceProviderTrait;
 
 		/**
 		 * Plugin information from plugins API.
 		 *
 		 * Populated after settings_init() runs. Contains version history,
 		 * changelog, and other plugin metadata.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @var array<string, mixed>
 		 */
@@ -71,46 +57,77 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 * Populated after settings_init() runs. Contains plugin name,
 		 * version, author, and other header information.
 		 *
+		 * @since 1.0.0
+		 *
 		 * @var array<string, mixed>
 		 */
 		private array $plugin_data;
 
 		/**
-		 * Constructor.
+		 * Parent updater instance that owns this rollback service.
 		 *
-		 * Initializes the rollback service with the parent updater instance,
-		 * registers service providers, and sets up hooks.
+		 * @since 1.0.0
 		 *
-		 * @param AbstractUpdater $caller The parent updater instance.
+		 * @var AbstractUpdater
+		 */
+		protected AbstractUpdater $updater;
+
+		/**
+		 * Factory instance for creating upgrader skin and dialog objects.
 		 *
-		 * @see set_caller()
-		 * @see register_service_provider()
-		 * @see hook()
+		 * @since 1.0.0
+		 *
+		 * @var RollbackFactory
+		 */
+		protected RollbackFactory $factory;
+
+		/**
+		 * Construct Rollback instance.
+		 *
+		 * @param AbstractUpdater      $updater Parent updater instance.
+		 * @param RollbackFactory|null $factory Optional. Factory class name. Default RollbackFactory::class.
 		 *
 		 * @since 1.0.0
 		 */
-		public function __construct( AbstractUpdater $caller ) {
-			$this->set_caller( $caller );
-			$this->register_service_provider( $this );
-			$this->register_services();
+		public function __construct( AbstractUpdater $updater, RollbackFactory $factory = null ) {
+			$this->updater = $updater;
+			$this->factory = $factory ?? RollbackFactory::instance();
 			$this->hook();
 		}
 
 		/**
-		 * Create service provider instance.
-		 *
-		 * Returns a new RollbackServiceProvider instance for managing rollback services.
-		 *
-		 * @param object $caller The caller instance.
-		 *
-		 * @return RollbackServiceProvider The service provider instance.
-		 *
-		 * @see RollbackServiceProvider
+		 * Get the parent updater instance.
 		 *
 		 * @since 1.0.0
+		 *
+		 * @return AbstractUpdater
 		 */
-		public function service_provider( object $caller ): RollbackServiceProvider {
-			return new RollbackServiceProvider( $caller );
+		public function get_updater(): AbstractUpdater {
+			return $this->updater;
+		}
+
+		/**
+		 * Get the plugin file path from the parent updater.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return string Plugin file path (e.g. 'my-plugin/my-plugin.php').
+		 *
+		 * @see AbstractUpdater::get_plugin_file()
+		 */
+		public function plugin_file(): string {
+			return $this->get_updater()->get_plugin_file();
+		}
+
+		/**
+		 * Get the rollback factory instance.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return RollbackFactory
+		 */
+		public function get_factory(): RollbackFactory {
+			return $this->factory;
 		}
 
 		/**
@@ -159,7 +176,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 * @since 1.0.0
 		 */
 		public function get_localize_strings(): array {
-			return $this->get_caller()->localize_strings();
+			return $this->get_updater()->localize_strings();
 		}
 
 		/**
@@ -252,7 +269,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 *
 		 * @since 1.0.0
 		 */
-		public function hook(): void {
+		final public function hook(): void {
 
 			if ( ! $this->has_capability() ) {
 				return;
@@ -352,10 +369,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 
 			$package = trim( $plugin_info['versions'][ $version ] );
 
-			$skin     = new WP_Ajax_Upgrader_Skin();
-			$upgrader = new Upgrader( $skin );
-
-			$result = $upgrader->rollback( $this->get_plugin_basename(), $package );
+			// Get Skin and Run Rollback.
+			$skin   = $this->get_factory()->get_upgrader_skin();
+			$result = $this->get_factory()->run_rollback( $this, $package );
 
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				$status['debug'] = $skin->get_upgrade_messages();
@@ -512,7 +528,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 *
 		 * @since 1.0.0
 		 */
-		public function action_links( array $links ): array {
+		final public function action_links( array $links ): array {
 
 			// Unset wp.org rollback plugin action.
 			unset( $links['rollback'] );
@@ -573,7 +589,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 *
 		 * @since 1.0.0
 		 */
-		public function admin_menu(): void {
+		final public function admin_menu(): void {
 
 			// Add hidden parent menu page.
 			add_menu_page( '', '', 'update_plugins', $this->main_menu_slug(), '__return_false' );
@@ -624,7 +640,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 *
 		 * @since 1.0.0
 		 */
-		public function settings_init(): void {
+		final public function settings_init(): void {
 
 			$plugin_file = $this->get_plugin_file();
 
@@ -685,7 +701,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 				);
 			}
 
-			$this->boot_services();
+			$this->get_factory()->create_dialog( $this );
 
 			// Register rollback scripts and styles.
 			add_action( 'admin_enqueue_scripts', array( $this, 'register_scripts' ), 15 );

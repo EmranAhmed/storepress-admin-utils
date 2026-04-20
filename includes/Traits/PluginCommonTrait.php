@@ -11,48 +11,128 @@
 
 	namespace StorePress\AdminUtils\Traits;
 
+	use WP_Exception;
+
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 
 	/**
-	 * Plugin Trait.
+	 * Plugin Common Trait.
+	 *
+	 * Provides shared plugin utility methods for resolving file paths, URLs,
+	 * slugs, basenames, versions, and asset locations relative to a plugin's main file.
 	 *
 	 * @name PluginCommonTrait
+	 *
+	 * @since 1.0.0
 	 */
-
 	trait PluginCommonTrait {
 
 		/**
-		 * Plugin Version.
+		 * Cached plugin version string.
 		 *
-		 * @var string $plugin_version Plugin version.
+		 * @since 1.0.0
+		 *
+		 * @var string
 		 */
 		protected string $plugin_version = '';
 
 		/**
-		 * Plugin Name.
+		 * Cached plugin name string.
 		 *
-		 * @var string $plugin_name Plugin Name.
+		 * @since 1.0.0
+		 *
+		 * @var string
 		 */
 		protected string $plugin_name = '';
 
 		/**
-		 * Get plugin file absolute or relative path.
+		 * Get plugin main file path (absolute or relative).
+		 *
+		 * @since 1.0.0
 		 *
 		 * @return string
 		 */
 		abstract public function plugin_file(): string;
 
 		/**
+		 * Get the pro plugin file path. Override to provide a pro plugin file.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return string Pro plugin file path, or empty string if no pro version.
+		 */
+		public function pro_plugin_file(): string {
+			return '';
+		}
+
+		/**
+		 * Get the absolute pro plugin file path.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return string Absolute file path, or empty string if no pro version.
+		 *
+		 * @throws WP_Exception If pro plugin file is not found.
+		 *
+		 * @see PluginCommonTrait::pro_plugin_file()
+		 */
+		public function get_pro_plugin_file(): string {
+			$file = $this->pro_plugin_file();
+
+			if ( '' === $file ) {
+				return '';
+			}
+
+			return $this->get_plugin_absolute_file( $this->pro_plugin_file() );
+		}
+
+		/**
+		 * Get absolute file paths for all plugin files (free + pro).
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return string[] Array of absolute plugin file paths.
+		 *
+		 * @throws WP_Exception If any plugin file is not found.
+		 *
+		 * @see PluginCommonTrait::get_plugin_file()
+		 * @see PluginCommonTrait::get_pro_plugin_file()
+		 */
+		public function get_plugin_files(): array {
+			$plugin_files   = array();
+			$plugin_files[] = $this->get_plugin_file();
+			$plugin_files[] = $this->get_pro_plugin_file();
+
+			return array_map( array( $this, 'get_plugin_file' ), array_filter( $plugin_files ) );
+		}
+
+		/**
+		 * Get basenames for all plugin files (free + pro).
+		 *
+		 * @since 1.0.0
+		 *
+		 * @return string[] Array of plugin basenames (e.g. 'my-plugin/my-plugin.php').
+		 *
+		 * @throws WP_Exception If any plugin file is not found.
+		 *
+		 * @see PluginCommonTrait::get_plugin_files()
+		 */
+		public function get_plugin_basenames(): array {
+			return array_map( array( $this, 'get_plugin_basename' ), $this->get_plugin_files() );
+		}
+
+		/**
 		 * Get absolute plugin file path.
 		 *
-		 * @param string $plugin_file Optional. The plugin file path to convert. Can be relative
-		 *                            or absolute. If empty, defaults to the current plugin's
-		 *                            main file path retrieved via $this->plugin_file().
-		 *                            Default empty string.
+		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string
+		 *
+		 * @throws WP_Exception If plugin file not available.
 		 */
 		public function get_plugin_absolute_file( string $plugin_file = '' ): string {
 			$file   = '' === $plugin_file ? wp_normalize_path( $this->plugin_file() ) : wp_normalize_path( $plugin_file );
@@ -62,245 +142,330 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		}
 
 		/**
-		 * Get Plugin absolute file
+		 * Get validated absolute plugin file path.
 		 *
-		 * @param string $plugin_file Optional. The plugin file path to convert. Can be relative
-		 *                            or absolute. If empty, defaults to the current plugin's
-		 *                            main file path retrieved via $this->plugin_file().
-		 *                            Default empty string.
+		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_file( string $plugin_file = '' ): string {
-			return $this->get_plugin_absolute_file( $plugin_file );
+			$file = $this->get_plugin_absolute_file( $plugin_file );
+
+			if ( ! is_file( $file ) ) {
+				$message = sprintf( "Plugin File: `%s` is not a file.\n\n", $file );
+				throw new WP_Exception( esc_html( $message ) );
+			}
+
+			return $file;
 		}
 
 		/**
-		 * Plugin Directory Name Only.
+		 * Get plugin directory path.
 		 *
-		 * @param string $plugin_file Optional. The plugin file path to convert. Can be relative
-		 *                            or absolute. If empty, defaults to the current plugin's
-		 *                            main file path retrieved via $this->plugin_file().
-		 *                            Default empty string.
+		 * @since 1.0.0
 		 *
-		 * @return string
-		 * @example xyz-plugin
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Untrailed directory path (e.g. '/var/www/wp-content/plugins/xyz-plugin').
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_dir_path( string $plugin_file = '' ): string {
 			return untrailingslashit( plugin_dir_path( $this->get_plugin_file( $plugin_file ) ) );
 		}
 
 		/**
-		 * Plugin Slug.
+		 * Get plugin slug (directory name).
 		 *
-		 * @param string $plugin_file Optional. The plugin file path to convert. Can be relative
-		 *                            or absolute. If empty, defaults to the current plugin's
-		 *                            main file path retrieved via $this->plugin_file().
-		 *                            Default empty string.
+		 * @since 1.0.0
 		 *
-		 * @return string
-		 * @example xyz-plugin
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Plugin slug (e.g. 'xyz-plugin').
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_slug( string $plugin_file = '' ): string {
 			return wp_basename( dirname( $this->get_plugin_file( $plugin_file ) ) );
 		}
 
 		/**
-		 * Plugin Basename Like "plugin-directory/plugin-file.php"
+		 * Get plugin basename.
 		 *
-		 * @param string $plugin_file Optional. The plugin file path to convert. Can be relative
-		 *                            or absolute. If empty, defaults to the current plugin's
-		 *                            main file path retrieved via $this->plugin_file().
-		 *                            Default empty string.
+		 * @since 1.0.0
 		 *
-		 * @return string
-		 * @example xyz-plugin/xyz-plugin.php
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Plugin basename (e.g. 'xyz-plugin/xyz-plugin.php').
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_basename( string $plugin_file = '' ): string {
 			return plugin_basename( $this->get_plugin_file( $plugin_file ) );
 		}
 
 		/**
-		 * Plugin Dir URL.
+		 * Get plugin directory URL.
 		 *
-		 * @param string $plugin_file Optional. The plugin file path to convert. Can be relative
-		 *                            or absolute. If empty, defaults to the current plugin's
-		 *                            main file path retrieved via $this->plugin_file().
-		 *                            Default empty string.
+		 * @since 1.0.0
 		 *
-		 * @return string
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Untrailed plugin directory URL.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_dir_url( string $plugin_file = '' ): string {
 			return untrailingslashit( plugin_dir_url( $this->get_plugin_file( $plugin_file ) ) );
 		}
 
 		/**
-		 * Get Plugin Version.
+		 * Get plugin version from file header, with caching.
 		 *
-		 * @param string $plugin_file Optional. The plugin file path to convert. Can be relative
-		 *                            or absolute. If empty, defaults to the current plugin's
-		 *                            main file path retrieved via $this->plugin_file().
-		 *                            Default empty string.
-		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Plugin version string.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_version( string $plugin_file = '' ): string {
 
-			if ( '' === $this->plugin_version ) {
-				$versions             = get_file_data( $this->get_plugin_file( $plugin_file ), array( 'version' => 'Version' ) );
+			$headers = array( 'version' => 'Version' );
+			$file    = $this->get_plugin_file( $plugin_file );
+
+			if ( '' === trim( $this->plugin_version ) && '' === trim( $plugin_file ) ) {
+				$versions             = get_file_data( $file, $headers );
 				$this->plugin_version = $versions['version'] ?? '';
+			}
+
+			if ( ! $this->is_empty_string( $plugin_file ) ) {
+				$versions = get_file_data( $file, $headers );
+				return $versions['version'] ?? '';
 			}
 
 			return $this->plugin_version;
 		}
 
 		/**
-		 * Get Plugin Name.
+		 * Get plugin name from file header, with caching.
 		 *
-		 * @param string $plugin_file Optional. The plugin file path to convert. Can be relative
-		 *                            or absolute. If empty, defaults to the current plugin's
-		 *                            main file path retrieved via $this->plugin_file().
-		 *                            Default empty string.
-		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Plugin name string.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_name( string $plugin_file = '' ): string {
 
-			if ( '' === $this->plugin_name ) {
-				$names             = get_file_data( $this->get_plugin_file( $plugin_file ), array( 'name' => 'Plugin Name' ) );
+			$headers = array( 'name' => 'Plugin Name' );
+			$file    = $this->get_plugin_file( $plugin_file );
+
+			if ( '' === trim( $this->plugin_name ) && '' === trim( $plugin_file ) ) {
+				$names             = get_file_data( $file, $headers );
 				$this->plugin_name = $names['name'] ?? '';
+			}
+
+			if ( ! $this->is_empty_string( $plugin_file ) ) {
+				$names = get_file_data( $file, $headers );
+				return $names['name'] ?? '';
 			}
 
 			return $this->plugin_name;
 		}
 
 		/**
-		 * Get Plugin image url
+		 * Get plugin images directory URL.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Images directory URL.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function images_url(): string {
-			return $this->get_plugin_dir_url() . '/images';
+		public function images_url( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_url( $plugin_file ) . '/images';
 		}
 
 		/**
-		 * Get Asset URL
+		 * Get plugin assets directory URL.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Assets directory URL.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function assets_url(): string {
-			return $this->get_plugin_dir_url() . '/assets';
+		public function assets_url( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_url( $plugin_file ) . '/assets';
 		}
 
 		/**
-		 * Get Asset path
+		 * Get plugin assets directory path.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Assets directory path.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function assets_path(): string {
-			return $this->get_plugin_dir_path() . '/assets';
+		public function assets_path( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_path( $plugin_file ) . '/assets';
 		}
 
 		/**
-		 * Get Asset version
+		 * Get asset file modification time (for cache-busting).
 		 *
-		 * @param string $file Asset file name.
-		 *
-		 * @return false|int asset file make time.
 		 * @since 1.0.0
+		 *
+		 * @param string $file        Asset file name relative to the assets directory.
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return int|false File modification time as Unix timestamp, or false on failure.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function assets_version( string $file ) {
-			return filemtime( $this->assets_path() . $file );
+		public function assets_version( string $file, string $plugin_file = '' ) {
+			return filemtime( $this->assets_path( $plugin_file ) . $file );
 		}
 
 		/**
-		 * Get Build URL
+		 * Get plugin build directory URL.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Build directory URL.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function build_url(): string {
-			return $this->get_plugin_dir_url() . '/build';
+		public function build_url( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_url( $plugin_file ) . '/build';
 		}
 
 		/**
-		 * Get Build path
+		 * Get plugin build directory path.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Build directory path.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function build_path(): string {
-			return $this->get_plugin_dir_path() . '/build';
+		public function build_path( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_path( $plugin_file ) . '/build';
 		}
 
 		/**
-		 * Get Include path.
+		 * Get plugin includes directory path.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Includes directory path.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function includes_path(): string {
-			return $this->get_plugin_dir_path() . '/includes';
+		public function includes_path( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_path( $plugin_file ) . '/includes';
 		}
 
 		/**
-		 * Get Templates path.
+		 * Get plugin templates directory path.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Templates directory path.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function templates_path(): string {
-			return $this->get_plugin_dir_path() . '/templates';
+		public function templates_path( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_path( $plugin_file ) . '/templates';
 		}
 
 		/**
-		 * Get Templates path.
+		 * Get plugin languages directory path.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Languages directory path.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function languages_path(): string {
-			return $this->get_plugin_dir_path() . '/languages';
+		public function languages_path( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_path( $plugin_file ) . '/languages';
 		}
 
 		/**
-		 * Get Vendor path.
+		 * Get plugin vendor directory path.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Vendor directory path.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function vendor_path(): string {
-			return $this->get_plugin_dir_path() . '/vendor';
+		public function vendor_path( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_path( $plugin_file ) . '/vendor';
 		}
 
 		/**
-		 * Get Vendor url.
+		 * Get plugin vendor directory URL.
 		 *
-		 * @return string
 		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Vendor directory URL.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function vendor_url(): string {
-			return $this->get_plugin_dir_url() . '/vendor';
+		public function vendor_url( string $plugin_file = '' ): string {
+			return $this->get_plugin_dir_url( $plugin_file ) . '/vendor';
 		}
 
 		/**
-		 * Register StorePress Utils script.
+		 * Register StorePress Utils script from plugin build directory.
 		 *
-		 * @return string
+		 * @since 1.0.0
+		 *
+		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
+		 *
+		 * @return string Registered script handle, or empty string if build file not found.
+		 *
+		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
-		public function register_storepress_utils_script(): string {
+		public function register_storepress_utils_script( string $plugin_file = '' ): string {
 
-			if ( ! file_exists( $this->build_path() . '/storepress-utils.js' ) ) {
+			if ( ! file_exists( $this->build_path( $plugin_file ) . '/storepress-utils.js' ) ) {
 				return '';
 			}
 
-			$file_url   = $this->build_url() . '/storepress-utils.js';
-			$asset_path = $this->build_path() . '/storepress-utils.asset.php';
+			$file_url   = $this->build_url( $plugin_file ) . '/storepress-utils.js';
+			$asset_path = $this->build_path( $plugin_file ) . '/storepress-utils.asset.php';
 			$asset      = include $asset_path;
 
 			wp_register_script( 'storepress-utils', $file_url, $asset['dependencies'], $asset['version'], array( 'strategy' => 'defer' ) );

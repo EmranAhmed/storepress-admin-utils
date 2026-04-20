@@ -74,7 +74,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 	class Field {
 
 		use HelperMethodsTrait;
-		use CallerTrait;
 
 		// =====================================================================
 		// Properties
@@ -101,6 +100,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * @var string
 		 */
 		private string $settings_id;
+
+		/**
+		 * Parent settings object that manages this field.
+		 *
+		 * @since 1.0.0
+		 *
+		 * @var AbstractSettings
+		 */
+		protected AbstractSettings $settings;
 
 		// =====================================================================
 		// Constructor and Initialization
@@ -133,7 +141,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          ```
 		 */
 		public function __construct( AbstractSettings $settings, array $field, array $values = array() ) {
-			$this->set_caller( $settings );
+			$this->settings = $settings;
 			$this->add( $field, $values );
 			$this->init();
 		}
@@ -264,7 +272,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          ```
 		 */
 		public function get_settings(): AbstractSettings {
-			return $this->get_caller();
+			return $this->settings;
 		}
 
 		/**
