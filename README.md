@@ -75,7 +75,6 @@ To use StorePress Admin Utils, developers typically extend the core classes prov
 composer require storepress/admin-utils
 ```
 
-
 ## Usage
 
 ### Plugin entry file `plugin-example.php`
@@ -90,7 +89,7 @@ composer require storepress/admin-utils
   Version: 1.0.0
   Tested up to: 6.3
   Author URI: https://storepress.com/emran/
-  Update URI: http://sites.local/
+  Update URI: https://update.example.com/
   */
   
   defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -107,9 +106,14 @@ composer require storepress/admin-utils
   /**
    * Plugin class init
    *
-   * @return Init
+   * @return Plugin|PluginPro
    */
-  function plugin_example(): Plugin {
+  function plugin_example() {
+  
+    if ( function_exists( 'plugin_example_pro') ){
+      return plugin_example_pro();
+    }
+  
     return Plugin::instance();
   }
   
@@ -146,7 +150,7 @@ composer require storepress/admin-utils
 
 ```
 
-### Sample `includes/Plugin.php` file
+### Sample `includes/Plugin.php` class file
 
 ```php
 <?php
@@ -178,19 +182,7 @@ composer require storepress/admin-utils
 	 * Bootstraps the plugin by loading vendor autoloaders, registering the service provider,
 	 * and initializing hooks. Uses the singleton pattern to ensure only one instance exists.
 	 *
-	 * @name Init
-	 *
-	 * @example
-	 * // Initialize the plugin from main plugin file.
-	 * Init::instance( __FILE__ );
-	 *
-	 * @example
-	 * // Access the service container.
-	 * $container = Init::instance( __FILE__ )->get_container();
-	 *
-	 * @example
-	 * // Get the plugin file path.
-	 * $plugin_file = plugin_b()->get_plugin_file();
+	 * @name Plugin
 	 */
 	class Plugin {
 
@@ -363,6 +355,48 @@ composer require storepress/admin-utils
 
 		public function service_providers(): ServiceProviders {
 			return ServiceProviders::instance( $this->get_service_providers() );
+		}
+	}
+```
+
+### Sample `ServiceProviders` class
+
+```php
+<?php
+	
+	declare( strict_types=1 );
+	
+	namespace StorePress\Example\ServiceProviders;
+	
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	class ServiceProviders {
+		
+		use SingletonTrait;
+		
+		protected $service_providers = array();
+		
+		public function __construct( $service_providers ) {
+			$this->service_providers = $service_providers;
+		    $this->init();
+		}
+		
+		public function get_providers(): array {
+			return $this->service_providers;
+		}
+		
+		private function init(): void {
+			$providers = $this->get_providers();
+			
+			
+			foreach ( $providers as $provider ) {
+				$provider::instance();
+				$provider::instance()->register();
+				$provider::instance()->boot();
+			}
+			
 		}
 	}
 ```
@@ -1055,11 +1089,51 @@ composer require storepress/admin-utils
 	}
 ```
 
-### REST API
+### `SettingsServiceProvider` class example.
 
-- URL will be: `/wp-json/<page_slug>/<rest_api_version>/settings`
-- Default IS: `/wp-json/<page_slug>/v1/settings`
-- Example: `/wp-json/plugin-a/v1/settings`
+```php
+<?php
+	
+	declare( strict_types=1 );
+
+	namespace StorePress\Example\ServiceProviders;
+
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	use StorePress\AdminUtils\Abstracts\AbstractServiceProvider;
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+	use StorePress\Example\Containers\Container;
+	use StorePress\Example\Services\Settings;
+	
+	class SettingsServiceProvider extends AbstractServiceProvider {
+		
+		use SingletonTrait;
+		
+		public function get_container(): Container {
+			return Container::instance();
+		}
+		
+		public function register(): void {
+			
+			$this->get_container()->register(
+				Settings::class,
+				function () {
+					return Settings::instance();
+				}
+			);
+		}
+		
+		public function boot(): void {
+			$this->get_container()->get( Settings::class );
+		}
+	}
+```
+
+### Settings REST API
+
+- URL will be: `/wp-json/<get_page_slug>/<rest_api_version>/<rest_api_base>`
+- Default IS: `/wp-json/<get_page_slug>/<rest_api_version>/<rest_api_base>`
+- Example: `/wp-json/plugin-example/v1/settings`
 
 ### WordPress Data Store Usages example
 
@@ -1067,14 +1141,14 @@ composer require storepress/admin-utils
 import { select } from '@wordpress/data';
 
 // For a single record (no ID needed if your endpoint returns one object)
-const settings = select( 'core' ).getEntityRecord( '<parent_slug>', '<page_slug>' );
-const settings = wp.data.select( 'core' ).getEntityRecord( '<parent_slug>', '<page_slug>' );
+const settings = select( 'core' ).getEntityRecord( '<get_menu_slug>', '<get_page_slug>' );
+const settings = wp.data.select( 'core' ).getEntityRecord( '<get_menu_slug>', '<get_page_slug>' );
 
 // Or use the resolver hook in a component
 import { useEntityRecord } from '@wordpress/core-data';
 
 function MyComponent() {
-  const { record, isResolving } = useEntityRecord( 'storepress', '<page_slug>' );
+  const { record, isResolving } = useEntityRecord( 'storepress', '<get_page_slug>' );
 
   if ( isResolving ) return <p>Loading...</p>;
 
@@ -1082,10 +1156,10 @@ function MyComponent() {
 }
 ```
 
-NOTE: If parent menu is a page like:
+NOTE: If menu_slug return as sub-menu like:
 
 ```php
-public function parent_menu(): string {
+public function get_menu_slug(): string {
 		return 'edit.php?post_type=wporg_product';
 }
 ```
@@ -1094,13 +1168,16 @@ It will create like:
 
 ```js
 select( 'core' ).getEntityRecord( '<show_in_rest>', '<rest_api_base>' );
-select( 'core' ).getEntityRecord( 'plugin-name/v1', 'settings' );
+select( 'core' ).getEntityRecord( '<get_page_slug>/<rest_api_version>', '<rest_api_base>' );
 ```
+
+NOTE: You can override methods `show_in_rest()`, `rest_api_base()`, `get_menu_slug()`, `get_page_slug()` from `Settings` class or in `AdminPage` class.
+
 
 - See: [@wordpress/core-data](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-core-data/)
 
 
-### Section data structure
+### Settings Section data structure
 
 ```php
 <?php
@@ -1177,17 +1254,8 @@ array(
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
 	use StorePress\AdminUtils\Abstracts\AbstractProPluginInCompatibility;
-	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\SingletonTrait;
-	use StorePress\Example\Init;
-	
-	/**
-	 * Updater Class.
-	 *
-	 * @name ProPluginInCompatibility
-	 * @phpstan-use CallerTrait<Init>
-	 * @method Init get_caller()
-	 */
+	use function StorePress\Example\get_pro_plugin_file;
 	
 	class ProPluginInCompatibility extends AbstractProPluginInCompatibility {
 		
@@ -1198,7 +1266,7 @@ array(
 		}
 		
 		public function pro_plugin_file(): string {
-			return 'plugin-pro/plugin-pro.php'; // OR FILE CONSTANCE OF PRO PLUGIN FILE.
+			return get_pro_plugin_file(); // OR FILE CONSTANCE OF PRO PLUGIN FILE.
 		}
 		
 		public function localize_notice_format(): string {
@@ -1206,25 +1274,22 @@ array(
 			return 'You are using an incompatible version of <strong>%1$s - (%2$s)</strong>. Please upgrade to version <strong>%3$s</strong> or upper.';
 		}
 	}
-	
 ```
 
-### `AbstractUpdater`  class usages example
+### `AbstractUpdater` class usages example
 
-- NOTE: Update server and client server should not be in same WordPress setup.
+- NOTE: Update server and plugin **SHOULD NOT** be in same WordPress setup.
 
 - You must add `Update URI:` on plugin file header to perform update.
 
 ```php
 <?php
 /**
- * Plugin Name: Plugin A
+ * Plugin Name: Plugin Example
  * Tested up to: 6.4.1
  * Update URI: https://update.example.com/
 */
 ```
-
-### `Updater.php` file
 
 ```php
 <?php
@@ -1235,9 +1300,9 @@ array(
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
 	use StorePress\AdminUtils\Abstracts\AbstractUpdater;
-	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\SingletonTrait;
-	use StorePress\Example\Init;
+	use function StorePress\Example\get_container;
+	
 	
 	/**
 	 * Updater Class.
@@ -1250,7 +1315,7 @@ array(
 		use SingletonTrait;
 		
 		public function license_key(): string {
-			// $this->get_caller()->get_container()->get( Settings::class)->get_option( 'license' )
+			// return get_container()->get( Settings::class )->get_option( 'license' );
 			return 'hello';
 		}
 		
@@ -1306,8 +1371,7 @@ array(
 	
 	use StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedback;
 	use StorePress\AdminUtils\Traits\SingletonTrait;
-	use StorePress\AdminUtils\Traits\CallerTrait;
-	use StorePress\Example\Init;
+	use function StorePress\Example\get_container;
 	
 	/**
 	 * Changelog Dialog Class.
@@ -1348,7 +1412,7 @@ array(
 		 * @return array<string, mixed>
 		 */
 		public function options(): array {
-			// $this->get_caller()->get_container()->get( Settings::class)->get_options();
+			// return get_container()->get( Settings::class )->get_options();
 			return array();
 		}
 		
@@ -1451,8 +1515,7 @@ array(
 	}
 ```
 
-
-## `includes/Containers/Container` class usages example
+## `ServiceContainer` class usages example
 
 ```php
 <?php
@@ -1469,10 +1532,6 @@ array(
 	/**
 	 * Dependency Injection Container Class.
 	 *
-	 * Extends the base service container to provide plugin-specific dependency
-	 * injection capabilities. Uses the singleton pattern to ensure a single
-	 * container instance throughout the plugin's lifecycle. Inherits service
-	 * registration, resolution, and management functionality from BaseServiceContainer.
 	 *
 	 * @name Container
 	 */
@@ -1481,12 +1540,105 @@ array(
 	}
 ```
 
+
+## Preparing Pro `plugin-pro/plugin-pro.php` version example
+
+```php
+<?php
+	/*
+	Plugin Name: Plugin Example Pro
+	Plugin URI: https://storepress.com/plugins/plugin-example-pro/
+	Description: This is not a plugin for test admin utilities.
+	Author: Emran Ahmed
+	Version: 1.0.0
+	Tested up to: 6.3
+	Author URI: https://storepress.com/emran/
+	Update URI: https://update.example.com/
+	*/
+	
+	/**
+	 * Bootstrap the plugin.
+	 */
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	use StorePress\Example\PluginPro;
+	
+	define('PLUGIN_EXAMPLE_PRO_FILE', __FILE__);
+	
+	function plugin_example_pro() {
+		
+		// Include the main class.
+		if ( ! class_exists( PluginPro::class, false ) ) {
+			require_once __DIR__ . '/includes/PluginPro.php';
+		}
+		
+		return PluginPro::instance();
+	}
+```
+
+## Preparing `PluginPro` class
+
+```php
+<?php
+
+	declare( strict_types=1 );
+
+	namespace StorePress\Example;
+	
+	use StorePress\Example\ServiceProviders\DeactivationServiceProviderPro;
+	use StorePress\Example\ServiceProviders\SettingsServiceProvider;
+	use StorePress\Example\ServiceProviders\SettingsServiceProviderPro;
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	class PluginPro extends Plugin {
+		
+		public static function instance(): self {
+			static $instance = null;
+			return $instance ??= new self();
+		}
+
+		public function includes(): void {
+			
+			parent::includes();
+			
+			$vendor_path = untrailingslashit( plugin_dir_path( $this->get_pro_plugin_file() ) ) . '/vendor';
+
+			if ( file_exists( $vendor_path . '/autoload_packages.php' ) ) {
+				require_once $vendor_path . '/autoload_packages.php';
+			}
+		}
+
+		// =====================================================================
+		// Getter Methods
+		// =====================================================================
+		
+		public function get_service_providers(): array {
+			
+			$current_providers = parent::get_service_providers();
+			
+			$available_providers = array(
+				SettingsServiceProvider::class=>SettingsServiceProviderPro::class,
+				DeactivationServiceProviderPro::class=>DeactivationServiceProviderPro::class
+			);
+			
+			return array_replace( $current_providers, $available_providers );
+		}
+		
+		public function get_pro_plugin_file(): string {
+			return constant( 'PLUGIN_EXAMPLE_PRO_FILE' );
+		}
+		
+	}
+```
+
 ## Preparing Update Server
 
 ```php
 <?php
 
-// Based on Update URI:  
+// Based on Plugin Header Update URI:  
 // https://update.example.com/wp-json/plugin-updater/v1/check-update
 add_action( 'rest_api_init', function () {
     register_rest_route( 'plugin-updater/v1', '/check-update', [
@@ -1502,7 +1654,6 @@ add_action( 'rest_api_init', function () {
  * @return WP_REST_Response|WP_Error WP_REST_Response instance if the plugin was found,
  *                                    WP_Error if the plugin isn't found.
  *                                   
- * @see Updater::prepare_remote_data()
  */
 function updater_get_plugin( WP_REST_Request $request ) {
     
@@ -1601,7 +1752,6 @@ add_action( 'rest_api_init', function () {
  * @return WP_REST_Response|WP_Error WP_REST_Response instance if the plugin was found,
  *                                    WP_Error if the plugin isn't found.
  *                                   
- * @see Deactivation_Feedback::send_feedback()
  */
  
 function store_deactivate_data( WP_REST_Request $request ) {

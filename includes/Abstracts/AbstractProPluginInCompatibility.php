@@ -222,7 +222,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 * @see   self::admin_notice() For admin notice display.
 		 * @see   self::row_notice() For plugin row notice display.
 		 */
-		public function loaded(): void {
+		final public function loaded(): void {
 
 			if ( ! $this->has_capability() ) {
 				return;
@@ -264,7 +264,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 * @see   self::is_compatible() For version comparison.
 		 * @see   self::deactivate_incompatible() For deactivation toggle.
 		 */
-		public function deactivate(): void {
+		final public function deactivate(): void {
 
 			if ( ! $this->has_capability() ) {
 				return;
@@ -563,7 +563,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 * @see   self::pro_plugin_file() The method this wraps.
 		 * @see   PluginCommonTrait::get_plugin_file() Where this is used.
 		 */
-		public function plugin_file(): string {
+		final public function plugin_file(): string {
 			return $this->pro_plugin_file();
 		}
 	}
