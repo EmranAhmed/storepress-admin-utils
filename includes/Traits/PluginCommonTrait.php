@@ -11,8 +11,6 @@
 
 	namespace StorePress\AdminUtils\Traits;
 
-	use WP_Exception;
-
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
@@ -74,8 +72,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 *
 		 * @return string Absolute file path, or empty string if no pro version.
 		 *
-		 * @throws WP_Exception If pro plugin file is not found.
-		 *
 		 * @see PluginCommonTrait::pro_plugin_file()
 		 */
 		public function get_pro_plugin_file(): string {
@@ -95,8 +91,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 *
 		 * @return string[] Array of absolute plugin file paths.
 		 *
-		 * @throws WP_Exception If any plugin file is not found.
-		 *
 		 * @see PluginCommonTrait::get_plugin_file()
 		 * @see PluginCommonTrait::get_pro_plugin_file()
 		 */
@@ -109,17 +103,15 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		}
 
 		/**
-		 * Get basenames for all plugin files (free + pro).
+		 * Get basename for all plugins files (free + pro).
 		 *
 		 * @since 1.0.0
 		 *
 		 * @return string[] Array of plugin basenames (e.g. 'my-plugin/my-plugin.php').
 		 *
-		 * @throws WP_Exception If any plugin file is not found.
-		 *
 		 * @see PluginCommonTrait::get_plugin_files()
 		 */
-		public function get_plugin_basenames(): array {
+		public function get_plugins_basename(): array {
 			return array_map( array( $this, 'get_plugin_basename' ), $this->get_plugin_files() );
 		}
 
@@ -131,8 +123,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string
-		 *
-		 * @throws WP_Exception If plugin file not available.
 		 */
 		public function get_plugin_absolute_file( string $plugin_file = '' ): string {
 			$file   = '' === $plugin_file ? wp_normalize_path( $this->plugin_file() ) : wp_normalize_path( $plugin_file );
@@ -149,18 +139,29 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_file( string $plugin_file = '' ): string {
-			$file = $this->get_plugin_absolute_file( $plugin_file );
+			return $this->get_plugin_absolute_file( $plugin_file );
+		}
 
-			if ( ! is_file( $file ) ) {
-				$message = sprintf( "Plugin File: `%s` is not a file.\n\n", $file );
-				throw new WP_Exception( esc_html( $message ) );
+		/**
+		 * Is Valid plugin.
+		 *
+		 * @param string $plugin_file Plugin file.
+		 *
+		 * @return bool
+		 */
+		public function is_valid_plugin( string $plugin_file = '' ): bool {
+			if ( ! function_exists( 'validate_plugin' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/plugin.php';
+			}
+			$response = validate_plugin( $this->get_plugin_basename( $plugin_file ) );
+
+			if ( is_wp_error( $response ) ) {
+				return false;
 			}
 
-			return $file;
+			return 0 === $response;
 		}
 
 		/**
@@ -171,8 +172,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Untrailed directory path (e.g. '/var/www/wp-content/plugins/xyz-plugin').
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_dir_path( string $plugin_file = '' ): string {
 			return untrailingslashit( plugin_dir_path( $this->get_plugin_file( $plugin_file ) ) );
@@ -186,8 +185,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Plugin slug (e.g. 'xyz-plugin').
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_slug( string $plugin_file = '' ): string {
 			return wp_basename( dirname( $this->get_plugin_file( $plugin_file ) ) );
@@ -201,8 +198,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Plugin basename (e.g. 'xyz-plugin/xyz-plugin.php').
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_basename( string $plugin_file = '' ): string {
 			return plugin_basename( $this->get_plugin_file( $plugin_file ) );
@@ -216,8 +211,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Untrailed plugin directory URL.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_dir_url( string $plugin_file = '' ): string {
 			return untrailingslashit( plugin_dir_url( $this->get_plugin_file( $plugin_file ) ) );
@@ -231,13 +224,15 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Plugin version string.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_version( string $plugin_file = '' ): string {
 
 			$headers = array( 'version' => 'Version' );
 			$file    = $this->get_plugin_file( $plugin_file );
+
+			if ( ! $this->is_valid_plugin( $file ) ) {
+				return '';
+			}
 
 			if ( '' === trim( $this->plugin_version ) && '' === trim( $plugin_file ) ) {
 				$versions             = get_file_data( $file, $headers );
@@ -260,13 +255,15 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Plugin name string.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function get_plugin_name( string $plugin_file = '' ): string {
 
 			$headers = array( 'name' => 'Plugin Name' );
 			$file    = $this->get_plugin_file( $plugin_file );
+
+			if ( ! $this->is_valid_plugin( $file ) ) {
+				return '';
+			}
 
 			if ( '' === trim( $this->plugin_name ) && '' === trim( $plugin_file ) ) {
 				$names             = get_file_data( $file, $headers );
@@ -289,8 +286,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Images directory URL.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function images_url( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_url( $plugin_file ) . '/images';
@@ -304,8 +299,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Assets directory URL.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function assets_url( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_url( $plugin_file ) . '/assets';
@@ -319,8 +312,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Assets directory path.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function assets_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/assets';
@@ -335,8 +326,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return int|false File modification time as Unix timestamp, or false on failure.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function assets_version( string $file, string $plugin_file = '' ) {
 			return filemtime( $this->assets_path( $plugin_file ) . $file );
@@ -350,8 +339,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Build directory URL.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function build_url( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_url( $plugin_file ) . '/build';
@@ -365,8 +352,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Build directory path.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function build_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/build';
@@ -380,8 +365,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Includes directory path.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function includes_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/includes';
@@ -395,8 +378,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Templates directory path.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function templates_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/templates';
@@ -410,8 +391,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Languages directory path.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function languages_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/languages';
@@ -425,8 +404,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Vendor directory path.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function vendor_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/vendor';
@@ -440,8 +417,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Vendor directory URL.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function vendor_url( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_url( $plugin_file ) . '/vendor';
@@ -455,8 +430,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Registered script handle, or empty string if build file not found.
-		 *
-		 * @throws WP_Exception If plugin file is not a valid file.
 		 */
 		public function register_storepress_utils_script( string $plugin_file = '' ): string {
 

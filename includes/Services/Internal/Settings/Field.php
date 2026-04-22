@@ -1085,6 +1085,30 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			return $this->has_attribute( 'suffix' );
 		}
 
+
+		/**
+		 * Check unpredicted input value and saved values.
+		 *
+		 * @param bool                              $in_array_check Is in array check.
+		 * @param int|string                        $input_value Input value.
+		 * @param int|string|array<int, mixed>|null $saved_value Saved value.
+		 *
+		 * @return bool
+		 */
+		public function unpredicted_comparison( bool $in_array_check, $input_value, $saved_value ): bool {
+
+			if ( is_null( $saved_value ) ) {
+				return false;
+			}
+
+			// $input_value and $saved_value data type is unpredictable so we have to disable PHPCS StrictComparisons and StrictInArray.
+			if ( $in_array_check ) {
+				return in_array( $input_value, is_array( $saved_value ) ? $saved_value : array( $saved_value ) ); // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
+			}
+
+			return $input_value == $saved_value; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual
+		}
+
 		// =====================================================================
 		// Unit Input Methods
 		// =====================================================================
@@ -1469,7 +1493,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					'type'    => $type,
 					'name'    => $name,
 					'value'   => esc_attr( $option_key ),
-					'checked' => ( 'checkbox' === $type ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ), true ) : $value == $option_key, // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual
+					'checked' => $this->unpredicted_comparison( 'checkbox' === $type, $option_key, $value ),
 				);
 
 				$option_description = '';
@@ -1558,7 +1582,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$inputs = array();
 
 			foreach ( $options as $option_key => $option_value ) {
-				$selected = ( $is_multiple ) ? in_array( $option_key, is_array( $value ) ? $value : array( $value ), true ) : $value == $option_key; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual
+				$selected = $this->unpredicted_comparison( $is_multiple, $option_key, $value );
 				$inputs[] = sprintf( '<option %s value="%s"><span>%s</span></option>', $this->get_html_attributes( array( 'selected' => $selected ) ), esc_attr( $option_key ), esc_html( $option_value ) );
 			}
 
@@ -1804,9 +1828,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 
 			$inputs = array();
 
-			// @TODO: Add Conditional for GROUP.
-			// @TODO: Add Tooltip for GROUP.
-
 			foreach ( $group_fields as $field ) {
 
 				$field_id          = $field->get_id();
@@ -1814,10 +1835,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				$field_title       = $field->get_title();
 				$field_type        = $field->get_type();
 				$raw_field_type    = $field->get_raw_type();
-				$field_name        = $field->get_name();
 				$field_options     = $field->get_options();
 				$field_placeholder = $field->get_attribute( 'placeholder' );
 				$field_required    = $field->has_attribute( 'required' );
+				$is_field_multiple = $field->has_attribute( 'multiple' );
+				$field_name        = $field->get_name( $is_field_multiple );
 				$field_suffix      = $field->get_suffix();
 				$has_field_suffix  = $field->has_suffix();
 				$field_classes     = $this->prepare_classes( $field->get_css_class(), $css_class );
@@ -1845,7 +1867,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				);
 
 				$is_toggle   = 'toggle' === $raw_field_type;
-				$is_checkbox = ( 'checkbox' === $field_type );
+				$is_checkbox = 'checkbox' === $field_type;
 
 				if ( $is_checkbox ) {
 					$attributes['type'] = 'checkbox';
@@ -1878,23 +1900,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 						continue;
 					}
 
-					// Checkbox and Radio.
-					/**
-					 * Group Options.
-					 *
-					 * @var array<string, string> $field_options
-					 */
-
 					$tooltip_markup  = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
 					$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
 
 					$inputs[] = sprintf( '<ul %s class="input-wrapper multiple-input-wrapper"><li class="group-field-label"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></li><li class="group-field-inputs"><ul>', $conditional_attr, esc_html( $field_title ), $required_markup, $tooltip_markup );
-
+					// Checkbox and Radio.
 					foreach ( $field_options as $option_key => $option_value ) {
+
 						$uniq_id               = $this->get_settings()->get_group_field_id( $group_id, $field_id, $option_key );
-						$attributes['value']   = esc_attr( $option_key );
-						$attributes['checked'] = is_array( $field_value ) ? in_array( $option_key, $field_value, true ) : $option_key == $field_value;  // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual
 						$attributes['id']      = $uniq_id;
+						$attributes['value']   = esc_attr( $option_key );
+						$attributes['checked'] = $this->unpredicted_comparison( is_array( $field_value ), $option_key, $field_value );
 
 						if ( $is_toggle ) {
 							$attributes['class'][] = 'toggle';
@@ -1912,9 +1928,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					 * @var array<string, string> $field_options
 					 */
 
+					// @TODO: Add select2 and wc-enhanced-select support.
+
+					$attributes['multiple'] = $is_field_multiple;
+
 					$options = array();
 					foreach ( $field_options as $option_key => $option_value ) {
-						$is_selected = is_array( $field_value ) ? in_array( $option_key, $field_value, true ) : $option_key == $field_value;  // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual
+
+						$is_selected = $this->unpredicted_comparison( is_array( $field_value ), $option_key, $field_value );
 						$options[]   = sprintf( '<option %s value="%s">%s</option>', selected( $is_selected, true, false ), esc_attr( $option_key ), esc_html( $option_value ) );
 					}
 

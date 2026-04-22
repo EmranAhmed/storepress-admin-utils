@@ -132,7 +132,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
 
 			// Add settings link to plugin action links.
-			foreach ( $this->get_plugin_basenames() as $basename ) {
+			foreach ( $this->get_plugins_basename() as $basename ) {
 				add_filter( 'plugin_action_links_' . $basename, array( $this, 'plugin_action_links' ), 15 );
 			}
 
@@ -647,7 +647,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function get_field_id( string $field_id, $option_id = '' ): string {
-			return $this->is_empty_string( $option_id ) ? sprintf( '%s', $field_id ) : sprintf( '%s__%s', $field_id, $option_id );
+			$string_option_id = (string) $option_id;
+			return $this->is_empty_string( $string_option_id ) ? sprintf( '%s', $field_id ) : sprintf( '%s__%s', $field_id, $option_id );
 		}
 
 		/**
@@ -676,7 +677,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function get_group_field_id( string $group_id, string $field_id, $option_id = '' ): string {
-			return $this->is_empty_string( $option_id ) ? sprintf( '%s__%s__group', $group_id, $field_id ) : sprintf( '%s__%s__%s__group', $group_id, $field_id, $option_id );
+			$string_option_id = (string) $option_id;
+			return $this->is_empty_string( $string_option_id ) ? sprintf( '%s__%s__group', $group_id, $field_id ) : sprintf( '%s__%s__%s__group', $group_id, $field_id, $option_id );
 		}
 
 		/**

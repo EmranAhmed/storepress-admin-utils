@@ -228,9 +228,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 				return;
 			}
 
-			$file = $this->get_plugin_absolute_file();
-
-			if ( ! is_file( $file ) ) {
+			if ( ! $this->is_valid_plugin() ) {
 				return;
 			}
 
@@ -270,9 +268,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 				return;
 			}
 
-			$file = $this->get_plugin_absolute_file();
-
-			if ( ! is_file( $file ) ) {
+			if ( ! $this->is_valid_plugin() ) {
 				return;
 			}
 
