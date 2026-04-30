@@ -474,11 +474,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 
 			// Configuration passed to the JavaScript handler.
 			$options = array(
-				'slug'        => $this->get_plugin_slug(),
-				'name'        => $this->get_plugin_basename(),
-				'dialog'      => sprintf( '#%s', $this->get_dialog_id() ),
-				'_ajax_nonce' => wp_create_nonce( $this->get_plugin_slug() ),
-				'action'      => $this->ajax_action(),
+				'slug'   => $this->get_plugin_slug(),
+				'name'   => $this->get_plugin_basename(),
+				'dialog' => sprintf( '#%s', $this->get_dialog_id() ),
+				'nonce'  => wp_create_nonce( $this->get_plugin_slug() ),
+				'action' => $this->ajax_action(),
 			);
 
 			// Initialize the deactivation feedback JavaScript handler.

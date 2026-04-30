@@ -46,7 +46,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractServiceProvider' 
 		 *
 		 * @since 1.0.0
 		 */
-		public function __construct( ContainerInterface $container = null ) {
+		public function __construct( ?ContainerInterface $container = null ) {
 
 			if ( $container ) {
 				$this->container = $container;

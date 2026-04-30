@@ -89,7 +89,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 *
 		 * @since 1.0.0
 		 */
-		public function __construct( AbstractUpdater $updater, RollbackFactory $factory = null ) {
+		public function __construct( AbstractUpdater $updater, ?RollbackFactory $factory = null ) {
 			$this->updater = $updater;
 			$this->factory = $factory ?? RollbackFactory::instance();
 			$this->hook();
