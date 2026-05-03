@@ -312,6 +312,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 			return $this->options();
 		}
 
+		/**
+		 * Get Plugin license key for PRO Plugin.
+		 *
+		 * @return string
+		 */
+		public function license_key(): string {
+			return '';
+		}
+
+		/**
+		 * Get Is Plugin is Free or Pro version.
+		 *
+		 * @return bool
+		 */
+		public function is_pro(): bool {
+			return false;
+		}
+
 		// =====================================================================
 		// AJAX Handler Methods
 		// =====================================================================
@@ -368,33 +386,42 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 			$get_available_active_plugins = array_merge( $get_network_active_plugins, $get_active_plugins );
 
 			foreach ( $get_available_active_plugins as $plugin ) {
-				$plugin_data               = get_plugin_data( $this->get_plugin_file( $plugin ) );
+
+				// Skip Current Deactivating plugin info from list.
+				if ( $plugin_name === $plugin ) {
+					continue;
+				}
+
+				$plugin_data = get_plugin_data( $this->get_plugin_file( $plugin ) );
+
 				$active_plugins[ $plugin ] = array(
-					'Name'      => esc_html( $plugin_data['Name'] ),
-					'PluginURI' => esc_url( $plugin_data['PluginURI'] ),
-					'Version'   => esc_html( $plugin_data['Version'] ),
-					// We want to remove HTML tag only but want to keep inner text as Author Name.
-					'Author'    => strip_tags( $plugin_data['Author'] ), // phpcs:ignore WordPress.WP.AlternativeFunctions.strip_tags_strip_tags
-					'Slug'      => $plugin,
+					'name'           => esc_html( $plugin_data['Name'] ),
+					'plugin_uri'     => esc_url( $plugin_data['PluginURI'] ),
+					'version'        => esc_html( $plugin_data['Version'] ),
+					'author'         => wp_strip_all_tags( $plugin_data['Author'] ),
+					'author_website' => esc_url( $plugin_data['AuthorURI'] ),
+					'slug'           => $plugin,
 				);
 			}
 
 			// Build the complete feedback request body.
 			$request_body = array(
 				'feedback'  => array(
-					'reason_id'       => $reason_id,
+					'reason_slug'     => $reason_id,
 					'reason_title'    => $reason_title,
 					'reason_text'     => $reason_text,
 					'plugin_slug'     => $plugin_name,
 					'plugin_version'  => $plugin_version,
 					'plugin_settings' => $this->get_options(),
+					'is_pro'          => $this->is_pro(),
+					'license_key'     => $this->license_key(),
 				),
 				'wordpress' => array(
 					'version'          => $wp['wp-core']['fields']['version']['value'],
 					'site_language'    => $wp['wp-core']['fields']['site_language']['value'],
 					'user_language'    => $wp['wp-core']['fields']['user_language']['value'],
 					'site_url'         => $wp['wp-core']['fields']['site_url']['value'],
-					'is_multisite'     => $wp['wp-core']['fields']['multisite']['value'],
+					'is_multisite'     => $this->string_to_boolean( $wp['wp-core']['fields']['multisite']['value'] ),
 					'environment_type' => $wp['wp-core']['fields']['environment_type']['value'],
 				),
 				'theme'     => array(
