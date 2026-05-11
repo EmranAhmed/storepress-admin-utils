@@ -1067,5 +1067,25 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 
 			return $new_args;
 		}
+
+
+		/**
+		 * Convert a string to a lowercase snake_case key.
+		 *
+		 * Lowercases the input, replaces any sequence of non-word characters with
+		 * an underscore, and strips leading/trailing underscores.
+		 * Example: `"My Tab-ID"` → `"my_tab_id"`.
+		 *
+		 * @param string $key The string to convert.
+		 *
+		 * @return string Snake-case string safe for use as an array key or method name segment.
+		 *
+		 * @since 1.0.0
+		 */
+		public function convert_to_snake_key( string $key ): string {
+			$key = strtolower( $key );
+			$key = preg_replace( '/\W+/', '_', $key );
+			return trim( $key, '_' );
+		}
 	}
 }

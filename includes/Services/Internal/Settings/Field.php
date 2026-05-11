@@ -32,10 +32,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 	 *
 	 * @name Field
 	 *
-	 * @phpstan-use CallerTrait<AbstractSettings>
-	 *
-	 * @method AbstractSettings get_caller() Returns the parent AbstractSettings instance.
-	 *
 	 * @since   1.0.0
 	 *
 	 * @example Basic usage:
@@ -1085,7 +1081,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			return $this->has_attribute( 'suffix' );
 		}
 
-
 		/**
 		 * Check unpredicted input value and saved values.
 		 *
@@ -1101,12 +1096,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				return false;
 			}
 
-			// $input_value and $saved_value data type is unpredictable so we have to disable PHPCS StrictComparisons and StrictInArray.
-			if ( $in_array_check ) {
-				return in_array( $input_value, is_array( $saved_value ) ? $saved_value : array( $saved_value ) ); // phpcs:ignore WordPress.PHP.StrictInArray.MissingTrueStrict
+			if ( is_numeric( $input_value ) ) {
+				$input_value = sanitize_text_field( $input_value );
 			}
 
-			return $input_value == $saved_value; // phpcs:ignore Universal.Operators.StrictComparisons.LooseEqual
+			// $input_value and $saved_value data type is unpredictable so we convert all saved value and input value to string.
+			if ( $in_array_check ) {
+				$saved_value = array_map( 'sanitize_text_field', is_array( $saved_value ) ? $saved_value : array( $saved_value ) );
+
+				return in_array( $input_value, $saved_value, true );
+			}
+
+			$saved_value = sanitize_text_field( $saved_value );
+
+			return $input_value === $saved_value;
 		}
 
 		// =====================================================================

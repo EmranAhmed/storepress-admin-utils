@@ -16,7 +16,6 @@
 	namespace StorePress\AdminUtils\Services\Internal\Settings;
 
 	use StorePress\AdminUtils\Abstracts\AbstractSettings;
-	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );

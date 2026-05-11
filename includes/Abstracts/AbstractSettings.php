@@ -341,9 +341,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 					$navs[ $key ]['sidebar']       = true;
 				}
 
-				$page_callback    = array( $this, sprintf( $this->page_callback_fn_name_convention, $key ) );
-				$fields_callback  = array( $this, sprintf( $this->fields_callback_fn_name_convention, $key ) );
-				$sidebar_callback = array( $this, sprintf( $this->sidebar_callback_fn_name_convention, $key ) );
+				$page_callback    = array( $this, $this->get_page_callback_fn_name( $key ) );
+				$fields_callback  = array( $this, $this->get_fields_callback_fn_name( $key ) );
+				$sidebar_callback = array( $this, $this->get_sidebar_callback_fn_name( $key ) );
 
 				$navs[ $key ]['buttons'] = ! is_callable( $page_callback );
 
@@ -353,6 +353,51 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			}
 
 			return $navs;
+		}
+
+		/**
+		 * Get the expected page callback method name for a given tab.
+		 *
+		 * Returns the method name following the convention (e.g. `add_{tab}_settings_page`).
+		 *
+		 * @param string $tab_id Tab identifier.
+		 *
+		 * @return string Method name, e.g. `add_general_settings_page`.
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_page_callback_fn_name( string $tab_id ): string {
+			return sprintf( $this->page_callback_fn_name_convention, $this->convert_to_snake_key( $tab_id ) );
+		}
+
+		/**
+		 * Get the expected fields callback method name for a given tab.
+		 *
+		 * Returns the method name following the convention (e.g. `add_{tab}_settings_fields`).
+		 *
+		 * @param string $tab_id Tab identifier.
+		 *
+		 * @return string Method name, e.g. `add_general_settings_fields`.
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_fields_callback_fn_name( string $tab_id ): string {
+			return sprintf( $this->fields_callback_fn_name_convention, $this->convert_to_snake_key( $tab_id ) );
+		}
+
+		/**
+		 * Get the expected sidebar callback method name for a given tab.
+		 *
+		 * Returns the method name following the convention (e.g. `add_{tab}_settings_sidebar`).
+		 *
+		 * @param string $tab_id Tab identifier.
+		 *
+		 * @return string Method name, e.g. `add_general_settings_sidebar`.
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_sidebar_callback_fn_name( string $tab_id ): string {
+			return sprintf( $this->sidebar_callback_fn_name_convention, $this->convert_to_snake_key( $tab_id ) );
 		}
 
 		/**
@@ -619,7 +664,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 						if ( in_array( $field['id'], $_field_keys, true ) ) {
 
-							$fields_fn_name = sprintf( $this->fields_callback_fn_name_convention, $tab_id );
+							$fields_fn_name = $this->get_fields_callback_fn_name( $tab_id );
 							$message        = sprintf( 'Duplicate field id "<strong>%s</strong>" found. Please use unique field id.', $field['id'] );
 
 							wp_trigger_error( $fields_fn_name, $message );
@@ -812,10 +857,28 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 					$this->display_buttons();
 				}
 			} else {
-				$fields_fn_name      = sprintf( $this->fields_callback_fn_name_convention, $current_tab );
-				$page_fn_name        = sprintf( $this->page_callback_fn_name_convention, $current_tab );
+				$classes             = array();
+				$fields_fn_name      = $this->get_fields_callback_fn_name( $current_tab );
+				$page_fn_name        = $this->get_page_callback_fn_name( $current_tab );
 				$class_relative_path = $this->get_class_relative_path( $this );
-				$message             = sprintf( 'Should return fields array from "<strong>%s</strong>". Or For custom page create "<strong>%s</strong>" in <strong>%s</strong><br />', $fields_fn_name, $page_fn_name, $class_relative_path );
+				$classes[]           = $class_relative_path;
+
+				$parent_class_relative_path = '';
+				if ( $this->has_parent_class( $this ) ) {
+					$parent_class_relative_path = $this->get_parent_class_relative_path( $this );
+					$classes[]                  = $parent_class_relative_path;
+				}
+
+				$classes = array_map(
+					static function ( string $class_file ) {
+						return sprintf( 'in <strong>%s</strong> file.', $class_file );
+					},
+					$classes
+				);
+
+				$classes_files = implode( '<br /> or ', $classes );
+
+				$message = sprintf( 'Should return fields array from "<strong>%s</strong>". Or For custom page create "<strong>%s</strong>"<br /> %s<br /><br />', $fields_fn_name, $page_fn_name, $classes_files );
 				wp_trigger_error( '', $message );
 			}
 		}
@@ -862,7 +925,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 */
 		public function get_default_sidebar(): void {
 			$current_tab       = $this->get_current_tab();
-			$callback_function = sprintf( $this->sidebar_callback_fn_name_convention, $current_tab );
+			$callback_function = $this->get_sidebar_callback_fn_name( $current_tab );
 
 			/* translators: %s: Method name. */
 			$message  = sprintf( esc_html__( "Method '%s' not implemented. Must be overridden in subclass." ), __FUNCTION__ );
@@ -1020,7 +1083,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		final public function settings_actions(): void {
-			if ( is_null( $this->http_request_var( 'action' ) ) || $this->http_get_var( 'page' ) !== $this->get_current_page_slug() ) {
+
+			// Bail if this is not an admin page.
+			if ( $this->http_get_var( 'page' ) !== $this->get_current_page_slug() ) {
+				return;
+			}
+
+			// Bail if this is not an action.
+			if ( ! $this->http_request_var( 'action', false ) ) {
 				return;
 			}
 
@@ -1054,6 +1124,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			if ( 'reset' === $current_action ) {
 				$this->process_action_reset();
 			}
+
+			/**
+			 * Fires after a settings form action has been processed.
+			 *
+			 * @param string           $current_action The action that was processed ('update' or 'reset').
+			 * @param AbstractSettings $settings           The current settings instance.
+			 *
+			 * @since 1.0.0
+			 */
+			do_action( 'storepress_admin_utils_services_settings_process_action', $current_action, $this );
 		}
 
 		/**

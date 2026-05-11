@@ -102,14 +102,50 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\MethodShouldImplementTrait' 
 		 *
 		 * @return string The relative file path (e.g., '/wp-content/plugins/my-plugin/MyClass.php').
 		 *
-		 * @throws \ReflectionException If the class cannot be reflected.
-		 *
 		 * @see \ReflectionClass::getFileName()
 		 *
 		 * @since 1.0.0
 		 */
 		public function get_class_relative_path( object $class_object ): string {
 			$class_file = ( new ReflectionClass( $class_object ) )->getFileName();
+			return str_ireplace( ABSPATH, '/', $class_file );
+		}
+
+		/**
+		 * Determine whether the given object has no parent class.
+		 *
+		 * @param object $class_object The class instance to check.
+		 *
+		 * @return bool True if the object has no parent class, false otherwise.
+		 *
+		 * @since 1.0.0
+		 */
+		public function has_parent_class( object $class_object ): bool {
+			$parent_class = get_parent_class( $class_object );
+			return false !== $parent_class;
+		}
+
+
+		/**
+		 * Get the relative file path for the parent class of a given object.
+		 *
+		 * @param object $class_object The class instance whose parent path to resolve.
+		 *
+		 * @return string Relative path to the parent class file, or empty string if no parent exists.
+		 *
+		 * @see get_class_relative_path()
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_parent_class_relative_path( object $class_object ): string {
+
+			$parent_class = ( new ReflectionClass( $class_object ) )->getParentClass();
+
+			if ( ! $parent_class ) {
+				return '';
+			}
+
+			$class_file = $parent_class->getFileName();
 			return str_ireplace( ABSPATH, '/', $class_file );
 		}
 	}
