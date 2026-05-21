@@ -366,38 +366,16 @@ composer require storepress/admin-utils
 	
 	declare( strict_types=1 );
 	
-	namespace StorePress\Example\ServiceProviders;
+	namespace StorePress\Example\Integrations;
 	
 	use StorePress\AdminUtils\Traits\SingletonTrait;
+	use StorePress\AdminUtils\ServiceProviders\ServiceProviderLoader;
 	
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
-	class ServiceProviders {
+	class ServiceProviders extends ServiceProviderLoader {
 		
 		use SingletonTrait;
-		
-		protected $service_providers = array();
-		
-		public function __construct( $service_providers ) {
-			$this->service_providers = $service_providers;
-		    $this->init();
-		}
-		
-		public function get_providers(): array {
-			return $this->service_providers;
-		}
-		
-		private function init(): void {
-			$providers = $this->get_providers();
-			
-			
-			foreach ( $providers as $provider ) {
-				$provider::instance();
-				$provider::instance()->register();
-				$provider::instance()->boot();
-			}
-			
-		}
 	}
 ```
 

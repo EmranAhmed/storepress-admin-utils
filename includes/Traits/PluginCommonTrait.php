@@ -444,5 +444,87 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 			wp_register_script( 'storepress-utils', $file_url, $asset['dependencies'], $asset['version'], array( 'strategy' => 'defer' ) );
 			return 'storepress-utils';
 		}
+
+		/**
+		 * Writes a log entry via WooCommerce logger when WP_DEBUG is enabled.
+		 *
+		 * @param string                  $title   log title.
+		 * @param array<array-key, mixed> $message log message.
+		 *
+		 * @return void
+		 * @since 3.4.0
+		 */
+		public function log( string $title, array $message = array() ): void {
+			// If WooCommerce Installed.
+			if ( ! function_exists( 'wc_get_logger' ) ) {
+				return;
+			}
+
+			if ( defined( 'WP_DEBUG' ) && true === constant( 'WP_DEBUG' ) ) {
+				$context = array(
+					'source' => dirname( plugin_basename( $this->get_plugin_file() ) ),
+				);
+
+				wc_get_logger()->info( $title, array_merge( $message, $context ) );
+			}
+		}
+
+		/**
+		 * Returns the WooCommerce log file URL for this plugin.
+		 *
+		 * @return string
+		 * @since 3.4.0
+		 */
+		public function get_log_file_url(): string {
+
+			$query_args = array(
+				'page'     => 'wc-status',
+				'tab'      => 'logs',
+				'log_file' => sprintf( '%s-%s.log', dirname( plugin_basename( $this->get_plugin_file() ) ), sanitize_file_name( wp_hash( dirname( plugin_basename( $this->get_plugin_file() ) ) ) ) ),
+			);
+
+			return add_query_arg( $query_args, admin_url( 'admin.php' ) );
+		}
+
+		/**
+		 * Load Template File.
+		 *
+		 * @param string               $template_name Template File Name with Extenstion.
+		 * @param array<string, mixed> $args          Arguments.
+		 * @param bool                 $once          Include once or multiple time.
+		 *
+		 * @return void
+		 * @since 3.4.0
+		 * @example
+		 * <pre>
+		 *
+		 *  // Basic usage — render a settings page with data
+		 * $this->load_template( 'settings-page.php', [
+		 *     'page_title'  => 'My Plugin Settings',
+		 *     'description' => 'Configure your plugin options below.',
+		 *     'notices'     => [[ 'type' => 'success', 'message' => 'Settings saved.' ]],
+		 * ] );
+		 *
+		 *
+		 * // Render a simple header partial — use $once = true to avoid
+		 *
+		 * // duplicate output if called from multiple hooks in one request
+		 * $this->load_template( 'partials/admin-header.php', [
+		 *     'plugin_name' => 'My Plugin',
+		 * ], true );
+		 *
+		 * // No args needed — template uses globals like $post directly*
+		 *
+		 * $this->load_template( 'partials/empty-state.php' );
+		 * </pre>
+		 */
+		public function load_template( string $template_name, array $args = array(), bool $once = false ): void {
+			extract( $args ); // @codingStandardsIgnoreLine
+			if ( $once ) {
+				include_once trailingslashit( $this->templates_path() ) . $template_name;
+			} else {
+				include trailingslashit( $this->templates_path() ) . $template_name;
+			}
+		}
 	}
 }
