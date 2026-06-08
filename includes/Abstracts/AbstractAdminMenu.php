@@ -136,7 +136,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 						return;
 					}
 
-					wp_add_inline_style( 'admin-menu', '#adminmenu li.menu-top.wp-menu-separator { min-height: auto; }' );
+					wp_add_inline_style( 'admin-menu', '#adminmenu li.menu-top.wp-menu-separator { min-height: auto; height: 0; }' );
 					self::$is_separator_css_added = true;
 				}
 			);

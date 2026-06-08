@@ -1,7 +1,7 @@
 {
 	"name": "storepress/admin-utils",
 	"description": "Utility Classes for WordPress Plugin Projects.",
-	"version": "3.4.0",
+	"version": "3.4.1",
 	"license": "GPL-2.0-or-later",
 	"type": "library",
 	"keywords": [
@@ -37,7 +37,6 @@
 		"wp-coding-standards/wpcs": "^3.3.0",
 		"wp-phpunit/wp-phpunit": "^7.0.0",
 		"yoast/phpunit-polyfills": "1.1.5"
-		
 	},
 	"repositories": [
 		{

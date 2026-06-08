@@ -1520,7 +1520,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label> %s', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $option_value ), wp_kses_post( $option_description ) );
 			}
 
-			return sprintf( '<fieldset><legend class="screen-reader-text">%s</legend>%s</fieldset>', $title, implode( '<br />', $inputs ) );
+			return sprintf( '<fieldset><legend class="screen-reader-text">%s</legend>%s</fieldset>', $title, implode( ' ', $inputs ) );
 		}
 
 		/**
