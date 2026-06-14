@@ -190,7 +190,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @see self::add_settings()
 		 */
-		final public function get_settings(): array {
+		final public function get_registered_tabs(): array {
 			return $this->add_settings();
 		}
 
@@ -285,13 +285,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		final public function get_current_tab(): string {
+
 			$default_tab_query_key = $this->default_tab_name();
 
 			$available_tab_keys = array_keys( $this->get_tabs() );
 
 			$tab_query_key = in_array( $default_tab_query_key, $available_tab_keys, true ) ? $default_tab_query_key : (string) $available_tab_keys[0];
 
-			$tab = $this->http_get_var( 'tab', sanitize_title( $tab_query_key ) );
+			$tab = $this->http_get_var( 'tab', $tab_query_key );
 
 			return sanitize_title( wp_unslash( $tab ) );
 		}
@@ -304,7 +305,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		final public function get_tabs(): array {
-			$tabs = $this->get_settings();
+			$tabs = $this->get_registered_tabs();
 			$navs = array();
 
 			$first_key = array_key_first( $tabs );
@@ -797,27 +798,27 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 				$tab_url    = false === $tab['external'] ? $this->get_tab_uri( $tab_id ) : $tab['external'];
 				$tab_target = false === $tab['external'] ? '_self' : '_blank';
-				$icon       = is_null( $tab['icon'] ) ? '' : sprintf( '<span class="%s"></span>', $tab['icon'] );
+				$icon       = is_null( $tab['icon'] ) ? '' : sprintf( '<span class="%s"></span>', esc_attr( $tab['icon'] ) );
 				$attributes = $tab['attributes'];
 
 				$attrs = implode(
 					' ',
 					array_map(
-						function ( $key ) use ( $attributes ) {
+						static function ( $key ) use ( $attributes ) {
 
 							if ( is_bool( $attributes[ $key ] ) ) {
 								return $attributes[ $key ] ? $key : '';
 							}
 
-							return sprintf( '%s="%s"', $key, esc_attr( $attributes[ $key ] ) );
+							return sprintf( '%s="%s"', esc_attr( $key ), esc_attr( $attributes[ $key ] ) );
 						},
 						array_keys( $attributes )
 					)
 				);
 
-				// @TODO: Update with common script. // $this->>get_html_attributes()
+				// @TODO: Update with common script. // $this->get_html_attributes()
 
-				$navs[] = sprintf( '<a %s target="%s" href="%s" class="%s">%s</span><span>%s</span></a>', $attrs, esc_attr( $tab_target ), esc_url( $tab_url ), esc_attr( implode( ' ', $tab['css-classes'] ) ), wp_kses_post( $icon ), esc_html( $tab['name'] ) );
+				$navs[] = sprintf( '<a %s target="%s" href="%s" class="%s">%s<span>%s</span></a>', $attrs, esc_attr( $tab_target ), esc_url( $tab_url ), esc_attr( implode( ' ', $tab['css-classes'] ) ), wp_kses_post( $icon ), esc_html( $tab['name'] ) );
 			}
 
 			return $navs;
@@ -1085,12 +1086,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		final public function settings_actions(): void {
 
 			// Bail if this is not an admin page.
-			if ( $this->http_get_var( 'page' ) !== $this->get_current_page_slug() ) {
+			if ( wp_unslash( $this->http_get_var( 'page' ) ) !== $this->get_current_page_slug() ) {
 				return;
 			}
 
 			// Bail if this is not an action.
 			if ( ! $this->http_request_var( 'action', false ) ) {
+				return;
+			}
+
+			if ( ! $this->has_capability() ) {
 				return;
 			}
 
@@ -1364,12 +1369,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			}
 
 			foreach ( $_data['private'] as $key => $value ) {
-				update_option( esc_attr( $key ), $value );
+				update_option( sanitize_key( $key ), $value );
 			}
 
 			$_data = $this->before_update_options( $current_data );
 
-			update_option( $this->get_settings_id(), $_data );
+			update_option( sanitize_key( $this->get_settings_id() ), $_data );
 		}
 
 		/**
@@ -1441,7 +1446,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 				return false;
 			}
 
-			return sanitize_text_field( $this->http_get_var( 'message' ) );
+			return sanitize_text_field( wp_unslash( $this->http_get_var( 'message' ) ) );
 		}
 
 		/**
@@ -1466,7 +1471,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		final public function add_settings_message( string $message, string $type = 'updated' ): self {
-			add_settings_error( $this->get_current_page_slug(), sprintf( '%s_message', $this->get_settings_id() ), $message, $type );
+			add_settings_error( $this->get_current_page_slug(), sprintf( '%s_message', $this->get_settings_id() ), wp_kses_post( $message ), $type );
 
 			return $this;
 		}
@@ -1484,7 +1489,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 */
 		public function is_admin_page(): bool {
 			// We have to check is valid current page.
-			return ( is_admin() && $this->get_current_page_slug() === $this->http_get_var( 'page' ) );
+			return ( is_admin() && $this->get_current_page_slug() === wp_unslash( $this->http_get_var( 'page' ) ) );
 		}
 
 		/**
@@ -1638,21 +1643,18 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 				return;
 			}
 
+			$entity = array(
+				'name'    => $this->core_data_entity_name(),
+				'kind'    => $this->core_data_entity_kind(),
+				'baseURL' => sprintf( '/%s/%s', $this->show_in_rest(), $this->rest_api_base() ),
+				'label'   => $this->get_page_title(),
+			);
+
 			wp_add_inline_script(
 				'wp-data',
 				sprintf(
-					'wp.domReady(function(){
-							wp.data.dispatch( "core" ).addEntities( [{
-								name: "%s",
-								kind: "%s",
-								baseURL: "%s",
-								label: "%s"
-							}] );
-							});',
-					$this->core_data_entity_name(),
-					$this->core_data_entity_kind(),
-					sprintf( '/%s/%s', $this->show_in_rest(), $this->rest_api_base() ),
-					$this->get_page_title()
+					'wp.domReady(function(){ wp.data.dispatch("core").addEntities([%s]); });',
+					wp_json_encode( $entity )
 				)
 			);
 		}

@@ -169,7 +169,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\API' ) )
 		 * @since 1.0.0
 		 */
 		public function get_item_permissions_check( $request ): bool {
-			return $this->is_empty_string( $this->permission ) || current_user_can( $this->permission );
+			if ( $this->is_empty_string( $this->permission ) ) {
+				return false;
+			}
+			return current_user_can( $this->permission );
 		}
 
 		/**

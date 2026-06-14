@@ -190,8 +190,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 
 			$menu_position = (float) sprintf( '%d.%d', $this->get_menu_position(), self::$position );
 			add_menu_page(
-				$this->get_menu_title(),
-				$this->get_menu_title(),
+				esc_html( $this->get_menu_title() ),
+				wp_kses_post( $this->get_menu_title() ),
 				$capability,
 				$this->get_menu_slug(),
 				'__return_false',

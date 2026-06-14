@@ -21,7 +21,7 @@
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
 	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
 
-if ( ! class_exists( '\StorePress\AdminUtils\AbstractDialog' ) ) {
+if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDialog' ) ) {
 	/**
 	 * Abstract Dialog Class.
 	 *
@@ -346,6 +346,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\AbstractDialog' ) ) {
 		 * @see self::render() Where this check is performed.
 		 */
 		public function has_capability(): bool {
+
+			$this->subclass_should_implement( __FUNCTION__ );
+
 			return true;
 		}
 
@@ -487,7 +490,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\AbstractDialog' ) ) {
 
 				$html[] = $is_button ? sprintf( '<button %s>', $this->get_html_attributes( $attributes ) ) : sprintf( '<a %s>', $this->get_html_attributes( $attributes ) );
 				$html[] = $has_spinner ? '<span class="spinner"></span>' : '';
-				$html[] = sprintf( '<span class="button-text">%s</span>', $label );
+				$html[] = sprintf( '<span class="button-text">%s</span>', esc_html( $label ) );
 				$html[] = $is_button ? '</button>' : '</a>';
 			}
 

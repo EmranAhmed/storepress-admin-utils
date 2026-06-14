@@ -447,6 +447,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 			$host = $this->get_update_server_hostname();
 			$path = $this->get_update_server_path();
 
+			// Production environment allow only HTTPS protocol.
+			if ( 'https' !== $scheme && $this->is_production_environment() ) {
+				// Replace HTTP scheme to HTTPS.
+				return sprintf( 'https://%s%s', $host, $path );
+			}
+
 			return sprintf( '%s://%s%s', $scheme, $host, $path );
 		}
 
@@ -732,7 +738,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 				return array();
 			}
 
-			return json_decode( wp_remote_retrieve_body( $raw_response ), true );
+			$decoded = json_decode( wp_remote_retrieve_body( $raw_response ), true );
+
+			return is_array( $decoded ) ? $decoded : array();
 		}
 
 		/**
@@ -753,7 +761,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 * @see prepare_remote_data()
 		 *
 		 * @example Server API endpoint:
-		 *          https://example.com/updater-api/wp-json/plugin-updater/v1/check-update
+		 *          https://example.com/wp-json/plugin-updater/v1/check-update
 		 *
 		 * @since 1.0.0
 		 */
@@ -916,41 +924,50 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 			}
 
 			if ( isset( $remote_data['version'] ) ) {
-				$item['new_version'] = $remote_data['version'];
+				$item['new_version'] = sanitize_text_field( $remote_data['version'] );
 			}
 
 			if ( isset( $remote_data['new_version'] ) ) {
-				$item['new_version'] = $remote_data['new_version'];
+				$item['new_version'] = sanitize_text_field( $remote_data['new_version'] );
 			}
 
 			// Unset version we already set it as new version.
 			unset( $remote_data['version'] );
 
 			if ( isset( $remote_data['last_updated'] ) ) {
-				$item['last_updated'] = $remote_data['last_updated']; // Example: "2025-03-14 7:15pm GMT".
+				$item['last_updated'] = sanitize_text_field( $remote_data['last_updated'] ); // Example: "2025-03-14 7:15pm GMT".
 			}
 
 			if ( isset( $remote_data['upgrade_notice'] ) ) {
-				$item['upgrade_notice'] = $remote_data['upgrade_notice'];
+				$item['upgrade_notice'] = wp_kses_post( $remote_data['upgrade_notice'] );
 			}
 
 			if ( isset( $remote_data['versions'] ) ) {
-				$item['versions'] = $remote_data['versions'];
+				$item['versions'] = map_deep( $remote_data['versions'], 'sanitize_text_field' );
 			}
 
 			$package_set = false;
 
-			if ( isset( $remote_data['download_link'] ) ) {
-				$item['package']           = $remote_data['download_link'];
-				$item['download_link']     = $remote_data['download_link'];
-				$item['versions']['trunk'] = $remote_data['download_link'];
+			$is_valid_download_link = ! $this->is_empty_string( esc_url_raw( $remote_data['download_link'] ?? '' ) );
+			$is_valid_package_link  = ! $this->is_empty_string( esc_url_raw( $remote_data['package'] ?? '' ) );
+
+			// Production environment only allow HTTPS protocol.
+			if ( $this->is_production_environment() ) {
+				$is_valid_download_link = ! $this->is_empty_string( esc_url_raw( $remote_data['download_link'] ?? '', array( 'https' ) ) );
+				$is_valid_package_link  = ! $this->is_empty_string( esc_url_raw( $remote_data['package'] ?? '', array( 'https' ) ) );
+			}
+
+			if ( isset( $remote_data['download_link'] ) && $is_valid_download_link ) {
+				$item['package']           = esc_url_raw( $remote_data['download_link'] );
+				$item['download_link']     = esc_url_raw( $remote_data['download_link'] );
+				$item['versions']['trunk'] = esc_url_raw( $remote_data['download_link'] );
 				$package_set               = true;
 			}
 
-			if ( isset( $remote_data['package'] ) && ! $package_set ) {
-				$item['package']           = $remote_data['package'];
-				$item['download_link']     = $remote_data['package'];
-				$item['versions']['trunk'] = $remote_data['package'];
+			if ( isset( $remote_data['package'] ) && ! $package_set && $is_valid_package_link ) {
+				$item['package']           = esc_url_raw( $remote_data['package'] );
+				$item['download_link']     = esc_url_raw( $remote_data['package'] );
+				$item['versions']['trunk'] = esc_url_raw( $remote_data['package'] );
 				$package_set               = true;
 			}
 
@@ -960,23 +977,23 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 			}
 
 			if ( isset( $remote_data['tested'] ) ) {
-				$item['tested'] = $remote_data['tested'];
+				$item['tested'] = sanitize_text_field( $remote_data['tested'] );
 			}
 
 			if ( isset( $remote_data['requires'] ) ) {
-				$item['requires'] = $remote_data['requires'];
+				$item['requires'] = sanitize_text_field( $remote_data['requires'] );
 			}
 
 			if ( isset( $remote_data['requires_php'] ) ) {
-				$item['requires_php'] = $remote_data['requires_php'];
+				$item['requires_php'] = sanitize_text_field( $remote_data['requires_php'] );
 			}
 
 			if ( isset( $remote_data['preview_link'] ) ) {
-				$item['preview_link'] = $remote_data['preview_link'];
+				$item['preview_link'] = esc_url_raw( $remote_data['preview_link'] );
 			}
 
 			if ( isset( $remote_data['requires_plugins'] ) ) {
-				$item['requires_plugins'] = $remote_data['requires_plugins'];
+				$item['requires_plugins'] = sanitize_text_field( $remote_data['requires_plugins'] );
 			}
 
 			if ( isset( $remote_data['active_installs'] ) ) {
@@ -988,7 +1005,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 			}
 
 			if ( isset( $remote_data['ratings'] ) ) {
-				$item['ratings'] = $remote_data['ratings'];
+				$item['ratings'] = map_deep( $remote_data['ratings'], 'absint' );
 			}
 
 			if ( isset( $remote_data['support_threads'] ) ) {
@@ -1000,52 +1017,52 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 			}
 
 			if ( isset( $remote_data['added'] ) ) {
-				$item['added'] = $remote_data['added']; // Example: "2018-05-04".
+				$item['added'] = sanitize_text_field( $remote_data['added'] ); // Example: "2018-05-04".
 			}
 
 			if ( isset( $remote_data['homepage'] ) ) {
-				$item['homepage'] = $remote_data['homepage'];
+				$item['homepage'] = esc_url_raw( $remote_data['homepage'] );
 			}
 
 			if ( isset( $remote_data['num_ratings'] ) ) {
-				$item['num_ratings'] = $remote_data['num_ratings'];
+				$item['num_ratings'] = absint( $remote_data['num_ratings'] );
 			}
 
 			if ( isset( $remote_data['business_model'] ) ) {
 				$business_model         = $this->string_to_boolean( $remote_data['business_model'] ) ? 'commercial' : '';
-				$item['business_model'] = $business_model;
+				$item['business_model'] = esc_html( $business_model );
 			}
 
 			if ( isset( $remote_data['commercial_support_url'] ) ) {
-				$item['commercial_support_url'] = $remote_data['commercial_support_url'];
+				$item['commercial_support_url'] = esc_url_raw( $remote_data['commercial_support_url'] );
 			}
 
 			if ( isset( $remote_data['support_url'] ) ) {
-				$item['support_url'] = $remote_data['support_url'];
+				$item['support_url'] = esc_url_raw( $remote_data['support_url'] );
 			}
 
 			if ( isset( $remote_data['banners'] ) ) {
-				$item['banners'] = $remote_data['banners'];
+				$item['banners'] = map_deep( $remote_data['banners'], 'esc_url_raw' );
 			}
 
 			if ( isset( $remote_data['banners_rtl'] ) ) {
-				$item['banners_rtl'] = $remote_data['banners_rtl'];
+				$item['banners_rtl'] = map_deep( $remote_data['banners_rtl'], 'esc_url_raw' );
 			}
 
 			if ( isset( $remote_data['icons'] ) ) {
-				$item['icons'] = $remote_data['icons'];
+				$item['icons'] = map_deep( $remote_data['icons'], 'esc_url_raw' );
 			}
 
 			if ( isset( $remote_data['preview_link'] ) ) {
-				$item['preview_link'] = $remote_data['preview_link'];
+				$item['preview_link'] = esc_url_raw( $remote_data['preview_link'] );
 			}
 
 			if ( isset( $remote_data['author_profile'] ) ) {
-				$item['author_profile'] = $remote_data['author_profile'];
+				$item['author_profile'] = esc_url_raw( $remote_data['author_profile'] );
 			}
 
 			if ( isset( $remote_data['author'] ) ) {
-				$item['author'] = $remote_data['author'];
+				$item['author'] = esc_html( $remote_data['author'] );
 
 				if ( isset( $remote_data['author_profile'] ) ) {
 					$item['author'] = sprintf( '<a target="_blank" href="%s">%s</a>', esc_url( $remote_data['author_profile'] ), esc_html( $remote_data['author'] ) );
@@ -1058,7 +1075,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 				 *
 				 * @example ["payment-gateway": "payment gateway", "ecommerce": "ecommerce"].
 				 */
-				$item['tags'] = $remote_data['tags'];
+				$item['tags'] = map_deep( $remote_data['tags'], 'sanitize_text_field' );
 			}
 
 			return $item;

@@ -166,10 +166,23 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 				return;
 			}
 
+			if ( ! $this->has_permission() ) {
+				return;
+			}
+
 			$this->get_factory()->create_dialog( $this );
 
 			// Enqueue scripts with priority 20 to ensure dependencies are loaded.
 			add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_scripts' ), 20 );
+		}
+
+		/**
+		 * User have permission for deactivation.
+		 *
+		 * @return bool
+		 */
+		public function has_permission(): bool {
+			return current_user_can( 'update_plugins' );
 		}
 
 		// =====================================================================
@@ -349,16 +362,25 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 
 			check_ajax_referer( $this->get_plugin_slug() );
 
+			if ( ! $this->has_permission() ) {
+				wp_send_json_error( array( 'message' => __( 'Sorry, you are not allowed to access this page.' ) ), 403 );
+			}
+
 			$reasons = $this->get_reasons();
 
-			$feedback_data = map_deep( $_POST['data'], 'sanitize_text_field' );
+			$feedback_data = map_deep( wp_unslash( $_POST['data'] ?? array() ), 'sanitize_text_field' );
 
 			/**
 			 * Feedback data shape.
 			 *
 			 * @var array{reason_type: string, reason_value: string} $feedback_data
 			 */
-			$reason_id = sanitize_title( $feedback_data['reason_type'] );
+			$reason_id = sanitize_title( $feedback_data['reason_type'] ?? '' );
+
+			// Check available reason.
+			if ( ! isset( $reasons[ $reason_id ] ) ) {
+				wp_send_json_error( array( 'message' => 'Invalid reason.' ), 400 );
+			}
 
 			// Skip API call for temporary deactivation - no feedback needed.
 			if ( 'temporary_deactivation' === $reason_id ) {
@@ -450,8 +472,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 			$response = wp_remote_post(
 				esc_url_raw( $this->get_api_url() ),
 				array(
-					'sslverify' => false,
-					'body'      => $request_body,
+					'body' => $request_body,
 				)
 			);
 

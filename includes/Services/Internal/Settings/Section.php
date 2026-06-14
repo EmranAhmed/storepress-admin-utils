@@ -403,8 +403,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 		 */
 		public function display(): string {
 
-			$title       = $this->has_title() ? sprintf( '<h2 class="title">%s</h2>', $this->get_title() ) : '';
-			$description = $this->has_description() ? sprintf( '<p class="section-description">%s</p>', $this->get_description() ) : '';
+			$title       = $this->has_title() ? sprintf( '<h2 class="title">%s</h2>', esc_html( $this->get_title() ) ) : '';
+			$description = $this->has_description() ? sprintf( '<p class="section-description">%s</p>', wp_kses_post( $this->get_description() ) ) : '';
 
 			return $title . $description;
 		}

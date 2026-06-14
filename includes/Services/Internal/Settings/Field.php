@@ -191,6 +191,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 
 			$this->field['show_in_rest'] = $this->get_attribute( 'show_in_rest', true );
 
+			if ( $this->is_private() || 'password' === $this->get_type() ) {
+				$this->field['show_in_rest'] = false; // Never expose secrets via REST.
+			}
+
 			return $this;
 		}
 
@@ -1299,7 +1303,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				'input-container',
 			);
 
-			$suffix_markup = $this->has_suffix() ? sprintf( '<span class="input-suffix">%s</span>', $this->get_suffix() ) : '';
+			$suffix_markup = $this->has_suffix() ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $this->get_suffix() ) ) : '';
 
 			return sprintf( '<div class="%s"><span class="input-field"><input %s /></span> %s</div>', esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $additional_attributes ), $suffix_markup );
 		}
@@ -1369,7 +1373,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 
 			$unit_hidden_input = sprintf( '<input class="input-unit-value" readonly name="%s" type="hidden" value="%s" />', $this->get_name(), $value );
 
-			$suffix_markup = $has_suffix ? sprintf( '<span class="input-suffix">%s</span>', $units[0] ) : $unit_markup;
+			$suffix_markup = $has_suffix ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $units[0] ) ) : $unit_markup;
 
 			$attrs = $this->get_html_attributes( $additional_attributes, $attributes );
 
@@ -1520,7 +1524,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label> %s', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $option_value ), wp_kses_post( $option_description ) );
 			}
 
-			return sprintf( '<fieldset><legend class="screen-reader-text">%s</legend>%s</fieldset>', $title, implode( ' ', $inputs ) );
+			return sprintf( '<fieldset><legend class="screen-reader-text">%s</legend>%s</fieldset>', esc_html( $title ), implode( ' ', $inputs ) );
 		}
 
 		/**
@@ -1978,7 +1982,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 
 					$unit_markup       = sprintf( '<span class="input-unit">%s</span>', $this->get_unit_markup( $uniq_id, $field_value ) );
 					$unit_hidden_input = sprintf( '<input class="input-unit-value" readonly name="%s" type="hidden" value="%s" />', $field_name, $field_value );
-					$suffix_markup     = $has_suffix ? sprintf( '<span class="input-suffix">%s</span>', $units[0] ) : $unit_markup;
+					$suffix_markup     = $has_suffix ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $units[0] ) ) : $unit_markup;
 
 					$datalist_markup = '';
 					if ( $field->has_attribute( 'html_datalist' ) ) {
@@ -1991,9 +1995,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 						$is_numeric      = wp_is_numeric_array( $datalist_items );
 						foreach ( $datalist_items as $value => $label ) {
 							if ( $is_numeric ) {
-								$datalist_markup .= sprintf( '<option value="%s"></option>', $label );
+								$datalist_markup .= sprintf( '<option value="%s"></option>', esc_attr( $label ) );
 							} else {
-								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', $value, $label );
+								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( $value ), esc_attr( $label ) );
 							}
 						}
 						$datalist_markup .= '</datalist>';
@@ -2035,15 +2039,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 						$is_numeric      = wp_is_numeric_array( $datalist_items );
 						foreach ( $datalist_items as $value => $label ) {
 							if ( $is_numeric ) {
-								$datalist_markup .= sprintf( '<option value="%s"></option>', $label );
+								$datalist_markup .= sprintf( '<option value="%s"></option>', esc_attr( $label ) );
 							} else {
-								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', $value, $label );
+								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( $value ), esc_attr( $label ) );
 							}
 						}
 						$datalist_markup .= '</datalist>';
 					}
 
-					$suffix_markup = $has_field_suffix ? sprintf( '<span class="input-suffix">%s</span>', $field_suffix ) : '';
+					$suffix_markup = $has_field_suffix ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $field_suffix ) ) : '';
 
 					$wrapper_classes = array(
 						'input-container',
@@ -2221,7 +2225,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		public function get_label_markup(): string {
 
 			$id             = $this->get_id();
-			$title          = sprintf( '<span class="input-label">%s</span>', $this->get_title() );
+			$title          = sprintf( '<span class="input-label">%s</span>', esc_html( $this->get_title() ) );
 			$type           = $this->get_type();
 			$tooltip_markup = $this->get_tooltip_markup();
 
@@ -2327,9 +2331,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				$is_numeric      = wp_is_numeric_array( $datalist_attributes );
 				foreach ( $datalist_attributes as $value => $label ) {
 					if ( $is_numeric ) {
-						$datalist_markup .= sprintf( '<option value="%s"></option>', $label );
+						$datalist_markup .= sprintf( '<option value="%s"></option>', esc_attr( $label ) );
 					} else {
-						$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', $value, $label );
+						$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( $value ), esc_attr( $label ) );
 					}
 				}
 				$datalist_markup .= '</datalist>';

@@ -53,6 +53,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Dialog' )
 		}
 
 		/**
+		 * Capability.
+		 *
+		 * @return bool
+		 */
+		public function has_capability(): bool {
+			return $this->rollback->has_capability();
+		}
+
+		/**
 		 * Get the rollback service instance.
 		 *
 		 * @since 1.0.0
@@ -102,8 +111,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Dialog' )
 		 * @return string
 		 */
 		public function content(): string {
-			$info = $this->get_rollback()->get_plugin_info();
-			return $info['sections']['changelog'];
+			$info     = $this->get_rollback()->get_plugin_info();
+			$sections = isset( $info['sections'] ) ? (array) $info['sections'] : array();
+			return isset( $sections['changelog'] ) && is_string( $sections['changelog'] ) ? $sections['changelog'] : '';
 		}
 
 		/**

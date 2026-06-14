@@ -328,7 +328,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 			$strings = $this->get_localize_strings();
 
 			// Check capability.
-			if ( ! current_user_can( 'update_plugins' ) ) {
+			if ( ! $this->has_capability() ) {
 				$status['message'] = esc_html( $strings['rollback_no_access'] );
 				wp_send_json_error( $status );
 			}
@@ -367,7 +367,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 
 			$plugin_info = (array) $plugin_info;
 
-			$package = trim( $plugin_info['versions'][ $version ] );
+			$package = esc_url_raw( trim( $plugin_info['versions'][ $version ] ) );
+
+			// Production environment only allow HTTPS URL.
+			if ( $this->is_production_environment() ) {
+				$package = esc_url_raw( trim( $plugin_info['versions'][ $version ] ?? '' ), array( 'https' ) );
+			}
+
+			if ( $this->is_empty_string( $package ) ) {
+				$status['message'] = esc_html( $strings['rollback_failed'] );
+				wp_send_json_error( $status );
+			}
 
 			// Get Skin and Run Rollback.
 			$skin   = $this->get_factory()->get_upgrader_skin();

@@ -465,6 +465,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 			$allowed_input_html = $this->get_kses_allowed_input_html( $this->get_settings()->allowed_tags() );
 			$allowed_html       = $this->get_kses_allowed_html( $this->get_settings()->allowed_tags() );
 
+			unset( $allowed_input_html['script'], $allowed_input_html['style'], $allowed_input_html['iframe'], $allowed_input_html['object'], $allowed_input_html['embed'] );
+			unset( $allowed_html['script'], $allowed_html['style'], $allowed_html['iframe'], $allowed_html['object'], $allowed_html['embed'] );
+
 			/**
 			 * Section instance for iteration.
 			 *

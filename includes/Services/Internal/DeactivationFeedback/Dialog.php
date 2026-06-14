@@ -117,7 +117,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\DeactivationFeedb
 			$html[] = '<ul class="storepress-admin-plugin-deactivation-reasons">';
 			foreach ( $reasons as $reason_id => $reason ) {
 				$html[] = '<li>';
-				$html[] = sprintf( '<label><input class="storepress-admin-plugin-deactivation-action" name="action" value="%s" type="radio" /> <span>%s</span></label>', $reason_id, $reason['title'] );
+				$html[] = sprintf( '<label><input class="storepress-admin-plugin-deactivation-action" name="action" value="%s" type="radio" /> <span>%s</span></label>', sanitize_key( $reason_id ), wp_kses_post( $reason['title'] ) );
 
 				$condition = array(
 					'inert'                             => true,
@@ -147,7 +147,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\DeactivationFeedb
 				}
 
 				if ( isset( $reason['message'] ) ) {
-					$html[] = sprintf( '<li class="message">%s</li>', $reason['message'] );
+					$html[] = sprintf( '<li class="message">%s</li>', wp_kses_post( $reason['message'] ) );
 				}
 
 				if ( isset( $reason['input'] ) || isset( $reason['message'] ) ) {

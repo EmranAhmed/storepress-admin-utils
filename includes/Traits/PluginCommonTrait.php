@@ -204,6 +204,17 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		}
 
 		/**
+		 * Get Plugin Directory name.
+		 *
+		 * @param string $plugin_file Plugin file.
+		 *
+		 * @return string
+		 */
+		public function get_plugin_dirname( string $plugin_file = '' ): string {
+			return dirname( $this->get_plugin_basename( $plugin_file ) );
+		}
+
+		/**
 		 * Get plugin directory URL.
 		 *
 		 * @since 1.0.0
@@ -446,6 +457,32 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		}
 
 		/**
+		 * Enable Debug Log.
+		 *
+		 * @return bool
+		 */
+		public function is_log_enabled(): bool {
+			return true;
+		}
+
+		/**
+		 * Debug Log Instruction.
+		 *
+		 * @return string
+		 */
+		public function log_instruction(): string {
+			if ( function_exists( 'wc_get_logger' ) ) {
+				return '';
+			}
+
+			if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {
+				return '';
+			}
+
+			return 'Add <code>define(\'WP_DEBUG_LOG\', true);</code> in <code>wp-config.php</code> file.';
+		}
+
+		/**
 		 * Writes a log entry via WooCommerce logger when WP_DEBUG is enabled.
 		 *
 		 * @param string                  $title   log title.
@@ -455,17 +492,28 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @since 3.4.0
 		 */
 		public function log( string $title, array $message = array() ): void {
-			// If WooCommerce Installed.
-			if ( ! function_exists( 'wc_get_logger' ) ) {
+
+			if ( ! $this->is_log_enabled() ) {
 				return;
 			}
 
-			if ( defined( 'WP_DEBUG' ) && true === constant( 'WP_DEBUG' ) ) {
+			$source = $this->get_plugin_dirname();
+
+			// If WooCommerce Installed.
+			if ( function_exists( 'wc_get_logger' ) ) {
 				$context = array(
-					'source' => dirname( plugin_basename( $this->get_plugin_file() ) ),
+					'source' => $source,
 				);
 
 				wc_get_logger()->info( $title, array_merge( $message, $context ) );
+
+				return;
+			}
+
+			if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {
+				$msg          = print_r( $message, true ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_print_r
+				$message_text = sprintf( "[ %s ] => %s :\n%s\n", $source, $title, $msg );
+				error_log( $message_text ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 			}
 		}
 
@@ -477,13 +525,23 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 */
 		public function get_log_file_url(): string {
 
-			$query_args = array(
-				'page'     => 'wc-status',
-				'tab'      => 'logs',
-				'log_file' => sprintf( '%s-%s.log', dirname( plugin_basename( $this->get_plugin_file() ) ), sanitize_file_name( wp_hash( dirname( plugin_basename( $this->get_plugin_file() ) ) ) ) ),
-			);
+			$source = $this->get_plugin_dirname();
 
-			return add_query_arg( $query_args, admin_url( 'admin.php' ) );
+			if ( function_exists( 'wc_get_logger' ) ) {
+				$query_args = array(
+					'page'     => 'wc-status',
+					'tab'      => 'logs',
+					'log_file' => sprintf( '%s-%s.log', $source, sanitize_file_name( wp_hash( $source ) ) ),
+				);
+
+				return add_query_arg( $query_args, admin_url( 'admin.php' ) );
+			}
+
+			if ( defined( 'WP_DEBUG_LOG' ) && true === WP_DEBUG_LOG ) {
+				return trailingslashit( content_url() ) . 'debug.log';
+			}
+
+			return '';
 		}
 
 		/**
@@ -519,12 +577,45 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * </pre>
 		 */
 		public function load_template( string $template_name, array $args = array(), bool $once = false ): void {
-			extract( $args ); // @codingStandardsIgnoreLine
+			$template_data = $args;
+			$path          = trailingslashit( $this->templates_path() ) . $template_name;
 			if ( $once ) {
-				include_once trailingslashit( $this->templates_path() ) . $template_name;
+				include_once $path;
 			} else {
-				include trailingslashit( $this->templates_path() ) . $template_name;
+				include $path;
 			}
+		}
+
+		/**
+		 * Is dev environment.
+		 *
+		 * @return bool
+		 */
+		public function is_development_environment(): bool {
+
+			if ( defined( 'WP_DEBUG' ) && true === WP_DEBUG ) {
+				return true;
+			}
+
+			$environments = array( 'local', 'development' );
+
+			return in_array( wp_get_environment_type(), $environments, true );
+		}
+
+		/**
+		 * Is dev environment.
+		 *
+		 * @return bool
+		 */
+		public function is_production_environment(): bool {
+
+			if ( defined( 'WP_DEBUG' ) && false === WP_DEBUG ) {
+				return true;
+			}
+
+			$environments = array( 'staging', 'production' );
+
+			return in_array( wp_get_environment_type(), $environments, true );
 		}
 	}
 }

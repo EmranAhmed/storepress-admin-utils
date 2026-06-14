@@ -344,7 +344,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 				return;
 			}
 
+			if ( ! $wp_list_table instanceof \WP_List_Table ) {
+				return;
+			}
+
 			$columns_count = $wp_list_table->get_column_count();
+
 			$update_notice = $this->get_notice_content();
 			?>
 				<tr class="plugin-update-tr update">

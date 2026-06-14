@@ -239,7 +239,13 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 					continue;
 				}
 
-				$attrs[] = sprintf( '%s="%s"', esc_attr( $attribute_name ), esc_attr( $attribute_value ) );
+				if ( 'href' === $attribute_name ) {
+					$attribute_value = esc_url( $attribute_value );
+				} else {
+					$attribute_value = esc_attr( $attribute_value );
+				}
+
+				$attrs[] = sprintf( '%s="%s"', $attribute_name, $attribute_value );
 			}
 
 			return implode( ' ', array_unique( $attrs ) );

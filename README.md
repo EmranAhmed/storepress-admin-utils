@@ -1260,6 +1260,8 @@ array(
 
 - You must add `Update URI:` on plugin file header to perform update.
 
+- It's highly RECOMMENDED to use `https` protocol for `Update URI:` server.
+
 ```php
 <?php
 /**
@@ -1516,6 +1518,80 @@ array(
 	class Container extends ServiceContainer {
 		use SingletonTrait;
 	}
+```
+
+
+### Sample `Cache` class
+
+- `StorePress\AdminUtils\Abstracts\AbstractCache` is a base class for caching data in your plugin.
+- It automatically uses the **persistent object cache** (Redis, Memcached) when one is available, and transparently falls back to **versioned WordPress transients** otherwise 
+- so you write your caching logic once and it works on any host.
+- When no persistent object cache is present, `AbstractCache` stores each value alongside a **group version token** (based on `time()`). 
+- On read, it compares the stored version against the current group version — if they differ, the value is treated as a miss. 
+- Calling `flush()` regenerates the token, so every old entry is invalidated at once without per-key deletes.
+- This is why you should always go through `get()` / `set()` rather than touching transients directly — the version wrapper is what makes group invalidation work.
+
+
+```php
+<?php
+	
+	declare( strict_types=1 );
+	
+	namespace StorePress\Example\Integrations;
+	
+	use StorePress\AdminUtils\Traits\SingletonTrait;
+	use StorePress\AdminUtils\Abstracts\AbstractCache;
+	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
+	class Cache extends AbstractCache {
+		
+		use SingletonTrait;
+	}
+```
+
+#### Store and retrieve data
+
+- Use `set()` to store and `get()` to read. Values can be strings or arrays.
+- `get()` returns `false` on a miss. Use `has()` / `is_empty()` to branch cleanly
+
+
+```php
+$cache = Cache::instance();
+
+// Store for 1 hour.
+$cache->set( 'api_response', $data, HOUR_IN_SECONDS );
+
+// Retrieve.
+$data = $cache->get( 'api_response' );
+
+
+
+$value = $cache->get( 'api_response' );
+
+if ( $cache->has( $value ) ) {
+	// Cache hit — use $value.
+} else {
+	// Cache miss — regenerate and store.
+	$value = my_expensive_lookup();
+	$cache->set( 'api_response', $value );
+}
+
+
+$cache->delete( 'api_response' );
+
+
+// Invalidate all cached data for this plugin.
+$cache->flush();
+
+// Same effect; flush_all() also clears the whole object cache when no group flush is supported.
+$cache->flush_all();
+
+
+add_action( 'my_plugin_data_updated', function () {
+  $cache = Cache::instance();
+	$cache->flush();
+} );
 ```
 
 
