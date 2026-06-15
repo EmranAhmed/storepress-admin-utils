@@ -395,19 +395,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		}
 
 		/**
-		 * Get the client hostname.
-		 *
-		 * Returns the hostname of the current WordPress site.
-		 *
-		 * @return string The client hostname.
-		 *
-		 * @since 1.0.0
-		 */
-		public function get_client_hostname(): string {
-			return wp_parse_url( sanitize_url( site_url() ), PHP_URL_HOST );
-		}
-
-		/**
 		 * Get the update server hostname.
 		 *
 		 * Extracts the hostname from the plugin's Update URI header.
@@ -703,11 +690,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		protected function get_request_args(): array {
 			return array(
 				'body'       => array(
-					'type'        => 'plugins',
-					'name'        => $this->get_plugin_basename(),
-					'license_key' => sanitize_text_field( $this->get_license_key() ),
-					'product_id'  => absint( $this->get_product_id() ),
-					'args'        => map_deep( $this->additional_request_args(), 'sanitize_text_field' ),
+					'type'            => 'plugins',
+					'name'            => $this->get_plugin_basename(),
+					'license_key'     => sanitize_text_field( $this->get_license_key() ),
+					'product_id'      => absint( $this->get_product_id() ),
+					'domain'          => sanitize_text_field( $this->get_site_hostname() ),
+					'additional_args' => map_deep( $this->additional_request_args(), 'sanitize_text_field' ),
 				),
 				'headers'    => array(
 					'Accept' => 'application/json',

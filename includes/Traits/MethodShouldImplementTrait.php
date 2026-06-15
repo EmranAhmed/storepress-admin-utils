@@ -125,7 +125,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\MethodShouldImplementTrait' 
 			return false !== $parent_class;
 		}
 
-
 		/**
 		 * Get the relative file path for the parent class of a given object.
 		 *

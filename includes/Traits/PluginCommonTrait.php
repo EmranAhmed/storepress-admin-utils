@@ -479,7 +479,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 				return '';
 			}
 
-			return 'Add <code>define(\'WP_DEBUG_LOG\', true);</code> in <code>wp-config.php</code> file.';
+			return ' Add <code>define(\'WP_DEBUG_LOG\', true);</code> in <code>wp-config.php</code> file.';
 		}
 
 		/**
@@ -616,6 +616,48 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 			$environments = array( 'staging', 'production' );
 
 			return in_array( wp_get_environment_type(), $environments, true );
+		}
+
+		/**
+		 * Get URL Origin.
+		 *
+		 * @param string $url Site URL.
+		 *
+		 * @return string
+		 * @since 3.5.1
+		 */
+		public function get_site_origin( string $url = '' ): string {
+
+			// Get the full site URL.
+			$site_url = $this->is_empty_string( $url ) ? site_url() : $url;
+
+			// Parse the URL to get its components.
+			$parsed_url = wp_parse_url( $site_url );
+
+			// Construct the origin (protocol + host).
+			$site_origin = $parsed_url['scheme'] . '://' . $parsed_url['host'];
+
+			// If there's a non-standard port, include it.
+			if ( isset( $parsed_url['port'] ) ) {
+				$site_origin .= ':' . $parsed_url['port'];
+			}
+
+			return $site_origin;
+		}
+
+		/**
+		 * Get URL Host Name.
+		 *
+		 * @param string $url Site URL.
+		 *
+		 * @return string
+		 * @since 3.5.1
+		 */
+		public function get_site_hostname( string $url = '' ): string {
+			// Get the full site URL.
+			$site_url = $this->is_empty_string( $url ) ? site_url() : $url;
+
+			return wp_parse_url( sanitize_url( $site_url ), PHP_URL_HOST );
 		}
 	}
 }

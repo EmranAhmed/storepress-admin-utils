@@ -217,6 +217,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *     'settings_updated_message_text': string,
 		 *     'settings_deleted_message_text': string,
 		 *     'settings_tab_not_available_text': string
+		 *     'method_called_before_init': string
 		 * }
 		 *
 		 * @since 1.0.0
@@ -233,6 +234,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 				'settings_updated_message_text'   => 'Settings Saved',
 				'settings_deleted_message_text'   => 'Settings Reset',
 				'settings_tab_not_available_text' => 'Settings Tab is not available.',
+				'method_called_before_init'       => 'This method should not be called before init.',
 			);
 		}
 
@@ -1328,6 +1330,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function get_option( string $field_id, $default_value = null ) {
+
+			if ( ! did_action( 'init' ) ) {
+				$string = $this->get_localized_string( 'method_called_before_init' );
+				_doing_it_wrong( __FUNCTION__, esc_html( $string ), '1.0.0' );
+			}
+
 			$field = $this->get_field( $field_id );
 
 			return $field ? $field->get_value( $default_value ) : $default_value;
@@ -1345,6 +1353,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function get_group_option( string $group_id, string $field_id, $default_value = null ) {
+
+			if ( ! did_action( 'init' ) ) {
+				$string = $this->get_localized_string( 'method_called_before_init' );
+				_doing_it_wrong( __METHOD__, esc_html( $string ), '1.0.0' );
+			}
+
 			$field = $this->get_field( $group_id );
 
 			return $field ? $field->get_group_value( $field_id, $default_value ) : $default_value;

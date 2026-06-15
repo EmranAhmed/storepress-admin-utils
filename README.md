@@ -413,6 +413,7 @@ composer require storepress/admin-utils
 				'settings_updated_message_text'   => 'Settings Saved',
 				'settings_deleted_message_text'   => 'Settings Reset',
 				'settings_tab_not_available_text' => 'Settings Tab is not available.',
+				'method_called_before_init'       => 'This method should not be called before init.',
 			);
 		}
 		
@@ -1304,7 +1305,7 @@ array(
 		}
 		
 		public function update_server_path(): string {
-			return '/storepress-admin-utils/wp-json/plugin-updater/v1/check-update';
+			return '/wp-json/plugin-updater/v1/check-update';
 		}
 		
 		public function localize_strings(): array {
@@ -1335,7 +1336,7 @@ array(
 		// If you need to send additional arguments to update server.
 		// Check get_request_args() method.
 		public function additional_request_args(): array {
-			return array( 'host'=> $this->get_client_hostname() );
+			return array( 'custom_args'=> 'args_value' );
 		}
 	}
 ```
@@ -1713,11 +1714,12 @@ function updater_get_plugin( WP_REST_Request $request ) {
     
     $params = $request->get_params();
             
-    $type        = $request->get_param( 'type' ); // plugins
-    $plugin_name = $request->get_param( 'name' ); // plugin-dir/plugin-name.php
-    $license_key = $request->get_param( 'license_key' ); // plugin
-    $product_id  = $request->get_param( 'product_id' ); // plugin
-    $args        = (array) $request->get_param( 'args' ); // plugin additional arguments.
+    $type            = $request->get_param( 'type' ); // plugins
+    $plugin_name     = $request->get_param( 'name' ); // plugin-dir/plugin-name.php
+    $license_key     = $request->get_param( 'license_key' ); // license key
+    $product_id      = $request->get_param( 'product_id' ); // product id
+    $domain          = $request->get_param( 'domain' ); // domain
+    $additional_args = (array) $request->get_param( 'additional_args' ); // plugin additional arguments.
     
     
     /**
