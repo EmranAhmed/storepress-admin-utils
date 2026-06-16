@@ -1589,6 +1589,17 @@ $cache->flush();
 $cache->flush_all();
 
 
+$args = array(
+  'x'=>1,
+  'a'=>2,
+);
+
+// Generate cache key by array or object.
+$key = $cache->create_key($args);
+
+$cache->add( 'api_response_with_' . $key, $data, HOUR_IN_SECONDS );
+
+
 add_action( 'my_plugin_data_updated', function () {
   $cache = Cache::instance();
 	$cache->flush();

@@ -11,15 +11,20 @@
 
 	namespace StorePress\AdminUtils\Abstracts;
 
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
-
-	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 
 	/**
 	 * Base class for object cache and versioned transient storage.
+	 *
+	 * Transparently switches between an external object cache (e.g. Redis/Memcached)
+	 * and WordPress transients so callers never need to know which backend is active.
+	 * Cache invalidation is version-based: bumping the version key instantly
+	 * orphans all entries without touching individual records.
 	 *
 	 * @name AbstractCache
 	 *
@@ -30,196 +35,236 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		use HelperMethodsTrait;
 		use InternalPackageTrait;
 
+		// =====================================================================
+		// Properties
+		// =====================================================================
+
 		/**
-		 * Constructor. Registers the cache group as global when an external object cache is in use.
+		 * Transient option name prefix used when purging by group.
 		 *
 		 * @since 3.5.0
+		 * @var   string
+		 */
+		private string $transient_option_key = '_transient_';
+		/**
+		 * Transient timeout option name prefix used when purging by group.
+		 *
+		 * @since 3.5.0
+		 * @var   string
+		 */
+		private string $transient_timeout_key = '_transient_timeout_';
+
+		// =====================================================================
+		// Service Lifecycle Methods
+		// =====================================================================
+
+		/**
+		 * Registers the cache group as a global group when using an external object cache.
+		 *
+		 * @since 3.5.0
+		 * @see   self::is_global_cache_group()
+		 * @see   self::is_object_cache()
 		 */
 		public function __construct() {
-			if ( function_exists( 'wp_cache_add_global_groups' ) && $this->is_global_cache_group() && wp_using_ext_object_cache() ) {
+			if ( function_exists( 'wp_cache_add_global_groups' ) && $this->is_global_cache_group() && $this->is_object_cache() ) {
 				wp_cache_add_global_groups( array( $this->get_cache_group() ) );
 			}
 		}
 
+		// =====================================================================
+		// Cache Configuration Methods
+		// =====================================================================
+
 		/**
-		 * Get cache group name.
+		 * Returns the cache group name (defaults to the plugin directory name).
 		 *
+		 * @since  3.5.0
 		 * @return string
-		 * @since 3.5.0
 		 */
 		public function get_cache_group(): string {
 			return $this->get_plugin_dirname();
 		}
 
 		/**
-		 * Whether cache entries are shared network-wide. Default false (per-site isolation).
+		 * Whether to register this group as a global cache group across sites.
 		 *
-		 * @since 3.5.0
+		 * @since  3.5.0
+		 * @return bool
 		 */
-		protected function is_global_cache_group(): bool {
+		public function is_global_cache_group(): bool {
 			return false;
 		}
 
 		/**
-		 * Cache Prefix key.
+		 * Returns the TTL in seconds for the group version key (0 = no expiry).
 		 *
-		 * @param string $key Cache Prefix Key.
-		 *
-		 * @return string
+		 * @since  3.5.0
+		 * @return int
 		 */
-		private function prefixed_key( string $key ): string {
-			return $this->get_cache_group() . '_' . $key;
+		public function get_group_expiration(): int {
+			return 0; // You can use YEAR_IN_SECONDS, DAY_IN_SECONDS.
+		}
+
+		/**
+		 * Whether an external persistent object cache is active.
+		 *
+		 * @since  3.5.0
+		 * @return bool
+		 */
+		public function is_object_cache(): bool {
+			return (bool) wp_using_ext_object_cache();
 		}
 
 		// =====================================================================
-		// Transient Cache Methods
+		// Key & Version Management Methods
 		// =====================================================================
 
 		/**
-		 * Store a value in the WP object cache.
+		 * Builds a versioned, sanitized, length-capped cache key.
 		 *
-		 * @param string                         $key        Cache key.
-		 * @param string|array<array-key, mixed> $data      Value to store.
-		 * @param int                            $expiration Optional. Expiration in seconds. Default YEAR_IN_SECONDS.
-		 *
-		 * @return bool
-		 * @since 3.5.0
-		 *
-		 * @see Cache::get()
+		 * @since  3.5.0
+		 * @param  string $key Raw cache key.
+		 * @return string      Versioned key, max 150 characters.
+		 * @see    self::get_version()
 		 */
-		public function set( string $key, $data, int $expiration = YEAR_IN_SECONDS ): bool {
+		public function get_key( string $key ): string {
 
-			if ( wp_using_ext_object_cache() ) {
-				return wp_cache_set( $key, $data, $this->get_cache_group(), $expiration ); // phpcs:ignore WordPressVIPMinimum.Performance.LowExpiryCacheTime.CacheTimeUndetermined
+			$version = sanitize_key( $this->get_version() );
+
+			$generated_key = sprintf( '%s:v%s_%s', $this->get_cache_group(), $version, sanitize_key( $key ) );
+
+			if ( strlen( $generated_key ) > 150 ) {
+				$generated_key = md5( $generated_key );
 			}
 
-			return $this->set_transient( $key, $data, $expiration );
+			return $generated_key;
 		}
 
 		/**
-		 * Store a value as a versioned transient.
+		 * Returns the option/transient key used to store the current cache version.
 		 *
-		 * @param string                         $key        Cache key.
-		 * @param string|array<array-key, mixed> $value      Value to store.
-		 * @param int                            $expiration Optional. Expiration in seconds. Default YEAR_IN_SECONDS. 0 = no expiry.
-		 *
-		 * @return bool
-		 * @since 3.5.0
-		 *
-		 * @see Cache::get_transient()
-		 * @see Cache::get_version()
-		 */
-		public function set_transient( string $key, $value, int $expiration = YEAR_IN_SECONDS ): bool {
-			$transient_version = $this->get_version();
-			$transient_value   = array(
-				'version' => $transient_version,
-				'value'   => $value,
-			);
-
-			return set_transient( $this->prefixed_key( $key ), $transient_value, $expiration );
-		}
-
-		/**
-		 * Return the current version string for the plugin's transient group.
-		 *
+		 * @since  3.5.0
 		 * @return string
-		 * @since 1.0.0
+		 * @see    self::get_version()
+		 * @see    self::set_version()
+		 */
+		public function get_version_key(): string {
+			return $this->get_cache_group() . '-cache-version';
+		}
+
+		/**
+		 * Returns the current cache version, creating one if none exists.
 		 *
-		 * @see Cache::get_transient_version()
+		 * @since  3.5.0
+		 * @return string Timestamp-based version string.
+		 * @see    self::set_version()
 		 */
 		public function get_version(): string {
-			return $this->get_transient_version( $this->get_cache_group() );
+
+			// Object cache.
+			if ( $this->is_object_cache() ) {
+				$version = wp_cache_get( $this->get_version_key(), $this->get_cache_group() );
+
+				if ( ! is_string( $version ) ) {
+					$version = $this->set_version();
+				}
+
+				return $version;
+			}
+
+			// Fallback to transient cache.
+			$version = get_transient( $this->get_version_key() );
+
+			if ( ! is_string( $version ) ) {
+				$version = $this->set_version();
+			}
+
+			return $version;
 		}
 
 		/**
-		 * Return (or generate) a version token used to mass-invalidate a group of transients.
+		 * Stores a new timestamp-based version string and returns it.
 		 *
-		 * When using transients with unpredictable names, e.g. those containing an md5
-		 * hash in the name, we need a way to invalidate them all at once.
-		 *
-		 * When using default WP transients we're able to do this with a DB query to
-		 * delete transients manually.
-		 *
-		 * With external cache however, this isn't possible. Instead, this function is used
-		 * to append a unique string (based on time()) to each transient. When transients
-		 * are invalidated, the transient version will increment and data will be regenerated.
-		 *
-		 * Raised in issue https://github.com/woocommerce/woocommerce/issues/5777.
-		 * Adapted from ideas in http://tollmanz.com/invalidation-schemes/.
-		 *
-		 * @param string $group   Name for the group of transients we need to invalidate.
-		 * @param bool   $refresh true to force a new version.
-		 *
-		 * @return string transient version based on time(), 10 digits.
-		 * @since 3.5.0
-		 *
-		 * @see Cache::get_version()
-		 * @see Cache::clear_all_transient()
+		 * @since  3.5.0
+		 * @return string The version string that was stored.
+		 * @see    self::get_version()
 		 */
-		public function get_transient_version( string $group, bool $refresh = false ): string {
-			$transient_name  = $group . '_transient_version';
-			$transient_value = get_transient( $transient_name );
+		public function set_version(): string {
 
-			if ( ! is_string( $transient_value ) ) {
-				$transient_value = false;
+			$version = (string) time();
+
+			if ( $this->is_object_cache() ) {
+				wp_cache_set( $this->get_version_key(), $version, $this->get_cache_group(), $this->get_group_expiration() );
+				return $version;
 			}
 
-			if ( false === $transient_value || true === $refresh ) {
-				$transient_value = (string) time();
+			set_transient( $this->get_version_key(), $version, $this->get_group_expiration() );
 
-				set_transient( $transient_name, $transient_value );
-			}
-
-			return $transient_value;
+			return $version;
 		}
 
 		/**
-		 * Retrieve a value from the WP object cache.
+		 * Deletes the version key, effectively invalidating all versioned cache entries.
 		 *
-		 * @param string $key        Cache key.
+		 * @since  3.5.0
+		 * @return bool True on success, false on failure.
+		 * @see    self::flush()
+		 */
+		public function delete_version(): bool {
+
+			if ( $this->is_object_cache() ) {
+				return wp_cache_delete( $this->get_version_key(), $this->get_cache_group() );
+			}
+
+			return delete_transient( $this->get_version_key() );
+		}
+
+		// =====================================================================
+		// Cache Read Methods
+		// =====================================================================
+
+		/**
+		 * Retrieves a cached value by key.
 		 *
-		 * @return string|array<array-key, mixed>|object|bool Cached value, or false on miss / unavailable object cache.
-		 * @since 1.0.0
-		 *
-		 * @see Cache::set()
+		 * @since  3.5.0
+		 * @param  string $key Cache key.
+		 * @return mixed       Cached value, or false on a cache miss.
+		 * @see    self::get_transient()
 		 */
 		public function get( string $key ) {
 
-			if ( wp_using_ext_object_cache() ) {
-				return wp_cache_get( $key, $this->get_cache_group() );
+			if ( $this->is_object_cache() ) {
+				return wp_cache_get( $this->get_key( $key ), $this->get_cache_group() );
 			}
 
 			return $this->get_transient( $key );
 		}
 
 		/**
-		 * Retrieve a versioned transient; returns false when stale or missing.
+		 * Retrieves a transient value, normalizing empty/missing results to false.
 		 *
-		 * @param string $key Cache key.
-		 *
-		 * @return string|array<array-key, mixed>|object|bool Cached value or null on miss/version mismatch.
-		 * @since 3.5.0
-		 *
-		 * @see Cache::set_transient()
-		 * @see Cache::get_version()
+		 * @since  3.5.0
+		 * @param  string $key Cache key.
+		 * @return mixed       Cached value, or false on a miss or empty value.
 		 */
 		public function get_transient( string $key ) {
-			$transient_version = $this->get_version();
-			$transient_value   = get_transient( $key );
 
-			if ( isset( $transient_value['value'], $transient_value['version'] ) && $transient_value['version'] === $transient_version ) {
-				return $transient_value['value'];
+			$data = get_transient( $this->get_key( $key ) );
+
+			if ( $this->is_empty( $data ) ) {
+				return false;
 			}
 
-			return false;
+			return $data;
 		}
 
 		/**
-		 * Has cache data or not.
+		 * Returns true when a cache response contains a real value.
 		 *
-		 * @param string|array<array-key, mixed>|object|bool $cache_response Cache response for verify.
-		 *
+		 * @since  3.5.0
+		 * @param  mixed $cache_response Value returned from a cache read.
 		 * @return bool
+		 * @see    self::is_empty()
 		 */
 		public function has( $cache_response ): bool {
 
@@ -227,100 +272,210 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		}
 
 		/**
-		 * Is cache empty
+		 * Returns true when a cache response is null or false (i.e. a miss).
 		 *
-		 * @param string|array<array-key, mixed>|object|bool $cache_response Cache response for verify.
+		 * Note: storing a literal `false` value is not supported — it is
+		 * indistinguishable from a cache miss. Wrap falsy values in an array
+		 * or object before passing to set()/add().
 		 *
+		 * @param mixed $cache_response Value returned from a cache read.
 		 * @return bool
+		 * @since  3.5.0
+		 * @see    self::has()
 		 */
 		public function is_empty( $cache_response ): bool {
-			return false === $cache_response;
+
+			return is_null( $cache_response ) || false === $cache_response;
+		}
+
+		// =====================================================================
+		// Cache Write Methods
+		// =====================================================================
+
+		/**
+		 * Adds a value only when the key does not already exist in cache.
+		 *
+		 * @since  3.5.0
+		 * @param  string $key        Cache key.
+		 * @param  mixed  $value      Value to cache.
+		 * @param  int    $expiration TTL in seconds.
+		 * @return bool               True if stored, false if key already existed.
+		 * @see    self::add_transient()
+		 */
+		public function add( string $key, $value, int $expiration = YEAR_IN_SECONDS ): bool {
+
+			if ( $this->is_object_cache() ) {
+				return wp_cache_add( $this->get_key( $key ), $value, $this->get_cache_group(), $expiration ); // phpcs:ignore WordPressVIPMinimum.Performance.LowExpiryCacheTime.CacheTimeUndetermined
+			}
+
+			return $this->add_transient( $key, $value, $expiration );
 		}
 
 		/**
-		 * Delete Cache.
+		 * Stores a value in cache, overwriting any existing entry.
 		 *
-		 * @param string $key Cache key.
-		 *
+		 * @since  3.5.0
+		 * @param  string $key        Cache key.
+		 * @param  mixed  $value      Value to cache.
+		 * @param  int    $expiration TTL in seconds.
 		 * @return bool
+		 * @see    self::set_transient()
+		 */
+		public function set( string $key, $value, int $expiration = YEAR_IN_SECONDS ): bool {
+
+			if ( $this->is_object_cache() ) {
+				return wp_cache_set( $this->get_key( $key ), $value, $this->get_cache_group(), $expiration ); // phpcs:ignore WordPressVIPMinimum.Performance.LowExpiryCacheTime.CacheTimeUndetermined
+			}
+
+			return $this->set_transient( $key, $value, $expiration );
+		}
+
+		/**
+		 * Adds a transient only when the versioned key is not already cached.
+		 *
+		 * @since  3.5.0
+		 * @param  string $key        Cache key.
+		 * @param  mixed  $value      Value to cache.
+		 * @param  int    $expiration TTL in seconds.
+		 * @return bool               True if stored, false if key already existed.
+		 * @see    self::set_transient()
+		 */
+		public function add_transient( string $key, $value, int $expiration = YEAR_IN_SECONDS ): bool {
+
+			$data = $this->get_transient( $key );
+
+			if ( $this->is_empty( $data ) ) {
+				return $this->set_transient( $key, $value, $expiration );
+			}
+
+			return false;
+		}
+
+		/**
+		 * Stores a value as a WordPress transient under the versioned key.
+		 *
+		 * @since  3.5.0
+		 * @param  string $key        Cache key.
+		 * @param  mixed  $value      Value to cache.
+		 * @param  int    $expiration TTL in seconds.
+		 * @return bool
+		 */
+		public function set_transient( string $key, $value, int $expiration = YEAR_IN_SECONDS ): bool {
+			return set_transient( $this->get_key( $key ), $value, $expiration );
+		}
+
+		// =====================================================================
+		// Cache Delete Methods
+		// =====================================================================
+
+		/**
+		 * Deletes a single cache entry by key.
+		 *
+		 * @since  3.5.0
+		 * @param  string $key Cache key.
+		 * @return bool
+		 * @see    self::delete_transient()
 		 */
 		public function delete( string $key ): bool {
 
-			if ( wp_using_ext_object_cache() ) {
-				return wp_cache_delete( $key, $this->get_cache_group() );
+			if ( $this->is_object_cache() ) {
+				return wp_cache_delete( $this->get_key( $key ), $this->get_cache_group() );
 			}
 
 			return $this->delete_transient( $key );
 		}
 
-		// =====================================================================
-		// Object Cache Methods
-		// =====================================================================
-
 		/**
-		 * Delete a transient by key.
+		 * Deletes a single transient by its versioned key.
 		 *
-		 * @param string $key Cache key.
-		 *
+		 * @since  3.5.0
+		 * @param  string $key Cache key.
 		 * @return bool
-		 * @since 3.5.0
 		 */
 		public function delete_transient( string $key ): bool {
-			return delete_transient( $key );
+			return delete_transient( $this->get_key( $key ) );
 		}
 
 		/**
-		 * Flush all entries in a WP object cache group.
+		 * Flushes all entries in this cache group.
 		 *
-		 * @return bool False when the object cache backend does not support group flushing.
-		 * @since 3.5.0
+		 * Uses group flush when the object cache supports it; otherwise bumps
+		 * the version key to orphan all existing versioned entries.
 		 *
-		 * @see Cache::clear_all_transient()
+		 * @since  3.5.0
+		 * @return bool
+		 * @see    self::delete_version()
 		 */
 		public function flush(): bool {
 
-			if ( wp_using_ext_object_cache() && wp_cache_supports( 'flush_group' ) ) {
+			// Flash By Group.
+			if ( $this->is_object_cache() && wp_cache_supports( 'flush_group' ) ) {
 				return wp_cache_flush_group( $this->get_cache_group() );
 			}
 
-			return $this->clear_all_transient();
+			return $this->delete_version();
 		}
 
 		/**
-		 * Invalidate all versioned transients by bumping the group version.
+		 * Removes all transient rows for this cache group directly from the database.
 		 *
-		 * @return bool
-		 * @since 1.0.0
-		 *
-		 * @see Cache::get_transient_version()
+		 * @since  3.5.0
+		 * @return bool True when at least one row was deleted.
+		 * @see    self::flush_all()
 		 */
-		public function clear_all_transient(): bool {
-			$this->get_transient_version( $this->get_cache_group(), true );
-			return true;
+		private function delete_all_transient(): bool {
+
+			global $wpdb;
+
+			$group_like = $wpdb->esc_like( $this->get_cache_group() ) . '%';
+
+			$option_key  = $wpdb->esc_like( $this->transient_option_key ) . $group_like;
+			$timeout_key = $wpdb->esc_like( $this->transient_timeout_key ) . $group_like;
+
+			$id = $wpdb->query(
+				$wpdb->prepare(
+					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
+					$option_key,
+					$timeout_key
+				)
+			);
+
+			return absint( $id ) > 0;
 		}
 
 		/**
-		 * Flash All Cache
+		 * Flushes the entire cache backend (all groups).
 		 *
+		 * @since  3.5.0
 		 * @return bool
+		 * @see    self::delete_all_transient()
 		 */
 		public function flush_all(): bool {
 
-			if ( wp_using_ext_object_cache() ) {
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return false;
+			}
+
+			if ( $this->is_object_cache() ) {
 				return wp_cache_flush();
 			}
 
-			return $this->clear_all_transient();
+			return $this->delete_all_transient();
 		}
+
+		// =====================================================================
+		// Key Generation Utilities
+		// =====================================================================
 
 		/**
 		 * Generate cache key by array or object.
 		 *
-		 * @param array<array-key, mixed>|object $data Cache data.
-		 *
-		 * @return string
+		 * @since  3.5.2
+		 * @param  array<array-key, mixed>|object $data Cache data.
+		 * @return string                               MD5 hash of the normalised, sorted data.
+		 * @see    self::sort_data()
 		 */
-		public function create_cache_key( $data ): string {
+		public function create_key( $data ): string {
 
 			$this->sort_data( $data );
 
@@ -328,13 +483,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		}
 
 		/**
-		 * Sort Array or Object
+		 * Recursively sorts arrays and objects so equivalent structures always produce the same JSON.
 		 *
-		 * @param array<array-key, mixed>|object $data Cache data.
-		 *
+		 * @since  3.5.0
+		 * @param  array<array-key, mixed>|object $data  Data to sort, passed by reference.
+		 * @param  int                            $depth Current recursion depth; aborts at 32 to prevent stack overflow.
 		 * @return void
+		 * @see    self::create_key()
 		 */
-		public function sort_data( &$data ): void {
+		public function sort_data( &$data, int $depth = 0 ): void {
+
+			if ( $depth > 32 ) {
+				return;
+			}
+
 			if ( is_array( $data ) ) {
 				if ( array_is_list( $data ) ) {
 					sort( $data );
@@ -342,7 +504,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 					ksort( $data );
 				}
 				foreach ( $data as &$value ) {
-					$this->sort_data( $value );
+					$this->sort_data( $value, $depth + 1 );
 				}
 			} elseif ( is_object( $data ) ) {
 				// Sort object properties by name.
@@ -352,7 +514,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 					unset( $data->$key );
 				}
 				foreach ( $vars as $key => $value ) {
-					$this->sort_data( $value );
+					$this->sort_data( $value, $depth + 1 );
 					$data->$key = $value;
 				}
 			}

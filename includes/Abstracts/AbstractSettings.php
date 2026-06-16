@@ -216,7 +216,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *     'settings_error_message_text': string,
 		 *     'settings_updated_message_text': string,
 		 *     'settings_deleted_message_text': string,
-		 *     'settings_tab_not_available_text': string
+		 *     'settings_tab_not_available_text': string,
 		 *     'method_called_before_init': string
 		 * }
 		 *
