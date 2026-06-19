@@ -691,10 +691,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 			return array(
 				'body'       => array(
 					'type'            => 'plugins',
-					'name'            => $this->get_plugin_basename(),
-					'license_key'     => sanitize_text_field( $this->get_license_key() ),
+					'name'            => sanitize_key( $this->get_plugin_basename() ),
+					'slug'            => sanitize_key( $this->get_plugin_slug() ),
+					'license_key'     => sanitize_key( $this->get_license_key() ),
 					'product_id'      => absint( $this->get_product_id() ),
 					'domain'          => sanitize_text_field( $this->get_site_hostname() ),
+					'current_version' => sanitize_text_field( $this->get_plugin_version() ),
 					'additional_args' => map_deep( $this->additional_request_args(), 'sanitize_text_field' ),
 				),
 				'headers'    => array(

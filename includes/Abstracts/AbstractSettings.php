@@ -127,16 +127,58 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		final public function page_init(): void {
-
 			// Register admin scripts on admin_enqueue_scripts hook.
-			add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
+			if ( $this->is_current_page() ) {
+				add_action( 'admin_enqueue_scripts', array( $this, 'register_admin_scripts' ), 20 );
+			}
 
 			// Add settings link to plugin action links.
 			foreach ( $this->get_plugins_basename() as $basename ) {
 				add_filter( 'plugin_action_links_' . $basename, array( $this, 'plugin_action_links' ), 15 );
+				add_filter( 'network_admin_plugin_action_links_' . $basename, array( $this, 'plugin_action_links' ), 15 );
 			}
+		}
 
-			$this->settings_actions();
+		// =========================================================================
+		// Page Configuration Methods
+		// =========================================================================
+
+		/**
+		 * Get the base page slug for the submenu page.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see   self::get_current_page_slug()
+		 */
+		public function get_page_slug(): string {
+			return $this->get_plugin_slug();
+		}
+
+		/**
+		 * Get the page title displayed in the browser title bar.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_page_title(): string {
+
+			$this->subclass_should_implement( __FUNCTION__ );
+
+			return $this->get_plugin_name();
+		}
+
+		/**
+		 * Get the submenu item title displayed in the admin menu.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_page_menu_title(): string {
+			return $this->get_plugin_name();
 		}
 
 		/**
@@ -148,6 +190,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 */
 		public function page_loaded(): void {
 			$this->enqueue_scripts();
+			$this->settings_actions();
 			$this->settings_messages();
 		}
 
@@ -162,7 +205,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::settings_id()
+		 * @see   self::settings_id()
 		 */
 		public function get_settings_id(): string {
 			return $this->settings_id();
@@ -188,7 +231,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::add_settings()
+		 * @see   self::add_settings()
 		 */
 		final public function get_registered_tabs(): array {
 			return $this->add_settings();
@@ -696,6 +739,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 */
 		public function get_field_id( string $field_id, $option_id = '' ): string {
 			$string_option_id = (string) $option_id;
+
 			return $this->is_empty_string( $string_option_id ) ? sprintf( '%s', $field_id ) : sprintf( '%s__%s', $field_id, $option_id );
 		}
 
@@ -726,6 +770,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 */
 		public function get_group_field_id( string $group_id, string $field_id, $option_id = '' ): string {
 			$string_option_id = (string) $option_id;
+
 			return $this->is_empty_string( $string_option_id ) ? sprintf( '%s__%s__group', $group_id, $field_id ) : sprintf( '%s__%s__%s__group', $group_id, $field_id, $option_id );
 		}
 
@@ -812,7 +857,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 								return $attributes[ $key ] ? $key : '';
 							}
 
-							return sprintf( '%s="%s"', esc_attr( $key ), esc_attr( $attributes[ $key ] ) );
+										return sprintf( '%s="%s"', esc_attr( $key ), esc_attr( $attributes[ $key ] ) );
 						},
 						array_keys( $attributes )
 					)
@@ -874,7 +919,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 				$classes = array_map(
 					static function ( string $class_file ) {
-						return sprintf( 'in <strong>%s</strong> file.', $class_file );
+							return sprintf( 'in <strong>%s</strong> file.', $class_file );
 					},
 					$classes
 				);
@@ -983,9 +1028,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		public function get_uri_args( array $extra = array() ): array {
 			$current_tab = $this->get_current_tab();
 
-			$args = array(
-				'page' => $this->get_current_page_slug(),
-			);
+			$args = array();
 
 			if ( ! $this->is_empty_string( $current_tab ) ) {
 				$args['tab'] = $current_tab;
@@ -1004,10 +1047,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function get_settings_uri( array $extra = array() ): string {
-			$admin_url = $this->is_submenu() ? $this->get_menu_slug() : 'admin.php';
-			$args      = $this->get_uri_args( $extra );
 
-			return admin_url( add_query_arg( $args, $admin_url ) );
+			$args = $this->get_uri_args( $extra );
+
+			return $this->get_current_page_uri( $args );
 		}
 
 		/**
@@ -1088,28 +1131,28 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		final public function settings_actions(): void {
 
 			// Bail if this is not an admin page.
-			if ( wp_unslash( $this->http_get_var( 'page' ) ) !== $this->get_current_page_slug() ) {
+			if ( ! $this->is_current_page() ) {
 				return;
 			}
 
 			// Bail if this is not an action.
-			if ( ! $this->http_request_var( 'action', false ) ) {
+			if ( ! isset( $_REQUEST['action'] ) ) {
 				return;
 			}
 
-			if ( ! $this->has_capability() ) {
+			if ( ! $this->has_page_capability() ) {
 				return;
 			}
 
 			check_admin_referer( $this->get_nonce_action() );
 
-			$plugin_page    = sanitize_text_field( wp_unslash( $this->http_get_var( 'page' ) ) );
-			$current_action = sanitize_text_field( wp_unslash( $this->http_request_var( 'action' ) ) );
+			$current_action = isset( $_REQUEST['action'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['action'] ) ) : '';
+			$plugin_page    = sanitize_text_field( wp_unslash( $this->get_current_page() ) );
 
 			$has_plugin_page = ! $this->is_empty_string( $plugin_page );
 			$has_action      = ! $this->is_empty_string( $current_action );
 
-			if ( $has_plugin_page && $has_action && $plugin_page === $this->get_current_page_slug() ) {
+			if ( $has_plugin_page && $has_action ) {
 				$this->process_actions( $current_action );
 			}
 		}
@@ -1136,7 +1179,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			 * Fires after a settings form action has been processed.
 			 *
 			 * @param string           $current_action The action that was processed ('update' or 'reset').
-			 * @param AbstractSettings $settings           The current settings instance.
+			 * @param AbstractSettings $settings       The current settings instance.
 			 *
 			 * @since 1.0.0
 			 */
@@ -1179,11 +1222,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			 */
 			do_action( 'storepress_admin_utils_services_settings_after_action_update', $this );
 
-			wp_safe_redirect(
-				$this->get_action_uri(
-					array( 'message' => 'updated' )
-				)
-			);
+			wp_safe_redirect( $this->get_action_uri( array( 'message' => 'updated' ) ) );
 			exit;
 		}
 
@@ -1208,11 +1247,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			 */
 			do_action( 'storepress_admin_utils_services_settings_after_action_reset', $this );
 
-			wp_safe_redirect(
-				$this->get_action_uri(
-					array( 'message' => 'deleted' )
-				)
-			);
+			wp_safe_redirect( $this->get_action_uri( array( 'message' => 'deleted' ) ) );
 			exit;
 		}
 
@@ -1495,18 +1530,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		// =========================================================================
 
 		/**
-		 * Check if current page is this settings admin page.
-		 *
-		 * @return bool
-		 *
-		 * @since 1.0.0
-		 */
-		public function is_admin_page(): bool {
-			// We have to check is valid current page.
-			return ( is_admin() && $this->get_current_page_slug() === wp_unslash( $this->http_get_var( 'page' ) ) );
-		}
-
-		/**
 		 * Add settings link to plugin action links.
 		 *
 		 * @param string[] $links Existing plugin action links.
@@ -1517,11 +1540,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 */
 		public function plugin_action_links( array $links ): array {
 
+			if ( ! $this->has_page_slug() ) {
+				return $links;
+			}
+
 			$link_text = $this->get_localized_string( 'settings_link_text' );
 
-			$class = sprintf( 'storepress-%s-settings', $this->get_plugin_slug() );
+			$class = sprintf( 'storepress-%s-settings', $this->get_current_page_slug() );
 
-			$action_links = sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $this->get_settings_uri() ), esc_html( $link_text ) );
+			$action_links = sprintf( '<a href="%1$s" aria-label="%2$s">%2$s</a>', esc_url( $this->get_current_page_uri() ), esc_html( $link_text ) );
 
 			$links[ $class ] = $action_links;
 
@@ -1540,10 +1567,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function register_admin_scripts(): void {
-			if ( ! $this->is_admin_page() ) {
-				return;
-			}
-
 			$this->register_package_scripts( 'settings', $this->localize_strings() );
 		}
 
@@ -1664,13 +1687,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 				'label'   => $this->get_page_title(),
 			);
 
-			wp_add_inline_script(
-				'wp-data',
-				sprintf(
-					'wp.domReady(function(){ wp.data.dispatch("core").addEntities([%s]); });',
-					wp_json_encode( $entity )
-				)
-			);
+			wp_add_inline_script( 'wp-data', sprintf( 'wp.domReady(function(){ wp.data.dispatch("core").addEntities([%s]); });', wp_json_encode( $entity ) ) );
 		}
 
 		/**

@@ -1171,54 +1171,54 @@ array(
 
 ```php
 <?php
-
-array(
-    'id'          => 'input3', // Field ID.
-    'type'        => 'text', // text, unit, password, toggle, code, small-text, tiny-text, large-text, textarea, email, url, number, color, select, wc-enhanced-select, radio, checkbox
-    'title'       => 'Input Label',
-    
-    // Optional.
-    'full_width' => true, // To make field full width. Just remove this key if do not want to use.
-    
-    'add_tag' => "PRO", // Add TAG
-    'add_tag' => array("PRO", 'BACKGROUND COLOR HEX CODE'), // Add PRO Label
-    'add_tag' => array("BETA", 'BACKGROUND COLOR HEX CODE', 'TEXT COLOR HEX CODE'), // Add PRO Label
-    
-    'description' => 'Input field description',
-    
-    'default'       => 'Hello World', //  default value can be string or array
-    'default'       => array('x','y'), //  default value can be string or array
-    
-    'placeholder' => '' // Placeholder
-    'suffix'      => '' // Field suffix.
-    'html_attributes' => array('min' => 10) // Custom html attributes.
-    'html_datalist'   => array('value 1', 'value 2') // HTML Datalist for suggestion.
-    'required'    => true, // If field is required and cannot be empty.
-    'private'     => true, // Private field does not delete from db during reset all action trigger.
-    'multiple'    => true, // for select box 
-    'class'       => array( 'large-text', 'code', 'custom-class' ),
-    'tooltip'     => 'Textarea Help tooltip',
-    'condition'   => array( 'selector'=>$this->get_field_selector('input2') ), // Conditional field, show or hide based on other input value.
-    'condition'   => array( 'selector'=>$this->get_field_selector('input2'), 'value'=>'hello' ),
-    'units'       => array('px', '%', 'em', 'rem'), // For unit type
-
-    'sanitize_callback'=>'absint', // Use custom sanitize function. Default is: sanitize_text_field.
-    'show_in_rest'    => true, // Hide from rest api field. Default is: true
-    'show_in_rest'    => 'custom_rest_id', // Change field id on rest api.
-    'show_in_rest'    => array( 'name'=>'custom_rest_id' ), // Change field id on rest api.
-    'show_in_rest'    => array( 'name'=>'custom_rest_id', 'schema'=>array() ), // Add input schema for REST Api. See: https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/
-    // Options array for select, radio and checkbox [key=>value]
-    // If checkbox have no options or value, default will be yes|no
-    'options' => array(
-        'x' => 'Home X',
-        'y' => 'Home Y',
-        'z' => 'Home Z',
-        'new'   => array(
-            'label' => 'New',
-            'description' => 'New Item',
-        ),
-    )
-),
+  
+  array(
+      'id'          => 'input3', // Field ID.
+      'type'        => 'text', // text, unit, password, toggle, code, small-text, tiny-text, large-text, textarea, email, url, number, color, select, wc-enhanced-select, radio, checkbox
+      'title'       => 'Input Label',
+      
+      // Optional.
+      'full_width' => true, // To make field full width. Just remove this key if do not want to use.
+      
+      'add_tag' => "PRO", // Add TAG
+      'add_tag' => array("PRO", 'BACKGROUND COLOR HEX CODE'), // Add PRO Label
+      'add_tag' => array("BETA", 'BACKGROUND COLOR HEX CODE', 'TEXT COLOR HEX CODE'), // Add PRO Label
+      
+      'description' => 'Input field description',
+      
+      'default'       => 'Hello World', //  default value can be string or array
+      'default'       => array('x','y'), //  default value can be string or array
+      
+      'placeholder' => '' // Placeholder
+      'suffix'      => '' // Field suffix.
+      'html_attributes' => array('min' => 10) // Custom html attributes.
+      'html_datalist'   => array('value 1', 'value 2') // HTML Datalist for suggestion.
+      'required'    => true, // If field is required and cannot be empty.
+      'private'     => true, // Private field does not delete from db during reset all action trigger.
+      'multiple'    => true, // for select box 
+      'class'       => array( 'large-text', 'code', 'custom-class' ),
+      'tooltip'     => 'Textarea Help tooltip',
+      'condition'   => array( 'selector'=>$this->get_field_selector('input2') ), // Conditional field, show or hide based on other input value.
+      'condition'   => array( 'selector'=>$this->get_field_selector('input2'), 'value'=>'hello' ),
+      'units'       => array('px', '%', 'em', 'rem'), // For unit type
+  
+      'sanitize_callback'=>'absint', // Use custom sanitize function. Default is: sanitize_text_field.
+      'show_in_rest'    => true, // Hide from rest api field. Default is: true
+      'show_in_rest'    => 'custom_rest_id', // Change field id on rest api.
+      'show_in_rest'    => array( 'name'=>'custom_rest_id' ), // Change field id on rest api.
+      'show_in_rest'    => array( 'name'=>'custom_rest_id', 'schema'=>array() ), // Add input schema for REST Api. See: https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/
+      // Options array for select, radio and checkbox [key=>value]
+      // If checkbox have no options or value, default will be yes|no
+      'options' => array(
+          'x' => 'Home X',
+          'y' => 'Home Y',
+          'z' => 'Home Z',
+          'new'   => array(
+              'label' => 'New',
+              'description' => 'New Item',
+          ),
+      )
+  ),
 ```
 
 ### `AbstractProPluginInCompatibility`  class usages example
@@ -1727,9 +1727,11 @@ function updater_get_plugin( WP_REST_Request $request ) {
             
     $type            = $request->get_param( 'type' ); // plugins
     $plugin_name     = $request->get_param( 'name' ); // plugin-dir/plugin-name.php
+    $plugin_slug     = $request->get_param( 'slug' ); // plugin-dir
     $license_key     = $request->get_param( 'license_key' ); // license key
     $product_id      = $request->get_param( 'product_id' ); // product id
     $domain          = $request->get_param( 'domain' ); // domain
+    $current_version = $request->get_param( 'current_version' ); // current_version
     $additional_args = (array) $request->get_param( 'additional_args' ); // plugin additional arguments.
     
     

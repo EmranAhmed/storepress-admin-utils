@@ -16,7 +16,6 @@
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
 	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
-	use StorePress\AdminUtils\Traits\PluginCommonTrait;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 
@@ -26,8 +25,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 	 * @name AbstractAdminMenu
 	 *
 	 * @phpstan-use HelperMethodsTrait<AbstractAdminMenu>
-	 * @phpstan-use InternalPackageTrait<AbstractAdminMenu>
-	 * @phpstan-use MethodShouldImplementTrait<AbstractAdminMenu>
 	 *
 	 * @since 1.0.0
 	 */
@@ -53,7 +50,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 */
-		private static array $slug_usages = array();
+		private static array $page_slug_usages = array();
 
 		/**
 		 * Current page slug, may include a numeric suffix for uniqueness.
@@ -63,6 +60,33 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 * @since 1.0.0
 		 */
 		private string $current_page_slug = '';
+
+		/**
+		 * Hook suffix returned by add_submenu_page() for this page.
+		 *
+		 * @var string
+		 *
+		 * @since 1.0.0
+		 */
+		private string $current_page_hook = '';
+
+		/**
+		 * Whether submenus have already been attached to avoid duplicate registration.
+		 *
+		 * @var bool
+		 *
+		 * @since 1.0.0
+		 */
+		private static bool $is_page_attached = false;
+
+		/**
+		 * Registry of all registered page slugs mapped to their menu instances.
+		 *
+		 * @var array<string, static>
+		 *
+		 * @since 1.0.0
+		 */
+		private static array $page_registry = array();
 
 		/**
 		 * Whether separator CSS has been added.
@@ -96,32 +120,126 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 */
 		public function init(): void {}
 
-		// =========================================================================
-		// Hook Registration Methods
-		// =========================================================================
+		// @ANNOTATION: _page_* = for submenu.
+		// @ANNOTATION: _menu_* = for parent menu.
 
 		/**
-		 * Register WordPress hooks for admin menu functionality.
+		 * Get uniq page slug, prevent duplication.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::get_page_slug()
+		 * @see self::is_page_registered()
+		 */
+		public function get_unique_page_slug(): string {
+
+			$slug = $this->get_page_slug();
+
+			if ( ! isset( self::$page_slug_usages[ $slug ] ) ) {
+				self::$page_slug_usages[ $slug ] = 0;
+			} else {
+				++self::$page_slug_usages[ $slug ];
+			}
+
+			if ( $this->is_page_registered() ) {
+				return sprintf( '%s-%s', $slug, self::$page_slug_usages[ $slug ] );
+			}
+
+			return $slug;
+		}
+
+		/**
+		 * Get registered pages.
+		 *
+		 * @return array<string, static>
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_all_pages(): array {
+			return self::$page_registry;
+		}
+
+		/**
+		 * Setup Pages.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::add_menu()
-		 * @see self::add_menu_page()
-		 * @see self::remove_menu()
-		 * @see self::page_init()
+		 * @see self::get_unique_page_slug()
+		 */
+		public function setup_pages(): void {
+			if ( $this->has_page_slug() ) {
+				$this->current_page_slug                               = $this->get_unique_page_slug();
+				self::$page_registry[ $this->get_current_page_slug() ] = $this;
+			}
+		}
+
+		/**
+		 * Get submenu slugs.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 */
+		abstract public function get_page_slug(): string;
+
+		/**
+		 * Get page position.
+		 *
+		 * @return int
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_page_position(): int {
+			return 10;
+		}
+
+		/**
+		 * Get page capability.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::get_capability()
+		 */
+		public function get_page_capability(): string {
+			return $this->get_capability();
+		}
+
+		/**
+		 * User set page slug instead of returning empty string.
+		 *
+		 * @return bool
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::get_page_slug()
+		 */
+		public function has_page_slug(): bool {
+			return ! $this->is_empty_string( $this->get_page_slug() );
+		}
+
+		/**
+		 * Hooks.
+		 *
+		 * @return void
 		 */
 		final public function hooks(): void {
 
-			// Register top-level menu at priority 9.
-			add_action( 'admin_menu', array( $this, 'add_menu' ), 9 );
+			$this->setup_pages();
 
-			// Register submenu page at priority 12.
-			add_action( 'admin_menu', array( $this, 'add_menu_page' ), 12 );
+			// Register top-level menu at priority 9.
+			add_action( 'admin_menu', array( $this, 'handle_add_parent_menu' ), 9 );
+
+			// Register additional submenus.
+			add_action( 'admin_menu', array( $this, 'handle_add_submenu' ), 15 );
 
 			// Remove duplicate menu entries at priority 60.
-			add_action( 'admin_menu', array( $this, 'remove_menu' ), 60 );
+			add_action( 'admin_menu', array( $this, 'handle_remove_duplicate_menu' ), 60 );
 
 			// Add inline separator CSS fix.
 			add_action(
@@ -142,21 +260,55 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 			);
 
 			// Initialize admin page for users with proper capability.
-			add_action(
-				'admin_init',
-				function () {
-
-					if ( $this->has_capability() ) {
-						// Admin Page Init.
-						$this->page_init();
-					}
-				}
-			);
+			add_action( 'admin_init', array( $this, 'handle_admin_init' ) );
 		}
 
-		// =========================================================================
-		// Menu Registration Methods
-		// =========================================================================
+		/**
+		 * Admin init.
+		 *
+		 * @return void
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::page_init()
+		 */
+		public function handle_admin_init(): void {
+			$this->page_init();
+		}
+
+		/**
+		 * Check if the page slug is already present in the page registry.
+		 *
+		 * @return bool
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::get_all_pages()
+		 * @see self::get_page_slug()
+		 */
+		public function is_page_registered(): bool {
+			$submenu_slug      = $this->get_page_slug();
+			$all_submenu_slugs = array_keys( $this->get_all_pages() );
+			return in_array( $submenu_slug, $all_submenu_slugs, true );
+		}
+
+		/**
+		 * Check if the menu slug is already registered in WordPress.
+		 *
+		 * @return bool
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::get_menu_slug()
+		 */
+		public function is_menu_registered(): bool {
+
+			$slug = $this->get_menu_slug();
+
+			$menu_page = menu_page_url( $slug, false );
+
+			return ! $this->is_empty_string( $menu_page );
+		}
 
 		/**
 		 * Add top-level admin menu with optional separator. Skips if submenu or already exists.
@@ -165,20 +317,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::is_submenu()
 		 * @see self::menu_separator()
 		 */
-		public function add_menu(): void {
+		public function handle_add_parent_menu(): void {
 			// Bail if submenu.
 			if ( $this->is_submenu() ) {
 				return;
 			}
 
-			// Create Unique Admin Menu, If menu already registered,
-			// it will return string, and we just type hint it to make bool.
-			$parent_menu_url = (bool) trim( menu_page_url( $this->get_menu_slug(), false ) );
-
-			if ( $parent_menu_url ) {
+			if ( $this->is_menu_registered() ) {
 				return;
 			}
 
@@ -202,58 +349,44 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		}
 
 		/**
-		 * Add submenu page with unique slug generation under the parent menu.
+		 * Register additional submenu.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_current_page_slug()
-		 * @see self::render()
-		 * @see self::page_loaded()
+		 * @see self::get_all_pages()
 		 */
-		public function add_menu_page(): void {
+		public function handle_add_submenu(): void {
 
-			$page_slug = $this->get_page_slug();
-
-			if ( ! isset( self::$slug_usages[ $page_slug ] ) ) {
-				self::$slug_usages[ $page_slug ] = 0;
-			} else {
-				++self::$slug_usages[ $page_slug ];
+			if ( self::$is_page_attached ) {
+				return;
 			}
 
-			if ( 0 === self::$slug_usages[ $page_slug ] ) {
-				$this->current_page_slug = sprintf( '%s', $page_slug );
-			} else {
-				$this->current_page_slug = sprintf( '%s-%s', $page_slug, self::$slug_usages[ $page_slug ] );
+			foreach ( $this->get_all_pages() as $menu_slug => $submenu ) {
+
+				$page_hook_suffix = add_submenu_page(
+					$submenu->get_menu_slug(),
+					esc_html( $submenu->get_page_title() ),
+					wp_kses_post( $submenu->get_page_menu_title() ),
+					$submenu->get_page_capability(),
+					sanitize_key( $menu_slug ),
+					array( $submenu, 'render' ),
+					$submenu->get_page_position()
+				);
+
+				if ( false === $page_hook_suffix ) {
+					continue;
+				}
+
+				$submenu->current_page_hook = $page_hook_suffix;
+
+				if ( $submenu->current_page_hook ) {
+					add_action( "load-{$submenu->get_current_page_hook()}", array( $submenu, 'page_loaded' ) );
+				}
 			}
 
-			$capability = $this->get_capability();
-
-			$settings_page = add_submenu_page(
-				$this->get_menu_slug(),
-				$this->get_page_title(),
-				$this->get_page_menu_title(),
-				$capability,
-				$this->get_current_page_slug(),
-				function () {
-					if ( $this->has_capability() ) {
-						// RENDER PAGE CONTENT.
-						$this->render();
-					}
-				}
-			);
-
-			// Trigger page_loaded() callback when this admin page is loaded.
-			add_action(
-				'load-' . $settings_page,
-				function () {
-					if ( $this->has_capability() ) {
-						// PAGE LOADED.
-						$this->page_loaded();
-					}
-				}
-			);
+			self::$is_page_attached = true;
 		}
 
 		/**
@@ -262,10 +395,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 * @return void
 		 *
 		 * @since 1.0.0
-		 *
-		 * @see self::is_submenu()
 		 */
-		public function remove_menu(): void {
+		public function handle_remove_duplicate_menu(): void {
 			if ( $this->is_submenu() ) {
 				return;
 			}
@@ -275,10 +406,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 
 			remove_submenu_page( $menu_slug, $menu_slug );
 		}
-
-		// =========================================================================
-		// Slug and Identifier Methods
-		// =========================================================================
 
 		/**
 		 * Get the unique page slug used in the WordPress admin URL.
@@ -293,9 +420,47 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 			return $this->current_page_slug;
 		}
 
-		// =========================================================================
-		// Menu Separator Methods
-		// =========================================================================
+		/**
+		 * Get current page hook.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::handle_add_submenu()
+		 */
+		public function get_current_page_hook(): string {
+			return $this->current_page_hook;
+		}
+
+		/**
+		 * Is current page.
+		 *
+		 * @return bool
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::get_current_page_slug()
+		 * @see self::get_current_page()
+		 */
+		public function is_current_page(): bool {
+
+			$current_page = $this->get_current_page();
+
+			return is_admin() && $current_page === $this->get_current_page_slug();
+		}
+
+		/**
+		 * Get current page from global or from http get var.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 */
+		public function get_current_page(): string {
+			$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- we use it just to get page.
+			return $GLOBALS['plugin_page'] ?? $page;
+		}
 
 		/**
 		 * Whether to add a menu separator before the top-level menu.
@@ -347,10 +512,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 			);
 		}
 
-		// =========================================================================
-		// Capability and Access Control Methods
-		// =========================================================================
-
 		/**
 		 * Check if menu slug contains '.php', indicating a submenu of a core admin page.
 		 *
@@ -360,7 +521,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @see self::get_menu_slug()
 		 */
-		public function is_submenu(): bool {
+		protected function is_submenu(): bool {
 			return false !== strpos( $this->get_menu_slug(), '.php' );
 		}
 
@@ -388,6 +549,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 */
 		public function has_capability(): bool {
 			return current_user_can( $this->get_capability() );
+		}
+
+		/**
+		 * Check page capability.
+		 *
+		 * @return bool
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::get_page_capability()
+		 */
+		public function has_page_capability(): bool {
+			return current_user_can( $this->get_page_capability() );
 		}
 
 		// =========================================================================
@@ -426,8 +600,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 * @return string
 		 *
 		 * @since 1.0.0
-		 *
-		 * @see self::is_submenu()
 		 */
 		public function get_menu_slug(): string {
 			return 'storepress';
@@ -449,31 +621,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		// =========================================================================
 
 		/**
-		 * Get the base page slug for the submenu page.
-		 *
-		 * @return string
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see self::get_current_page_slug()
-		 */
-		public function get_page_slug(): string {
-			return $this->get_plugin_slug();
-		}
-
-		/**
 		 * Get the page title displayed in the browser title bar.
 		 *
 		 * @return string
 		 *
 		 * @since 1.0.0
 		 */
-		public function get_page_title(): string {
-
-			$this->subclass_should_implement( __FUNCTION__ );
-
-			return $this->get_plugin_name();
-		}
+		abstract public function get_page_title(): string;
 
 		/**
 		 * Get the submenu item title displayed in the admin menu.
@@ -482,16 +636,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 */
-		public function get_page_menu_title(): string {
-			return $this->get_plugin_name();
-		}
-
-		// =========================================================================
-		// Page Lifecycle Methods
-		// =========================================================================
+		abstract public function get_page_menu_title(): string;
 
 		/**
-		 * Called on admin_init for users with capability. Override to register settings.
+		 * Called on admin_init for users with capability.
 		 *
 		 * @return void
 		 *
@@ -499,13 +647,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @see self::page_loaded()
 		 */
-		public function page_init(): void {
-			$this->subclass_should_implement( __FUNCTION__ );
-			// Override in child class to register settings.
-		}
+		public function page_init(): void {}
 
 		/**
-		 * Called when this specific admin page is loaded. Override to enqueue assets.
+		 * Called when this specific admin page is loaded.
 		 *
 		 * @return void
 		 *
@@ -513,10 +658,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @see self::render()
 		 */
-		public function page_loaded(): void {
-			$this->subclass_should_implement( __FUNCTION__ );
-			// Override in child class to enqueue assets.
-		}
+		public function page_loaded(): void {}
 
 		/**
 		 * Render the admin page content. Override to output page HTML.
@@ -528,8 +670,32 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 * @see self::page_loaded()
 		 */
 		public function render(): void {
-			$this->subclass_should_implement( __FUNCTION__ );
-			// Override in child class to render page content.
+			$this->subclass_should_implement( __FUNCTION__, $this );
+		}
+
+		/**
+		 * Get current page url.
+		 *
+		 * @param array<array-key, mixed> $page_args Additional args.
+		 *
+		 * @return string
+		 *
+		 * @since 1.0.0
+		 *
+		 * @see self::get_current_page_slug()
+		 */
+		public function get_current_page_uri( array $page_args = array() ): string {
+			$admin_url = $this->is_submenu() ? $this->get_menu_slug() : 'admin.php';
+
+			$args = array(
+				'page' => $this->get_current_page_slug(),
+			);
+
+			$query_args = wp_parse_args( $args, $page_args );
+
+			ksort( $query_args );
+
+			return admin_url( add_query_arg( $query_args, $admin_url ) );
 		}
 	}
 }
