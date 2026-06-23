@@ -13,6 +13,7 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
+	use Psr\SimpleCache\CacheInterface;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
 
@@ -227,17 +228,27 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * Retrieves a cached value by key.
 		 *
 		 * @since  3.5.0
-		 * @param  string $key Cache key.
-		 * @return mixed       Cached value, or false on a cache miss.
+		 * @param string $key Cache key.
+		 * @param mixed  $default_value Default value to return if the key does not exist.
+		 * @return mixed The value of the item from the cache, or $default_value in case of cache miss.
+		 * @phpstan-return mixed
 		 * @see    self::get_transient()
 		 */
-		public function get( string $key ) {
+		public function get( string $key, $default_value = null ) {
 
 			if ( $this->is_object_cache() ) {
-				return wp_cache_get( $this->get_key( $key ), $this->get_cache_group() );
+
+				$found = false;
+				$value = wp_cache_get( $this->get_key( $key ), $this->get_cache_group(), false, $found );
+
+				if ( $found ) {
+					return $value;
+				}
+
+				return $default_value;
 			}
 
-			return $this->get_transient( $key );
+			return $this->get_transient( $key ) ?? $default_value;
 		}
 
 		/**
@@ -251,8 +262,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 
 			$data = get_transient( $this->get_key( $key ) );
 
-			if ( $this->is_empty( $data ) ) {
-				return false;
+			if ( false === $data ) {
+				return null;
 			}
 
 			return $data;
@@ -262,13 +273,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * Returns true when a cache response contains a real value.
 		 *
 		 * @since  3.5.0
-		 * @param  mixed $cache_response Value returned from a cache read.
+		 * @param  string $key Value returned from a cache read.
 		 * @return bool
 		 * @see    self::is_empty()
 		 */
-		public function has( $cache_response ): bool {
-
-			return ! $this->is_empty( $cache_response );
+		public function has( string $key ): bool {
+			return ! is_null( $this->get( $key ) );
 		}
 
 		/**
@@ -278,14 +288,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * indistinguishable from a cache miss. Wrap falsy values in an array
 		 * or object before passing to set()/add().
 		 *
-		 * @param mixed $cache_response Value returned from a cache read.
+		 * @param string $key Value returned from a cache read.
 		 * @return bool
 		 * @since  3.5.0
 		 * @see    self::has()
 		 */
-		public function is_empty( $cache_response ): bool {
+		public function is_empty( string $key ): bool {
 
-			return is_null( $cache_response ) || false === $cache_response;
+			return is_null( $this->get( $key ) );
 		}
 
 		// =====================================================================
@@ -296,38 +306,42 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * Adds a value only when the key does not already exist in cache.
 		 *
 		 * @since  3.5.0
-		 * @param  string $key        Cache key.
-		 * @param  mixed  $value      Value to cache.
-		 * @param  int    $expiration TTL in seconds.
+		 * @param  string   $key        Cache key.
+		 * @param  mixed    $value      Value to cache.
+		 * @param  int|null $ttl TTL in seconds.
 		 * @return bool               True if stored, false if key already existed.
 		 * @see    self::add_transient()
 		 */
-		public function add( string $key, $value, int $expiration = YEAR_IN_SECONDS ): bool {
+		public function add( string $key, $value, $ttl = null ): bool {
+
+			$expire = $ttl ?? YEAR_IN_SECONDS;
 
 			if ( $this->is_object_cache() ) {
-				return wp_cache_add( $this->get_key( $key ), $value, $this->get_cache_group(), $expiration ); // phpcs:ignore WordPressVIPMinimum.Performance.LowExpiryCacheTime.CacheTimeUndetermined
+				return wp_cache_add( $this->get_key( $key ), $value, $this->get_cache_group(), $expire ); // phpcs:ignore WordPressVIPMinimum.Performance.LowExpiryCacheTime.CacheTimeUndetermined
 			}
 
-			return $this->add_transient( $key, $value, $expiration );
+			return $this->add_transient( $key, $value, $expire );
 		}
 
 		/**
 		 * Stores a value in cache, overwriting any existing entry.
 		 *
 		 * @since  3.5.0
-		 * @param  string $key        Cache key.
-		 * @param  mixed  $value      Value to cache.
-		 * @param  int    $expiration TTL in seconds.
+		 * @param  string   $key        Cache key.
+		 * @param  mixed    $value      Value to cache.
+		 * @param  int|null $ttl TTL in seconds.
 		 * @return bool
 		 * @see    self::set_transient()
 		 */
-		public function set( string $key, $value, int $expiration = YEAR_IN_SECONDS ): bool {
+		public function set( string $key, $value, $ttl = null ): bool {
+
+			$expire = $ttl ?? YEAR_IN_SECONDS;
 
 			if ( $this->is_object_cache() ) {
-				return wp_cache_set( $this->get_key( $key ), $value, $this->get_cache_group(), $expiration ); // phpcs:ignore WordPressVIPMinimum.Performance.LowExpiryCacheTime.CacheTimeUndetermined
+				return wp_cache_set( $this->get_key( $key ), $value, $this->get_cache_group(), $expire ); // phpcs:ignore WordPressVIPMinimum.Performance.LowExpiryCacheTime.CacheTimeUndetermined
 			}
 
-			return $this->set_transient( $key, $value, $expiration );
+			return $this->set_transient( $key, $value, $expire );
 		}
 
 		/**
@@ -406,7 +420,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * @return bool
 		 * @see    self::delete_version()
 		 */
-		public function flush(): bool {
+		public function clear(): bool {
 
 			// Flash By Group.
 			if ( $this->is_object_cache() && wp_cache_supports( 'flush_group' ) ) {
@@ -450,7 +464,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * @return bool
 		 * @see    self::delete_all_transient()
 		 */
-		public function flush_all(): bool {
+		public function flush(): bool {
 
 			if ( ! current_user_can( 'manage_options' ) ) {
 				return false;

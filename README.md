@@ -1583,10 +1583,10 @@ $cache->delete( 'api_response' );
 
 
 // Invalidate all cached data for this plugin.
-$cache->flush();
+$cache->clear();
 
 // Same effect; flush_all() also clears the whole object cache when no group flush is supported.
-$cache->flush_all();
+$cache->flush();
 
 
 $args = array(

@@ -16,7 +16,6 @@
 	namespace StorePress\AdminUtils\Services\Internal\Settings;
 
 	use StorePress\AdminUtils\Abstracts\AbstractSettings;
-	use StorePress\AdminUtils\Traits\CallerTrait;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -220,7 +219,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 
 			if ( $this->is_private() ) {
 				$id    = $this->get_private_name();
-				$value = get_option( $id );
+				$value = get_option( $id, null );
 			} else {
 				$id     = $this->get_id();
 				$values = $this->get_settings()->get_options();
