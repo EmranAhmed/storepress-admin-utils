@@ -8,9 +8,9 @@
 	 * @version 1.0.0
 	 */
 
-	use StorePress\AdminUtils\Abstracts\AbstractDialog;
-
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+
+	use StorePress\AdminUtils\Abstracts\AbstractDialog;
 
 	$storepress_style = $this->get_inline_styles(
 		array(

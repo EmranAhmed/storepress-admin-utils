@@ -380,7 +380,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *          ```php
 		 *          public function additional_request_args(): array {
 		 *              return array(
-		 *                  'site_url' => site_url(),
 		 *                  'php_version' => PHP_VERSION,
 		 *              );
 		 *          }
@@ -690,8 +689,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		protected function get_request_args(): array {
 			return array(
 				'body'       => array(
+					'source'          => 'upgrade',
 					'type'            => 'plugins',
-					'name'            => sanitize_key( $this->get_plugin_basename() ),
+					'mode'            => $this->is_development_environment() ? 'dev' : 'prod',
+					'name'            => sanitize_text_field( $this->get_plugin_basename() ),
 					'slug'            => sanitize_key( $this->get_plugin_slug() ),
 					'license_key'     => sanitize_key( $this->get_license_key() ),
 					'product_id'      => absint( $this->get_product_id() ),

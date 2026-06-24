@@ -8,9 +8,9 @@
 	 * @version 1.0.0
 	 */
 
-	use StorePress\AdminUtils\Services\Internal\Updater\Rollback;
-
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+
+	use StorePress\AdminUtils\Services\Internal\Updater\Rollback;
 
 	$storepress_rtl_class = is_rtl() ? 'has-rtl' : '';
 

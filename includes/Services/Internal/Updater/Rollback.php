@@ -310,7 +310,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 *
 		 * @since 1.0.0
 		 */
-		public function handle_rollback(): void {
+		final public function handle_rollback(): void {
 
 			$status = array(
 				'currentVersion' => '',
@@ -408,7 +408,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 				global $wp_filesystem;
 
 				$status['errorCode'] = 'unable_to_connect_to_filesystem';
-				$status['message']   = __( 'Unable to connect to the filesystem. Please confirm your credentials.' );
+				$status['message']   = esc_html__( 'Unable to connect to the filesystem. Please confirm your credentials.' );
 
 				// Pass through the error from WP_Filesystem if one was raised.
 				if ( $wp_filesystem instanceof \WP_Filesystem_Base && is_wp_error( $wp_filesystem->errors ) && $wp_filesystem->errors->has_errors() ) {
@@ -550,8 +550,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 			$data = $this->get_plugin_transient_data( $this->get_plugin_basename() );
 
 			$allow_rollback = $this->string_to_boolean( $this->get_var( $data['allow_rollback'], 'no' ) );
+			$has_versions   = ! $this->is_empty_array( $this->get_var( $data['versions'], array() ) );
 
-			if ( $allow_rollback ) {
+			if ( $allow_rollback && $has_versions ) {
 				$links[ $this->menu_slug() ] = $action_links;
 			}
 
@@ -688,8 +689,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 
 			$this->plugin_data = get_plugin_data( $plugin_file );
 
-			$is_rollback_available = isset( $this->plugin_info['allow_rollback'] );
-			$is_rollback_allowed   = $is_rollback_available && $this->plugin_info['allow_rollback'];
+			$is_rollback_available = isset( $this->plugin_info['allow_rollback'] ) && $this->string_to_boolean( $this->plugin_info['allow_rollback'] );
+
+			$is_versions_available = isset( $this->plugin_info['versions'] ) && is_array( $this->plugin_info['versions'] ) && ! $this->is_empty_array( $this->plugin_info['versions'] );
 
 			if ( ! $is_rollback_available ) {
 				wp_die(
@@ -701,7 +703,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 				);
 			}
 
-			if ( ! $is_rollback_allowed ) {
+			if ( ! $is_versions_available ) {
 				wp_die(
 					sprintf( esc_html( $strings['rollback_not_available'] ), esc_html( $this->plugin_info['name'] ) ),
 					esc_html( $strings['rollback_page_title'] ),

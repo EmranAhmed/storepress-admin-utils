@@ -1725,13 +1725,15 @@ function updater_get_plugin( WP_REST_Request $request ) {
     
     $params = $request->get_params();
             
-    $type            = $request->get_param( 'type' ); // plugins
-    $plugin_name     = $request->get_param( 'name' ); // plugin-dir/plugin-name.php
-    $plugin_slug     = $request->get_param( 'slug' ); // plugin-dir
-    $license_key     = $request->get_param( 'license_key' ); // license key
-    $product_id      = $request->get_param( 'product_id' ); // product id
-    $domain          = $request->get_param( 'domain' ); // domain
-    $current_version = $request->get_param( 'current_version' ); // current_version
+    $source          = $request->get_param( 'source' );                  // upgrade
+    $type            = $request->get_param( 'type' );                    // plugins
+    $mode            = $request->get_param( 'mode' );                    // dev | prod
+    $plugin_name     = $request->get_param( 'name' );                    // plugin-dir/plugin-name.php
+    $plugin_slug     = $request->get_param( 'slug' );                    // plugin-dir
+    $license_key     = $request->get_param( 'license_key' );             // license key
+    $product_id      = $request->get_param( 'product_id' );              // product id
+    $domain          = $request->get_param( 'domain' );                  // example.com
+    $current_version = $request->get_param( 'current_version' );         // current_version
     $additional_args = (array) $request->get_param( 'additional_args' ); // plugin additional arguments.
     
     
