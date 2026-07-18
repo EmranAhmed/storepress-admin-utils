@@ -1377,6 +1377,28 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		}
 
 		/**
+		 * Get single option value directly from stored options, bypassing the field registry.
+		 *
+		 * Added so callers can read a saved value before `init`, when fields
+		 * (and therefore `get_field()`) are not registered yet.
+		 *
+		 * @param string $field_id      The field ID.
+		 * @param mixed  $default_value Optional. Default null.
+		 *
+		 * @return mixed|null
+		 *
+		 * @since 3.6.2
+		 *
+		 * @see   AbstractSettings::get_option()
+		 */
+		public function get_option_raw( string $field_id, $default_value = null ) {
+
+			$options = $this->get_options( array( $field_id => $default_value ) );
+
+			return $options[ $field_id ] ?? $default_value;
+		}
+
+		/**
 		 * Get group option value.
 		 *
 		 * @param string $group_id      The group ID.
@@ -1397,6 +1419,56 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			$field = $this->get_field( $group_id );
 
 			return $field ? $field->get_group_value( $field_id, $default_value ) : $default_value;
+		}
+
+		/**
+		 * Get group option value directly from stored options, bypassing the field registry.
+		 *
+		 * Added so callers can read a saved group value before `init`, when fields
+		 * (and therefore `get_field()`) are not registered yet.
+		 *
+		 * @param string $group_id      The group ID.
+		 * @param string $field_id      The field ID within the group.
+		 * @param mixed  $default_value Optional. Default null.
+		 *
+		 * @return mixed|null
+		 *
+		 * @since 3.6.2
+		 *
+		 * @see   AbstractSettings::get_group_option()
+		 */
+		public function get_group_option_raw( string $group_id, string $field_id, $default_value = null ) {
+
+			$options = $this->get_options( array( $group_id => array( $field_id => $default_value ) ) );
+
+			return $options[ $group_id ][ $field_id ] ?? $default_value;
+		}
+
+		/**
+		 * Update single option value by field ID.
+		 *
+		 * @param string $field_id    The field ID.
+		 * @param mixed  $field_value The field value.
+		 *
+		 * @return void
+		 *
+		 * @since 3.6.2
+		 *
+		 * @see   AbstractSettings::update_options()
+		 * @see   AbstractSettings::get_option()
+		 */
+		public function update_option( string $field_id, $field_value ): void {
+
+			$prepare_data = array(
+				$field_id => $field_value,
+			);
+
+			$_data = $this->sanitize_fields( $prepare_data );
+
+			// We don't want to update private data programatically.
+			unset( $_data['private'] );
+
+			$this->update_options( $_data );
 		}
 
 		/**

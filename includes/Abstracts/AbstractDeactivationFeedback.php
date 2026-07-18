@@ -472,7 +472,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 			$response = wp_remote_post(
 				esc_url_raw( $this->get_api_url() ),
 				array(
-					'body' => $request_body,
+					'blocking' => false, // Fire and forget; don't wait for a response.
+					'body'     => $request_body,
 				)
 			);
 

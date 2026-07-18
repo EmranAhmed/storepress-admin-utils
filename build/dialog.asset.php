@@ -1,1 +1,1 @@
-<?php return array('dependencies' => array('storepress-utils'), 'version' => '456a04d5e7fea3ac2df9');
+<?php return array('dependencies' => array('storepress-utils'), 'version' => 'f66fe33ac50f50f9e28f');
