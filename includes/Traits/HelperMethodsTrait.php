@@ -1074,7 +1074,6 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 			return $new_args;
 		}
 
-
 		/**
 		 * Convert a string to a lowercase snake_case key.
 		 *
@@ -1092,6 +1091,32 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 			$key = strtolower( $key );
 			$key = preg_replace( '/\W+/', '_', $key );
 			return trim( $key, '_' );
+		}
+
+		/**
+		 * Masks the middle of a string, keeping a few visible characters at each end.
+		 *
+		 * @param string $str           The string to mask.
+		 * @param string $mask_char     The character used to mask hidden portions.
+		 * @param int    $visible_start Number of visible characters at the start.
+		 * @param int    $visible_end   Number of visible characters at the end.
+		 *
+		 * @return string
+		 * @since 0.0.1
+		 */
+		public function mask_string( string $str, string $mask_char = '*', int $visible_start = 2, int $visible_end = 2 ): string {
+			$len = mb_strlen( $str );
+
+			// Too short to keep both ends -> mask everything.
+			if ( $len <= $visible_start + $visible_end ) {
+				return str_repeat( $mask_char, $len );
+			}
+
+			$start  = mb_substr( $str, 0, $visible_start );
+			$end    = mb_substr( $str, $len - $visible_end );
+			$middle = str_repeat( $mask_char, $len - $visible_start - $visible_end );
+
+			return $start . $middle . $end;
 		}
 	}
 }

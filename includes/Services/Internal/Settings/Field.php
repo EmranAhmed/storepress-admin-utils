@@ -115,11 +115,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Initializes a new Field object with the given settings context and field configuration.
 		 * Optionally accepts preloaded values to populate the field.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param AbstractSettings     $settings Parent settings object that manages this field.
 		 * @param array<string, mixed> $field    Field configuration array containing id, type, title, etc.
 		 * @param array<string, mixed> $values   Optional. Preloaded values for the field. Default empty array.
+		 *
+		 * @since   1.0.0
 		 *
 		 * @example Basic construction:
 		 *          ```php
@@ -150,7 +150,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * @since 1.0.0
 		 */
-		public function init(): void {}
+		public function init(): void {
+		}
 
 		/**
 		 * Add and configure field.
@@ -158,15 +159,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Processes the field configuration array, populates values from database or
 		 * provided values array, and sets up REST API visibility.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param array<string, mixed> $field  Field configuration array.
 		 * @param array<string, mixed> $values Optional. Values to populate. Default empty array.
 		 *
 		 * @return self Returns the Field instance for method chaining.
 		 *
-		 * @see Field::populate_option_values() For database value population.
-		 * @see Field::populate_from_values() For provided value population.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::populate_option_values() For database value population.
+		 * @see   Field::populate_from_values() For provided value population.
 		 *
 		 * @example
 		 *          ```php
@@ -208,12 +209,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * get_option() directly. For regular fields, extracts value from the
 		 * settings array.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return void
 		 *
-		 * @see Field::is_private() For checking private field status.
-		 * @see Field::get_private_name() For private option name generation.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::is_private() For checking private field status.
+		 * @see   Field::get_private_name() For private option name generation.
 		 */
 		private function populate_option_values(): void {
 
@@ -235,13 +236,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Used when values are passed directly (e.g., in group fields) rather
 		 * than loading from the database.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param array<string, mixed> $values Key-value pairs of field IDs to values.
 		 *
 		 * @return void
 		 *
-		 * @see Field::add() Called from add() when values are provided.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::add() Called from add() when values are provided.
 		 */
 		private function populate_from_values( array $values ): void {
 
@@ -260,9 +261,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns the AbstractSettings instance that this field belongs to.
 		 * Provides access to settings-level methods like get_options(), get_field_id(), etc.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return AbstractSettings The parent settings object.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -280,12 +281,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns the settings ID used to generate form field names.
 		 * Falls back to the parent settings ID if not explicitly set.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The settings ID string.
 		 *
-		 * @see Field::add_settings_id() For setting custom settings ID.
-		 * @see Field::get_name() For full field name generation.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::add_settings_id() For setting custom settings ID.
+		 * @see   Field::get_name() For full field name generation.
 		 *
 		 * @example
 		 *          ```php
@@ -303,13 +304,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Overrides the default settings ID, useful for group fields where
 		 * the name format differs from top-level fields.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $settings_id Custom settings ID string.
 		 *
 		 * @return self Returns the Field instance for method chaining.
 		 *
-		 * @see Field::get_settings_id() For retrieving the settings ID.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_settings_id() For retrieving the settings ID.
 		 *
 		 * @example
 		 *          ```php
@@ -332,13 +333,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Sets the current value for this field. Accepts various types including
 		 * strings, arrays (for multi-select/checkbox), numbers, and booleans.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string|string[]|numeric|bool|null $value The value to set.
 		 *
 		 * @return self Returns the Field instance for method chaining.
 		 *
-		 * @see Field::get_value() For retrieving the value.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_value() For retrieving the value.
 		 *
 		 * @example
 		 *          ```php
@@ -358,14 +359,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns the field value, falling back to the provided default or
 		 * the field's configured default value if no value is set.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param bool|string|string[]|null $default_value Optional. Default value if none set.
 		 *
 		 * @return bool|string|string[]|null The field value.
 		 *
-		 * @see Field::add_value() For setting the value.
-		 * @see Field::get_default_value() For the configured default.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::add_value() For setting the value.
+		 * @see   Field::get_default_value() For the configured default.
 		 *
 		 * @example
 		 *          ```php
@@ -374,6 +375,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          ```
 		 */
 		public function get_value( $default_value = null ) {
+
+			if ( $this->has_constant_value() ) {
+				return $this->get_constant_value( $default_value );
+			}
+
 			return $this->get_attribute( 'value', $default_value ?? $this->get_default_value() );
 		}
 
@@ -382,11 +388,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the default value specified in the field configuration array.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return bool|string|numeric|array<int|string, mixed>|null The default value or null.
 		 *
-		 * @see Field::get_value() Uses this as fallback.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_value() Uses this as fallback.
 		 *
 		 * @example
 		 *          ```php
@@ -395,6 +401,30 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 */
 		public function get_default_value() {
 			return $this->get_attribute( 'default' );
+		}
+
+		/**
+		 * Is field using constant value.
+		 *
+		 * @return bool
+		 */
+		public function has_constant_value(): bool {
+			return $this->has_attribute( 'constant' ) && defined( $this->get_attribute( 'constant' ) );
+		}
+
+		/**
+		 * Get field constant value.
+		 *
+		 * @param mixed|null $default_value Default value.
+		 *
+		 * @return mixed|null
+		 */
+		public function get_constant_value( $default_value = null ) {
+			if ( $this->has_constant_value() ) {
+				return constant( $this->get_attribute( 'constant' ) );
+			}
+
+			return $default_value;
 		}
 
 		// =====================================================================
@@ -407,9 +437,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns the unique identifier for this field, used in form names,
 		 * database storage, and HTML element IDs.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string|null The field ID or null if not set.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -426,9 +456,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the human-readable title displayed as the field label.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string|null The field title or null if not set.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -447,14 +477,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * - Regular: settings_id[field_id]
 		 * - Group: settings_id[field_id][]
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param bool $is_group Whether this is a group/multi-value field. Default false.
 		 *
 		 * @return string The generated name attribute value.
 		 *
-		 * @see Field::get_settings_id() For the settings ID portion.
-		 * @see Field::get_id() For the field ID portion.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_settings_id() For the settings ID portion.
+		 * @see   Field::get_id() For the field ID portion.
 		 *
 		 * @example
 		 *          ```php
@@ -478,11 +508,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Creates a unique option name for private fields stored as separate
 		 * WordPress options (not in the main settings array).
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The private option name in format: _settings_id__field_id
 		 *
-		 * @see Field::is_private() For checking private status.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::is_private() For checking private status.
 		 *
 		 * @example
 		 *          ```php
@@ -503,11 +533,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Private fields are stored as separate WordPress options rather than
 		 * in the main settings array, useful for sensitive data like API keys.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return bool True if field is private, false otherwise.
 		 *
-		 * @see Field::get_private_name() For private option name generation.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_private_name() For private option name generation.
 		 *
 		 * @example
 		 *          ```php
@@ -525,11 +555,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Generates the ID for the HTML5 datalist element associated with this field.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The datalist ID in format: field_id-datalist
 		 *
-		 * @see Field::get_datalist_markup() For datalist HTML generation.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_datalist_markup() For datalist HTML generation.
 		 *
 		 * @example
 		 *          ```php
@@ -551,12 +581,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns the field type after applying type aliases. For example,
 		 * 'toggle' becomes 'checkbox', 'select2' becomes 'select'.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The normalized field type.
 		 *
-		 * @see Field::get_raw_type() For the original type.
-		 * @see Field::get_type_alias() For the alias mappings.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_raw_type() For the original type.
+		 * @see   Field::get_type_alias() For the alias mappings.
 		 *
 		 * @example
 		 *          ```php
@@ -583,11 +613,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns the field type exactly as specified in the configuration,
 		 * without applying any aliases.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The raw field type. Defaults to 'text'.
 		 *
-		 * @see Field::get_type() For the normalized type.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_type() For the normalized type.
 		 *
 		 * @example
 		 *          ```php
@@ -605,11 +635,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns array mapping special field types to their base types.
 		 * Used for determining which input method to use.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string[] Associative array of type aliases.
 		 *
-		 * @see Field::get_type() Uses these aliases.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_type() Uses these aliases.
 		 *
 		 * @example
 		 *          ```php
@@ -640,12 +670,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Group type fields contain nested field configurations.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return bool True if type is 'group', false otherwise.
 		 *
-		 * @see Field::group_input() For group field rendering.
-		 * @see Field::get_group_fields() For nested fields access.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::group_input() For group field rendering.
+		 * @see   Field::get_group_fields() For nested fields access.
 		 *
 		 * @example
 		 *          ```php
@@ -664,9 +694,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * These types render multiple input elements (radio buttons, checkboxes)
 		 * and require special handling for labels and values.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string[] Array of group input type names.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -687,9 +717,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the options array configured for fields that offer choices.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string[]|array<string, string> Options as key-value pairs.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -708,11 +738,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		/**
 		 * Check if field has a custom sanitize callback.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return bool True if custom sanitize_callback is set.
 		 *
-		 * @see Field::get_sanitize_callback() For retrieving the callback.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_sanitize_callback() For retrieving the callback.
 		 */
 		public function has_sanitize_callback(): bool {
 			return $this->has_attribute( 'sanitize_callback' );
@@ -721,11 +751,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		/**
 		 * Check if field has a custom escape callback.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return bool True if custom escape_callback is set.
 		 *
-		 * @see Field::get_escape_callback() For retrieving the callback.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_escape_callback() For retrieving the callback.
 		 */
 		public function has_escape_callback(): bool {
 			return $this->has_attribute( 'escape_callback' );
@@ -738,11 +768,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * before storing in the database. Uses custom callback if set, otherwise
 		 * determines based on field type.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The sanitization function name.
 		 *
-		 * @see Field::has_sanitize_callback() For checking custom callback.
+		 * @since   1.0.0
+		 *
+		 * @see     Field::has_sanitize_callback() For checking custom callback.
 		 *
 		 * @example
 		 *          ```php
@@ -789,11 +819,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * from the database. Uses custom callback if set, otherwise determines
 		 * based on field type.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The escape function name.
 		 *
-		 * @see Field::has_escape_callback() For checking custom callback.
+		 * @since   1.0.0
+		 *
+		 * @see     Field::has_escape_callback() For checking custom callback.
 		 *
 		 * @example
 		 *          ```php
@@ -843,9 +873,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns all field attributes as originally configured plus any
 		 * modifications made during processing.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string[]|array<string, mixed> The field configuration array.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -860,13 +890,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		/**
 		 * Check if field has a specific attribute.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $attribute The attribute name to check.
 		 *
 		 * @return bool True if attribute exists, false otherwise.
 		 *
-		 * @see Field::get_attribute() For retrieving attribute values.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_attribute() For retrieving attribute values.
 		 *
 		 * @example
 		 *          ```php
@@ -887,14 +917,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Retrieves an attribute from the field configuration, returning
 		 * the default value if the attribute is not set.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string                    $attribute     The attribute name to retrieve.
 		 * @param string|string[]|null|bool $default_value Optional. Default if not set. Default null.
 		 *
 		 * @return string|string[]|null|bool The attribute value or default.
 		 *
-		 * @see Field::has_attribute() For existence checking.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::has_attribute() For existence checking.
 		 *
 		 * @example
 		 *          ```php
@@ -914,12 +944,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Validates the show_in_rest attribute to determine REST API visibility.
 		 * Returns false if attribute is missing, false, or empty string.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return bool True if field should be included in REST API.
 		 *
-		 * @see Field::get_rest_value() For REST API value retrieval.
-		 * @see Field::get_rest_type() For REST schema type.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_rest_value() For REST API value retrieval.
+		 * @see   Field::get_rest_type() For REST schema type.
 		 *
 		 * @example
 		 *          ```php
@@ -956,11 +986,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns WordPress standard text input size classes.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string[] Array of size class names.
 		 *
-		 * @see Field::prepare_classes() Uses these for size class handling.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::prepare_classes() Uses these for size class handling.
 		 *
 		 * @example
 		 *          ```php
@@ -978,14 +1008,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Combines user-specified classes with default classes, handling
 		 * size class conflicts (user size classes override defaults).
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string|string[] $classes       User-specified class names.
 		 * @param string|string[] $default_value Default class names.
 		 *
 		 * @return string[] Merged array of unique class names.
 		 *
-		 * @see Field::get_field_size_css_classes() For size class detection.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_field_size_css_classes() For size class detection.
 		 *
 		 * @example
 		 *          ```php
@@ -1031,11 +1061,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the class attribute from field configuration.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $default_value Optional. Default class if none set.
 		 *
 		 * @return bool|string|string[]|null The class value.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -1055,11 +1085,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the suffix displayed after the input field (e.g., units like "px", "%").
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string|null The suffix text or null.
 		 *
-		 * @see Field::has_suffix() For checking suffix existence.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::has_suffix() For checking suffix existence.
 		 *
 		 * @example
 		 *          ```php
@@ -1074,11 +1104,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		/**
 		 * Check if field has a suffix.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return bool True if suffix is configured.
 		 *
-		 * @see Field::get_suffix() For retrieving the suffix.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_suffix() For retrieving the suffix.
 		 */
 		public function has_suffix(): bool {
 			return $this->has_attribute( 'suffix' );
@@ -1088,8 +1118,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Check unpredicted input value and saved values.
 		 *
 		 * @param bool                              $in_array_check Is in array check.
-		 * @param int|string                        $input_value Input value.
-		 * @param int|string|array<int, mixed>|null $saved_value Saved value.
+		 * @param int|string                        $input_value    Input value.
+		 * @param int|string|array<int, mixed>|null $saved_value    Saved value.
 		 *
 		 * @return bool
 		 */
@@ -1124,11 +1154,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the default list of CSS units for unit input fields.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string[] Array of unit strings.
 		 *
-		 * @see Field::unit_input() Uses these as default units.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::unit_input() Uses these as default units.
 		 *
 		 * @example
 		 *          ```php
@@ -1157,14 +1187,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Extracts the numeric value and unit from a CSS-style value string.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $value The unit value string (e.g., "10px", "1.5em").
 		 *
 		 * @return string[] Array with 'value' and 'unit' keys.
 		 *
-		 * @see Field::unit_input() Uses this for value parsing.
-		 * @see Field::get_unit_markup() Uses this for unit selection.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::unit_input() Uses this for value parsing.
+		 * @see   Field::get_unit_markup() Uses this for unit selection.
 		 *
 		 * @example
 		 *          ```php
@@ -1198,15 +1228,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Creates an HTML select element for choosing CSS units.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $id    The base element ID.
 		 * @param string $value The current value including unit.
 		 *
 		 * @return string HTML select element markup.
 		 *
-		 * @see Field::parse_unit() For extracting current unit.
-		 * @see Field::get_available_units() For default units list.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::parse_unit() For extracting current unit.
+		 * @see   Field::get_available_units() For default units list.
 		 *
 		 * @example
 		 *          ```php
@@ -1219,7 +1249,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$_id   = sprintf( '%s-unit', $id );
 			$units = $this->get_attribute( 'units', $this->get_available_units() );
 
-			['unit' => $unit] = $this->parse_unit( $value );
+			[ 'unit' => $unit ] = $this->parse_unit( $value );
 
 			$options = array();
 
@@ -1240,13 +1270,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Creates HTML for text-type inputs including text, email, url, password,
 		 * search, and other single-line text inputs.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $css_class Optional. Default CSS class. Default 'regular-text'.
 		 *
 		 * @return string The HTML input markup.
 		 *
-		 * @see Field::get_input_markup() Calls this for text-type fields.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_input_markup() Calls this for text-type fields.
 		 *
 		 * @example
 		 *          ```php
@@ -1264,6 +1294,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$value                 = map_deep( $this->get_value(), $escape_callback );
 			$raw_type              = $this->get_raw_type();
 			$system_class          = array( $css_class );
+			$masked                = false;
 
 			if ( 'code' === $raw_type ) {
 				$system_class[] = 'code';
@@ -1289,6 +1320,23 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				$attributes['aria-describedby'] = sprintf( '%s-description', $id );
 			}
 
+			if ( $this->has_attribute( 'mask' ) ) {
+				$masked = $this->get_attribute( 'mask' );
+			}
+
+			if ( $this->has_attribute( 'disabled' ) ) {
+				$attributes['disabled'] = $this->string_to_boolean( $this->get_attribute( 'disabled' ) );
+			}
+
+			if ( $this->has_constant_value() ) {
+				$attributes['disabled'] = true;
+				if ( $masked ) {
+					$attributes['value'] = $this->mask_string( $value );
+				}
+			} elseif ( $masked ) {
+				$attributes['type'] = 'password';
+			}
+
 			if ( $this->has_attribute( 'required' ) ) {
 				$attributes['required'] = true;
 			}
@@ -1300,11 +1348,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$wrapper_classes = array(
 				'has-suffix' => $this->has_suffix(),
 				'input-container',
+				'has-mask'   => $masked && ! $this->has_constant_value(),
 			);
 
 			$suffix_markup = $this->has_suffix() ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $this->get_suffix() ) ) : '';
 
-			return sprintf( '<div class="%s"><span class="input-field"><input %s /></span> %s</div>', esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $additional_attributes ), $suffix_markup );
+			$mask_markup = $masked && ! $this->has_constant_value() ? '<span class="input-mask-button"><button data-storepress-toggle-mask-for="' . esc_attr( $attributes['id'] ) . '" type="button" class="button"><span class="dashicons dashicons-hidden" aria-hidden="true"></span></button></span>' : '';
+
+			return sprintf( '<div class="%s"><span class="input-field"><input %s /> %s </span> %s</div>', esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $additional_attributes ), $mask_markup, $suffix_markup );
 		}
 
 		/**
@@ -1313,14 +1364,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Creates HTML for number inputs with unit selection (e.g., "10px", "2em").
 		 * Includes a number input, unit dropdown, and hidden field for combined value.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $css_class Optional. Default CSS class. Default 'small-text'.
 		 *
 		 * @return string The HTML input markup with unit selector.
 		 *
-		 * @see Field::parse_unit() For value parsing.
-		 * @see Field::get_unit_markup() For unit dropdown.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::parse_unit() For value parsing.
+		 * @see   Field::get_unit_markup() For unit dropdown.
 		 *
 		 * @example
 		 *          ```php
@@ -1337,7 +1388,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$value                 = map_deep( $this->get_value(), $escape_callback );
 			$system_class          = array( $css_class );
 
-			['value' => $input] = $this->parse_unit( $value );
+			[ 'value' => $input ] = $this->parse_unit( $value );
 
 			$attributes = array(
 				'id'    => $id,
@@ -1384,13 +1435,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Creates HTML for multi-line text input fields.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $css_class Optional. Default CSS class. Default 'regular-text'.
 		 *
 		 * @return string The HTML textarea markup.
 		 *
-		 * @see Field::get_input_markup() Calls this for textarea type.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_input_markup() Calls this for textarea type.
 		 *
 		 * @example
 		 *          ```php
@@ -1439,11 +1490,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Creates HTML for checkbox, radio, and toggle inputs. Handles both
 		 * single options and multiple option groups.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The HTML fieldset with inputs markup.
 		 *
-		 * @see Field::get_input_markup() Calls this for checkbox/radio/toggle types.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_input_markup() Calls this for checkbox/radio/toggle types.
 		 *
 		 * @example
 		 *          ```php
@@ -1532,11 +1583,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Creates HTML for select dropdowns including support for multiple
 		 * selection and enhanced select libraries (Select2, WooCommerce).
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The HTML select element markup.
 		 *
-		 * @see Field::get_input_markup() Calls this for select types.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_input_markup() Calls this for select types.
 		 *
 		 * @example
 		 *          ```php
@@ -1605,13 +1656,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Delegates to the parent settings object's custom_field method for
 		 * rendering non-standard field types. Triggers error if method not implemented.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The custom field HTML markup.
 		 *
 		 * @throws \WP_Exception If custom_field method not implemented.
 		 *
-		 * @see Field::get_input_markup() Calls this for unknown types.
+		 * @since   1.0.0
+		 *
+		 * @see     Field::get_input_markup() Calls this for unknown types.
 		 *
 		 * @example Implementing custom fields in Settings class:
 		 *          ```php
@@ -1647,12 +1698,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Creates Field instances for each nested field in a group configuration.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return Field[] Array of Field objects for nested fields.
 		 *
-		 * @see Field::is_type_group() For group type checking.
-		 * @see Field::group_input() Uses this for rendering.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::is_type_group() For group type checking.
+		 * @see   Field::group_input() Uses this for rendering.
 		 *
 		 * @example
 		 *          ```php
@@ -1691,11 +1742,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Collects escaped values from all nested fields that should be
 		 * included in REST API responses.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return array<string, string|string[]> Associative array of field IDs to values.
 		 *
-		 * @see Field::has_show_in_rest() For REST visibility check.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::has_show_in_rest() For REST visibility check.
 		 *
 		 * @example
 		 *          ```php
@@ -1728,11 +1779,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the escaped field value suitable for REST API responses.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return mixed The escaped field value.
 		 *
-		 * @see Field::get_escape_callback() For the escape function.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_escape_callback() For the escape function.
 		 *
 		 * @example
 		 *          ```php
@@ -1750,11 +1801,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Collects raw values from all nested fields in a group.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return array<string, mixed> Associative array of field IDs to values.
 		 *
-		 * @see Field::get_group_fields() For nested field access.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_group_fields() For nested field access.
 		 *
 		 * @example
 		 *          ```php
@@ -1779,14 +1830,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Retrieves the value of a single field within a group by its ID.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string                    $field_id      The nested field ID to find.
 		 * @param bool|null|string|string[] $default_value Optional. Default if not found.
 		 *
 		 * @return bool|null|string|string[] The field value or default.
 		 *
-		 * @see Field::get_group_fields() For nested field access.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_group_fields() For nested field access.
 		 *
 		 * @example
 		 *          ```php
@@ -1812,21 +1863,21 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * within a fieldset. Supports various nested field types including text,
 		 * select, checkbox, radio, textarea, and unit inputs.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $css_class Optional. Default CSS class for inputs. Default 'small-text'.
 		 *
 		 * @return string The HTML fieldset markup containing all nested fields.
 		 *
-		 * @see Field::get_group_fields() For nested field retrieval.
-		 * @see Field::get_input_markup() Calls this for group type.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_group_fields() For nested field retrieval.
+		 * @see   Field::get_input_markup() Calls this for group type.
 		 *
 		 * @example
 		 *          ```php
 		 *          $html = $field->group_input();
 		 *          ```
 		 */
-		public function group_input( string $css_class = 'small-text' ): string {
+		public function group_input( string $css_class = '' ): string {
 
 			$group_id     = $this->get_id();
 			$group_title  = $this->get_title();
@@ -1852,6 +1903,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				$escape_callback   = $this->get_escape_callback();
 				$field_value       = map_deep( $field->get_value(), $escape_callback );
 				$field_attributes  = $field->get_attribute( 'html_attributes', array() );
+				$masked            = false;
 
 				$has_condition = $field->has_attribute( 'condition' );
 
@@ -1871,6 +1923,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					'placeholder' => $field_placeholder,
 					'required'    => $field_required,
 				);
+
+				if ( $field->has_attribute( 'disabled' ) ) {
+					$attributes['disabled'] = $this->string_to_boolean( $field->get_attribute( 'disabled' ) );
+				}
 
 				$is_toggle   = 'toggle' === $raw_field_type;
 				$is_checkbox = 'checkbox' === $field_type;
@@ -1967,7 +2023,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 
 					$has_suffix = count( $units ) < 2;
 
-					['value' => $input] = $this->parse_unit( $field_value );
+					[ 'value' => $input ] = $this->parse_unit( $field_value );
 
 					$attributes = array(
 						'id'          => $uniq_id,
@@ -2012,18 +2068,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
 
 					$inputs[] = sprintf( '<ul %s class="input-wrapper unit-input-wrapper">', $conditional_attr );
-					$inputs[] = sprintf(
-						'<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><span class="%s"><span class="input-field"><input %s /></span> %s %s</span>%s</li>',
-						esc_attr( $uniq_id ),
-						esc_html( $field_title ),
-						$required_markup,
-						$tooltip_markup,
-						esc_attr( $this->get_css_classes( $wrapper_classes ) ),
-						$this->get_html_attributes( $attributes, $field_attributes ),
-						$suffix_markup,
-						$unit_hidden_input,
-						$datalist_markup
-					);
+					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><span class="%s"><span class="input-field"><input %s /></span> %s %s</span>%s</li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $field_attributes ), $suffix_markup, $unit_hidden_input, $datalist_markup );
 					$inputs[] = '</ul>';
 				} else {
 
@@ -2046,18 +2091,34 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 						$datalist_markup .= '</datalist>';
 					}
 
+					if ( $field->has_attribute( 'mask' ) ) {
+						$masked = $field->get_attribute( 'mask' );
+					}
+
+					if ( $field->has_constant_value() ) {
+						$attributes['disabled'] = true;
+						if ( $masked ) {
+							$attributes['value'] = $this->mask_string( $field_value );
+						}
+					} elseif ( $masked ) {
+						$attributes['type'] = 'password';
+					}
+
 					$suffix_markup = $has_field_suffix ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $field_suffix ) ) : '';
 
 					$wrapper_classes = array(
 						'input-container',
 						'has-suffix' => $has_field_suffix,
+						'has-mask'   => $masked && ! $field->has_constant_value(),
 					);
+
+					$mask_markup = $masked && ! $field->has_constant_value() ? '<span class="input-mask-button"><button data-storepress-toggle-mask-for="' . esc_attr( $attributes['id'] ) . '" type="button" class="button"><span class="dashicons dashicons-hidden" aria-hidden="true"></span></button></span>' : '';
 
 					$tooltip_markup  = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
 					$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
 
 					$inputs[] = sprintf( '<ul %s class="input-wrapper text-input-wrapper">', $conditional_attr );
-					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><span class="%s"><span class="input-field"><input %s /></span> %s </span>%s</li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $field_attributes ), $suffix_markup, $datalist_markup );
+					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><span class="%s"><span class="input-field"><input %s /> %s </span> %s </span>%s</li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $field_attributes ), $mask_markup, $suffix_markup, $datalist_markup );
 					$inputs[] = '</ul>';
 				}
 			}
@@ -2075,11 +2136,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Determines the appropriate JSON Schema primitive type based on the
 		 * field type and configuration.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The JSON Schema type: 'string', 'number', 'array', or 'object'.
 		 *
-		 * @see https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/#primitive-types
+		 * @since 1.0.0
+		 *
+		 * @see   https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/#primitive-types
 		 *
 		 * @example
 		 *          ```php
@@ -2137,16 +2198,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Main dispatcher method that calls the appropriate input rendering
 		 * method based on the field type.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The HTML input markup.
 		 *
-		 * @see Field::text_input() For text-type fields.
-		 * @see Field::textarea_input() For textarea fields.
-		 * @see Field::check_input() For checkbox/radio/toggle fields.
-		 * @see Field::select_input() For select fields.
-		 * @see Field::group_input() For group fields.
-		 * @see Field::custom_input() For custom field types.
+		 * @since   1.0.0
+		 *
+		 * @see     Field::text_input() For text-type fields.
+		 * @see     Field::textarea_input() For textarea fields.
+		 * @see     Field::check_input() For checkbox/radio/toggle fields.
+		 * @see     Field::select_input() For select fields.
+		 * @see     Field::group_input() For group fields.
+		 * @see     Field::custom_input() For custom field types.
 		 *
 		 * @example
 		 *          ```php
@@ -2208,12 +2269,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Creates the HTML label element for the field, including required
 		 * indicator and tooltip if configured.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The HTML label markup.
 		 *
-		 * @see Field::get_tooltip_markup() For tooltip generation.
-		 * @see Field::get_required_markup() For required indicator.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_tooltip_markup() For tooltip generation.
+		 * @see   Field::get_required_markup() For required indicator.
 		 *
 		 * @example
 		 *          ```php
@@ -2242,9 +2303,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Creates the HTML paragraph element for the field description if configured.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The HTML description markup or empty string.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -2263,9 +2324,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Creates the HTML span element for displaying a tooltip if configured.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The HTML tooltip markup or empty string.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -2282,9 +2343,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Creates the HTML span element showing the required asterisk if field is required.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The HTML required indicator or empty string.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -2301,11 +2362,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Creates the HTML5 datalist element for autocomplete suggestions if configured.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The HTML datalist markup or empty string.
 		 *
-		 * @see Field::get_datalist_id() For the datalist ID.
+		 * @since 1.0.0
+		 *
+		 * @see   Field::get_datalist_id() For the datalist ID.
 		 *
 		 * @example
 		 *          ```php
@@ -2347,9 +2408,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns HTML attributes for conditional field visibility based on
 		 * other field values.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return array<string, mixed> Conditional attributes array or empty array.
+		 *
+		 * @since 1.0.0
 		 *
 		 * @example
 		 *          ```php
@@ -2382,15 +2443,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Generates the full table row HTML for the field including label,
 		 * input, datalist, description, and conditional attributes.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string The complete HTML table row markup for the field.
 		 *
-		 * @see Field::get_label_markup() For label generation.
-		 * @see Field::get_input_markup() For input generation.
-		 * @see Field::get_description_markup() For description generation.
-		 * @see Field::get_datalist_markup() For datalist generation.
-		 * @see Field::conditional_attribute() For conditional display.
+		 * @since   1.0.0
+		 *
+		 * @see     Field::get_label_markup() For label generation.
+		 * @see     Field::get_input_markup() For input generation.
+		 * @see     Field::get_description_markup() For description generation.
+		 * @see     Field::get_datalist_markup() For datalist generation.
+		 * @see     Field::conditional_attribute() For conditional display.
 		 *
 		 * @example
 		 *          ```php
@@ -2438,28 +2499,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				$column_data_attrs['colspan'] = '2';
 				$column_data_attrs['class']   = 'td-full';
 
-				return sprintf(
-					'%s<td %s>%s %s %s</td>%s',
-					$row_markup_start,
-					$this->get_html_attributes( $data_tag_attrs, $column_data_attrs ),
-					$input,
-					$datalist,
-					$description,
-					$row_markup_end
-				);
+				return sprintf( '%s<td %s>%s %s %s</td>%s', $row_markup_start, $this->get_html_attributes( $data_tag_attrs, $column_data_attrs ), $input, $datalist, $description, $row_markup_end );
 			}
 
-			return sprintf(
-				'%s<th scope="row" %s>%s</th><td %s>%s %s %s</td>%s',
-				$row_markup_start,
-				$this->get_html_attributes( $data_tag_attrs ),
-				$label,
-				$this->get_html_attributes( $column_data_attrs ),
-				$input,
-				$datalist,
-				$description,
-				$row_markup_end
-			);
+			return sprintf( '%s<th scope="row" %s>%s</th><td %s>%s %s %s</td>%s', $row_markup_start, $this->get_html_attributes( $data_tag_attrs ), $label, $this->get_html_attributes( $column_data_attrs ), $input, $datalist, $description, $row_markup_end );
 		}
 	}
 }

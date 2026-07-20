@@ -1268,10 +1268,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 			foreach ( $fields as $key => $field ) {
 
-				$sanitize_callback = $field->get_sanitize_callback();
-				$type              = $field->get_type();
-				$options           = $field->get_options();
-				$default           = $field->get_default_value();
+				$sanitize_callback  = $field->get_sanitize_callback();
+				$type               = $field->get_type();
+				$options            = $field->get_options();
+				$default            = $field->get_default_value();
+				$has_constant_value = $field->has_constant_value();
+
+				// We do not save CONST value in db.
+				if ( $has_constant_value ) {
+					continue;
+				}
 
 				if ( $field->is_private() ) {
 					$id                  = $field->get_private_name();
@@ -1300,11 +1306,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 						$group_fields = $field->get_group_fields();
 
 						foreach ( $group_fields as $group_field ) {
-							$group_field_id          = $group_field->get_id();
-							$group_field_type        = $group_field->get_type();
-							$group_field_options     = $group_field->get_options();
-							$group_sanitize_callback = $group_field->get_sanitize_callback();
-							$group_default           = $group_field->get_default_value();
+							$group_field_id           = $group_field->get_id();
+							$group_field_type         = $group_field->get_type();
+							$group_field_options      = $group_field->get_options();
+							$group_sanitize_callback  = $group_field->get_sanitize_callback();
+							$group_default            = $group_field->get_default_value();
+							$group_has_constant_value = $group_field->has_constant_value();
+
+							// We do not save CONST value in db.
+							if ( $group_has_constant_value ) {
+								continue;
+							}
 
 							// Group Conditional value key is not set here if it's hidden.
 							if ( ! isset( $_post[ $key ][ $group_field_id ] ) && ! in_array( $group_field_type, array( 'toggle', 'checkbox' ), true ) ) {

@@ -542,6 +542,8 @@ composer require storepress/admin-utils
 					// 'html_datalist' => array('yes','no'),
 					// 'show_in_rest'    => array( 'name' => 'custom_rest_id' ),
 					// 'class'       => array( 'large-text', 'code', 'custom-class' )
+					// 'mask'       => true  // Mask filed value.
+					// 'constant'   => 'PLUGIN_CUSTOM_KEY' // Pull and deliver data from PHP constant value, does not save in db.
 				),
 				
 				
@@ -590,7 +592,7 @@ composer require storepress/admin-utils
 							'tooltip'      => 'Textarea Help tooltip',
 							'required'    => true,
 							// 'required'    => true,
-							//'class'       => array( 'large-text', 'code', 'custom-class' )
+							// 'class'       => array( 'large-text', 'code', 'custom-class' )
 						),
 						
 						array(
@@ -612,7 +614,7 @@ composer require storepress/admin-utils
 							'default'     => 'no',
 							'tooltip'      => 'Textarea Help tooltip',
 							'required'    => true,
-							//'options'=>array('X', 'Y', 'Z'),
+							// 'options'=>array('X', 'Y', 'Z'),
 						),
 						array(
 							'id'          => 'input2',
@@ -625,7 +627,7 @@ composer require storepress/admin-utils
 						),
 						array(
 							//'show_in_rest'    => false,
-							'condition'=>array('selector'=>$this->get_group_field_selector('input_group','inputas')),
+							'condition'=> array('selector'=>$this->get_group_field_selector('input_group','inputas')),
 							'id'                => 'input5',
 							'type'              => 'number',
 							'title'             => 'Width WW',
@@ -635,8 +637,8 @@ composer require storepress/admin-utils
 							'suffix'            => 'x',
 							'sanitize_callback' => 'absint',
 							'html_attributes'   => array( 'min' => 10 ),
-							'tooltip'      => 'Textarea Help tooltip',
-							'required'    => true,
+							'tooltip'           => 'Textarea Help tooltip',
+							'required'          => true,
 						),
 						array(
 							//'show_in_rest'    => false,
@@ -648,22 +650,21 @@ composer require storepress/admin-utils
 							'default'         => '100',
 							'suffix'          => 'x',
 							'html_attributes' => array( 'min' => 10 ),
-							'tooltip'      => 'Textarea Help tooltip',
-							'required'    => true,
+							'tooltip'         => 'Textarea Help tooltip',
+							'required'        => true,
 						),
-						
-						
+			
 						array(
 							'id'              => 'inputse2xx',
 							'type'            => 'select',
 							'title'           => 'Int value',
 							'description'     => 'Input desc of 01<code>rxxx</code>',
-							// 'default'     => array( 'home3', 'home1' ),
-							// 'multiple'    => true,
+							// 'default'      => array( 'home3', 'home1' ),
+							// 'multiple'     => true,
 							'default'         => '2',
-							'class'=>array('x', 'y'),
-							'tooltip'      => 'Textarea Help tooltip',
-							'required'    => true,
+							'class'           => array('x', 'y'),
+							'tooltip'         => 'Textarea Help tooltip',
+							'required'        => true,
 							'html_attributes' => array( 'data-demo' => true ),
 							'options'         => array(
 								'1' => 'Home One',
@@ -683,7 +684,7 @@ composer require storepress/admin-utils
 								'y' => 'Home Y',
 								'z' => 'Home Z',
 							),
-							'tooltip'      => 'Textarea Help tooltip',
+							'tooltip'     => 'Textarea Help tooltip',
 							'required'    => true,
 						),
 						array(
@@ -696,8 +697,8 @@ composer require storepress/admin-utils
 								'y' => 'Home Y',
 								'z' => 'Home Z',
 							),
-							'tooltip'      => 'Textarea Help tooltip',
-							'required'    => true,
+							'tooltip'  => 'Textarea Help tooltip',
+							'required' => true,
 						),
 						
 						array(
@@ -727,7 +728,7 @@ composer require storepress/admin-utils
 					//'suffix'       => 'px',
 					'required'     => true,
 					'tooltip'      => 'Password Help tooltip',
-					'condition'=>array('selector'=>$this->get_field_selector('field-textarea')),
+					'condition'    => array('selector'=>$this->get_field_selector('field-textarea')),
 					
 					//'show_in_rest' => array( 'name' => 'custom_rest_id' ),
 					//'class'       => array( 'large-text', 'code', 'custom-class' )
