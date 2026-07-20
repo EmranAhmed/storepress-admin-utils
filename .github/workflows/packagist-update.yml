@@ -1,0 +1,17 @@
+name: Update Packagist
+
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+      - '**' # Push events to matching  i.e. 1.0, 20.15.10, including hierarchical tags like v1.0/beta
+      # Semver (https://semver.org/) release pattern.
+      # - '[0-9]+.[0-9]+.[0-9]+*'
+
+jobs:
+  update-packagist:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update Packagist
+        run: |
+          curl -X POST -H 'content-type:application/json' 'https://packagist.org/api/update-package?username=EmranAhmed&apiToken=${{ secrets.PACKAGIST_TOKEN }}' -d "{\"repository\":{\"url\":\"https://packagist.org/packages/storepress/admin-utils\"}}"
