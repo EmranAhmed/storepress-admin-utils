@@ -48,18 +48,16 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin main file path (absolute or relative).
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string
+		 * @since 1.0.0
 		 */
 		abstract public function plugin_file(): string;
 
 		/**
 		 * Get the pro plugin file path. Override to provide a pro plugin file.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string Pro plugin file path, or empty string if no pro version.
+		 * @since 1.0.0
 		 */
 		public function pro_plugin_file(): string {
 			return '';
@@ -68,11 +66,11 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get the absolute pro plugin file path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string Absolute file path, or empty string if no pro version.
 		 *
-		 * @see PluginCommonTrait::pro_plugin_file()
+		 * @since 1.0.0
+		 *
+		 * @see   PluginCommonTrait::pro_plugin_file()
 		 */
 		public function get_pro_plugin_file(): string {
 			$file = $this->pro_plugin_file();
@@ -87,12 +85,12 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get absolute file paths for all plugin files (free + pro).
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string[] Array of absolute plugin file paths.
 		 *
-		 * @see PluginCommonTrait::get_plugin_file()
-		 * @see PluginCommonTrait::get_pro_plugin_file()
+		 * @since 1.0.0
+		 *
+		 * @see   PluginCommonTrait::get_plugin_file()
+		 * @see   PluginCommonTrait::get_pro_plugin_file()
 		 */
 		public function get_plugin_files(): array {
 			$plugin_files   = array();
@@ -105,11 +103,11 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get basename for all plugins files (free + pro).
 		 *
-		 * @since 1.0.0
-		 *
 		 * @return string[] Array of plugin basenames (e.g. 'my-plugin/my-plugin.php').
 		 *
-		 * @see PluginCommonTrait::get_plugin_files()
+		 * @since 1.0.0
+		 *
+		 * @see   PluginCommonTrait::get_plugin_files()
 		 */
 		public function get_plugins_basename(): array {
 			return array_map( array( $this, 'get_plugin_basename' ), $this->get_plugin_files() );
@@ -118,11 +116,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get absolute plugin file path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string
+		 * @since 1.0.0
 		 */
 		public function get_plugin_absolute_file( string $plugin_file = '' ): string {
 			$file   = '' === $plugin_file ? wp_normalize_path( $this->plugin_file() ) : wp_normalize_path( $plugin_file );
@@ -134,11 +131,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get validated absolute plugin file path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string
+		 * @since 1.0.0
 		 */
 		public function get_plugin_file( string $plugin_file = '' ): string {
 			return $this->get_plugin_absolute_file( $plugin_file );
@@ -167,11 +163,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin directory path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Untrailed directory path (e.g. '/var/www/wp-content/plugins/xyz-plugin').
+		 * @since 1.0.0
 		 */
 		public function get_plugin_dir_path( string $plugin_file = '' ): string {
 			return untrailingslashit( plugin_dir_path( $this->get_plugin_file( $plugin_file ) ) );
@@ -180,24 +175,55 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin slug (directory name).
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Plugin slug (e.g. 'xyz-plugin').
+		 * @since 1.0.0
 		 */
 		public function get_plugin_slug( string $plugin_file = '' ): string {
 			return wp_basename( dirname( $this->get_plugin_file( $plugin_file ) ) );
 		}
 
 		/**
-		 * Get plugin basename.
+		 * Get Plugin Transient and File Data.
 		 *
-		 * @since 1.0.0
+		 * @param string $plugin_file Plugin file.
+		 *
+		 * @return array<string, mixed>
+		 */
+		public function get_plugin_data( string $plugin_file = '' ): array {
+
+			$plugin_info = get_site_transient( 'update_plugins' );
+
+			$plugin_basename = $this->get_plugin_basename( $plugin_file );
+
+			/**
+			 *  If function get_plugins() output is not expected check apply_filters( 'all_plugins', ... ).
+			 *
+			 * @see WP_Plugins_List_Table::prepare_items()
+			 */
+			$all_plugins = get_plugins();
+
+			$plugin_data = $all_plugins[ $plugin_basename ];
+
+			if ( isset( $plugin_info->response[ $plugin_basename ] ) ) {
+				$plugin_data = array_merge( (array) $plugin_info->response[ $plugin_basename ], $plugin_data );
+			}
+
+			if ( isset( $plugin_info->no_update[ $plugin_basename ] ) ) {
+				$plugin_data = array_merge( (array) $plugin_info->response[ $plugin_basename ], $plugin_data );
+			}
+
+			return $plugin_data;
+		}
+
+		/**
+		 * Get plugin basename.
 		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Plugin basename (e.g. 'xyz-plugin/xyz-plugin.php').
+		 * @since 1.0.0
 		 */
 		public function get_plugin_basename( string $plugin_file = '' ): string {
 			return plugin_basename( $this->get_plugin_file( $plugin_file ) );
@@ -217,11 +243,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin directory URL.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Untrailed plugin directory URL.
+		 * @since 1.0.0
 		 */
 		public function get_plugin_dir_url( string $plugin_file = '' ): string {
 			return untrailingslashit( plugin_dir_url( $this->get_plugin_file( $plugin_file ) ) );
@@ -230,11 +255,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin version from file header, with caching.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Plugin version string.
+		 * @since 1.0.0
 		 */
 		public function get_plugin_version( string $plugin_file = '' ): string {
 
@@ -252,6 +276,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 
 			if ( ! $this->is_empty_string( $plugin_file ) ) {
 				$versions = get_file_data( $file, $headers );
+
 				return $versions['version'] ?? '';
 			}
 
@@ -261,11 +286,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin name from file header, with caching.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Plugin name string.
+		 * @since 1.0.0
 		 */
 		public function get_plugin_name( string $plugin_file = '' ): string {
 
@@ -283,6 +307,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 
 			if ( ! $this->is_empty_string( $plugin_file ) ) {
 				$names = get_file_data( $file, $headers );
+
 				return $names['name'] ?? '';
 			}
 
@@ -292,11 +317,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin images directory URL.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Images directory URL.
+		 * @since 1.0.0
 		 */
 		public function images_url( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_url( $plugin_file ) . '/images';
@@ -305,11 +329,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin assets directory URL.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Assets directory URL.
+		 * @since 1.0.0
 		 */
 		public function assets_url( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_url( $plugin_file ) . '/assets';
@@ -318,11 +341,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin assets directory path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Assets directory path.
+		 * @since 1.0.0
 		 */
 		public function assets_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/assets';
@@ -331,12 +353,11 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get asset file modification time (for cache-busting).
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $file        Asset file name relative to the assets directory.
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return int|false File modification time as Unix timestamp, or false on failure.
+		 * @since 1.0.0
 		 */
 		public function assets_version( string $file, string $plugin_file = '' ) {
 			return filemtime( $this->assets_path( $plugin_file ) . $file );
@@ -345,11 +366,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin build directory URL.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Build directory URL.
+		 * @since 1.0.0
 		 */
 		public function build_url( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_url( $plugin_file ) . '/build';
@@ -358,11 +378,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin build directory path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Build directory path.
+		 * @since 1.0.0
 		 */
 		public function build_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/build';
@@ -371,11 +390,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin includes directory path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Includes directory path.
+		 * @since 1.0.0
 		 */
 		public function includes_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/includes';
@@ -384,11 +402,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin templates directory path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Templates directory path.
+		 * @since 1.0.0
 		 */
 		public function templates_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/templates';
@@ -397,11 +414,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin languages directory path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Languages directory path.
+		 * @since 1.0.0
 		 */
 		public function languages_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/languages';
@@ -410,11 +426,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin vendor directory path.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Vendor directory path.
+		 * @since 1.0.0
 		 */
 		public function vendor_path( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_path( $plugin_file ) . '/vendor';
@@ -423,11 +438,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Get plugin vendor directory URL.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Vendor directory URL.
+		 * @since 1.0.0
 		 */
 		public function vendor_url( string $plugin_file = '' ): string {
 			return $this->get_plugin_dir_url( $plugin_file ) . '/vendor';
@@ -436,11 +450,10 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		/**
 		 * Register StorePress Utils script from plugin build directory.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
 		 * @return string Registered script handle, or empty string if build file not found.
+		 * @since 1.0.0
 		 */
 		public function register_storepress_utils_script( string $plugin_file = '' ): string {
 
@@ -453,6 +466,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 			$asset      = include $asset_path;
 
 			wp_register_script( 'storepress-utils', $file_url, $asset['dependencies'], $asset['version'], array( 'strategy' => 'defer' ) );
+
 			return 'storepress-utils';
 		}
 

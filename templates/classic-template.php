@@ -4,9 +4,11 @@
 	 *
 	 * @package StorePress/AdminUtils
 	 * @var \StorePress\AdminUtils\Abstracts\AbstractSettings $this - Settings Class Instance.
-	 * @since 1.0.0
+	 * @since   1.0.0
 	 * @version 1.0.0
 	 */
+
+	declare( strict_types=1 );
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 

@@ -83,7 +83,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		 *
 		 * @since 1.0.0
 		 */
-		public function init(): void {}
+		public function init(): void {
+		}
 
 		/**
 		 * Get the deactivation dialog title.
@@ -123,8 +124,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::loaded()
-		 * @see self::ajax_setup()
+		 * @see   self::loaded()
+		 * @see   self::ajax_setup()
 		 */
 		final public function hooks(): void {
 			// Uses 'current_screen' instead of 'admin_init' because
@@ -136,14 +137,26 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		}
 
 		/**
+		 * Plugin Slug for WordPress Plugin List Page.
+		 *
+		 * @return string
+		 * @see WP_Plugins_List_Table::single_row()
+		 */
+		public function get_plugin_slug_for_plugin_list(): string {
+			$plugin_data = $this->get_plugin_data();
+
+			return $plugin_data['slug'] ?? sanitize_title( $plugin_data['Name'] );
+		}
+
+		/**
 		 * Register the plugin-specific AJAX action for feedback submission.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::ajax_action()
-		 * @see self::send_feedback()
+		 * @see   self::ajax_action()
+		 * @see   self::send_feedback()
 		 */
 		final public function ajax_setup(): void {
 			// Register plugin-specific AJAX action for handling deactivation feedback.
@@ -157,8 +170,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::is_plugins_page()
-		 * @see self::enqueue_scripts()
+		 * @see   self::is_plugins_page()
+		 * @see   self::enqueue_scripts()
 		 */
 		final public function loaded(): void {
 
@@ -196,7 +209,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::title()
+		 * @see   self::title()
 		 */
 		public function get_title(): string {
 			return $this->title();
@@ -209,7 +222,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::api_url()
+		 * @see   self::api_url()
 		 */
 		public function get_api_url(): string {
 			return $this->api_url();
@@ -319,7 +332,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::options()
+		 * @see   self::options()
 		 */
 		public function get_options(): array {
 			return $this->options();
@@ -491,7 +504,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::ajax_setup()
+		 * @see   self::ajax_setup()
 		 */
 		public function ajax_action(): string {
 			return sprintf( 'storepress_plugin_deactivate_%s', str_replace( '-', '_', $this->get_plugin_slug() ) );
@@ -508,8 +521,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_dialog_id()
-		 * @see self::ajax_action()
+		 * @see   self::get_dialog_id()
+		 * @see   self::ajax_action()
 		 */
 		public function enqueue_scripts(): void {
 
@@ -517,13 +530,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 
 			wp_enqueue_script( 'wp-util' );
 			wp_enqueue_style( 'dashicons' );
-			$handle = $this->enqueue_package_scripts(
-				'deactivation'
-			);
+			$handle = $this->enqueue_package_scripts( 'deactivation' );
 
 			// Configuration passed to the JavaScript handler.
 			$options = array(
-				'slug'   => $this->get_plugin_slug(),
+				// WP Plugin List table generate slug from plugin name.
+				// So plugin slug as directory will not match and popup not open.
+				'slug'   => $this->get_plugin_slug_for_plugin_list(),
 				'name'   => $this->get_plugin_basename(),
 				'dialog' => sprintf( '#%s', $this->get_dialog_id() ),
 				'nonce'  => wp_create_nonce( $this->get_plugin_slug() ),

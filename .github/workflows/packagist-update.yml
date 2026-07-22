@@ -14,4 +14,4 @@ jobs:
     steps:
       - name: Update Packagist
         run: |
-          curl -X POST -H 'content-type:application/json' 'https://packagist.org/api/update-package?username=EmranAhmed&apiToken=${{ secrets.PACKAGIST_TOKEN }}' -d "{\"repository\":{\"url\":\"https://packagist.org/packages/storepress/admin-utils\"}}"
+          curl -X POST -H 'content-type:application/json' 'https://packagist.org/api/update-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_TOKEN }}' -d "{\"repository\":{\"url\":\"https://packagist.org/packages/storepress/admin-utils\"}}"

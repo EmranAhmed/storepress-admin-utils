@@ -98,12 +98,12 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * boolean attributes.
 		 *
 		 * @param array<string, ?mixed> ...$attribute_sets Variable number of attribute arrays to merge.
-		 *                                            Special keys:
-		 *                                            - '_exclude': list<string> Attribute names to skip.
+		 *                                                 Special keys:
+		 *                                                 - '_exclude': list<string> Attribute names to skip.
 		 *
 		 * @return string Space-separated HTML attributes string, escaped for output.
 		 *
-		 * @since 1.0.0
+		 * @since   1.0.0
 		 *
 		 * @example Basic usage with common attributes
 		 * ```php
@@ -271,11 +271,11 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * - Arrays with string keys treat keys as class names when values are truthy
 		 *
 		 * @param string|array<int|string, ?mixed> ...$css_classes_args Variable number of arguments.
-		 *        Each argument can be:
-		 *        - string: Added directly as a class name.
-		 *        - array<int, string>: Indexed array of class names.
-		 *        - array<string, mixed>: Associative array where keys are class names
-		 *          and values determine inclusion (truthy = include, falsy = exclude).
+		 *                                                              Each argument can be:
+		 *                                                              - string: Added directly as a class name.
+		 *                                                              - array<int, string>: Indexed array of class names.
+		 *                                                              - array<string, mixed>: Associative array where keys are class names
+		 *                                                              and values determine inclusion (truthy = include, falsy = exclude).
 		 *
 		 * @return string Space-separated string of unique CSS class names.
 		 *
@@ -382,7 +382,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * Later property declarations override earlier ones when using associative arrays,
 		 * allowing for easy default/override patterns.
 		 *
-		 * @param string|array<int|string, ?mixed> ...$inline_styles_args Variable number of arguments.
+		 * @param string|array<int|string, ?mixed> ...$inline_styles_args                           Variable number of arguments.
 		 *                                                                                          Each argument can be:
 		 *                                                                                          - string: Added directly as a raw style declaration if non-empty.
 		 *                                                                                          - array: Processed based on key type:
@@ -544,11 +544,11 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * arrays and both values are arrays, they are merged using wp_parse_args().
 		 * Otherwise, later values overwrite earlier ones.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param array<string|int, mixed> ...$arrays Variable number of arrays to merge.
 		 *
 		 * @return array<string|int, mixed> The merged array with nested arrays combined.
+		 *
+		 * @since   1.0.0
 		 *
 		 * @example Basic merge with nested arrays:
 		 * ```php
@@ -637,14 +637,14 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * checked() and selected() helper functions return `checked="checked"` and
 		 * `selected="selected"` respectively, not empty attributes.
 		 *
-		 * @param string[] $attributes Optional. Additional boolean attributes
+		 * @param string[] $attributes              Optional. Additional boolean attributes
 		 *                                          to merge with defaults. Default empty array.
 		 *
 		 * @return string[] Combined array of boolean attribute names.
 		 *
-		 * @since 1.0.0
+		 * @since   1.0.0
 		 *
-		 * @link https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#boolean-attributes
+		 * @link    https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#boolean-attributes
 		 *
 		 * @example Get default valueless attributes:
 		 * ```php
@@ -729,13 +729,13 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * - Attributes with specific options (arrays) → passed through as-is
 		 * - Standard attributes (strings) → set to true (any value allowed)
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param array<string, list<string|array<string, mixed>>> $tags Simplified tag definitions.
-		 *        Keys are tag names, values are lists of allowed attributes.
+		 *                                                               Keys are tag names, values are lists of allowed attributes.
 		 *
 		 * @return array<string, array<string, true|array<string, mixed>>> Formatted array
 		 *         compatible with wp_kses() $allowed_html parameter.
+		 *
+		 * @since   1.0.0
 		 *
 		 * @example Basic usage with common attributes:
 		 * ```php
@@ -814,7 +814,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * //     ],
 		 * // ]
 		 * ```
-		 *  @see wp_kses_check_attr_val()
+		 * @see     wp_kses_check_attr_val()
 		 */
 		public function prepare_kses_args( array $tags = array() ): array {
 
@@ -943,11 +943,11 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 			$checked = array_map(
 				function ( $value ) {
 					if ( is_array( $value ) && ! $this->is_array_each_empty_value( $value ) ) {
-						return true;
+								return true;
 					}
 
 					if ( is_string( $value ) && ! $this->is_empty_string( $value ) ) {
-						return true;
+							return true;
 					}
 
 					if ( true === $value ) {
@@ -969,12 +969,12 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * User-provided values in $args override corresponding values in  $defaults,
 		 * while nested arrays are merged recursively rather than replaced entirely.
 		 *
-		 * @since 1.0.0
-		 *
 		 * @param array<string|int, mixed> $args     User-provided arguments to merge.
 		 * @param array<string|int, mixed> $defaults Default values to merge into.
 		 *
 		 * @return array<string|int, mixed> Merged array with user args taking precedence.
+		 *
+		 * @since   1.0.0
 		 *
 		 * @example Basic nested configuration merge:
 		 * ```php
@@ -1090,25 +1090,27 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		public function convert_to_snake_key( string $key ): string {
 			$key = strtolower( $key );
 			$key = preg_replace( '/\W+/', '_', $key );
+
 			return trim( $key, '_' );
 		}
 
 		/**
 		 * Masks the middle of a string, keeping a few visible characters at each end.
 		 *
-		 * @param string $str           The string to mask.
-		 * @param string $mask_char     The character used to mask hidden portions.
-		 * @param int    $visible_start Number of visible characters at the start.
-		 * @param int    $visible_end   Number of visible characters at the end.
+		 * @param string   $str           The string to mask.
+		 * @param string   $mask_char     The character used to mask hidden portions.
+		 * @param int      $visible_start Number of visible characters at the start.
+		 * @param int      $visible_end   Number of visible characters at the end.
+		 * @param int|null $length        Mask length.
 		 *
 		 * @return string
 		 * @since 0.0.1
 		 */
-		public function mask_string( string $str, string $mask_char = '*', int $visible_start = 2, int $visible_end = 2 ): string {
-			$len = mb_strlen( $str );
+		public function mask_string( string $str, string $mask_char = '*', int $visible_start = 2, int $visible_end = 2, $length = null ): string {
+			$len = $length ?? mb_strlen( $str );
 
 			// Too short to keep both ends -> mask everything.
-			if ( $len <= $visible_start + $visible_end ) {
+			if ( $len <= ( $visible_start + $visible_end ) ) {
 				return str_repeat( $mask_char, $len );
 			}
 

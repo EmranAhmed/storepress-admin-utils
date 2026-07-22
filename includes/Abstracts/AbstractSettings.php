@@ -989,7 +989,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 * @since 1.0.0
 		 */
 		public function display_buttons(): void {
-			$submit_button      = get_submit_button( '', 'primary large', 'submit', false, '' );
+			$submit_button      = get_submit_button( '', 'primary large', 'submit', false, 'disabled' );
 			$reset_button       = $this->get_reset_button();
 			$allowed_input_html = $this->get_kses_allowed_input_html();
 			printf( '<p class="submit">%s %s</p>', wp_kses( $submit_button, $allowed_input_html ), wp_kses_post( $reset_button ) );

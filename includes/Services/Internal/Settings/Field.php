@@ -1334,7 +1334,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					$attributes['value'] = $this->mask_string( $value );
 				}
 			} elseif ( $masked ) {
-				$attributes['type'] = 'password';
+				$attributes['type']    = 'password';
+				$attributes['class'][] = 'code';
 			}
 
 			if ( $this->has_attribute( 'required' ) ) {
@@ -2101,7 +2102,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 							$attributes['value'] = $this->mask_string( $field_value );
 						}
 					} elseif ( $masked ) {
-						$attributes['type'] = 'password';
+						$attributes['type']    = 'password';
+						$attributes['class'][] = 'code';
 					}
 
 					$suffix_markup = $has_field_suffix ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $field_suffix ) ) : '';
