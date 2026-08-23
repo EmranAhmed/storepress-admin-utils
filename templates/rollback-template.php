@@ -3,7 +3,7 @@
 	 * Rollback Template File.
 	 *
 	 * @package StorePress/AdminUtils
-	 * @var Rollback $this - Rollback Instance.
+	 * @var \StorePress\AdminUtils\Services\Internal\Updater\Rollback $this - Rollback Instance.
 	 * @since 1.0.0
 	 * @version 1.0.0
 	 */
@@ -11,8 +11,6 @@
 	declare( strict_types=1 );
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
-
-	use StorePress\AdminUtils\Services\Internal\Updater\Rollback;
 
 	$storepress_rtl_class = is_rtl() ? 'has-rtl' : '';
 

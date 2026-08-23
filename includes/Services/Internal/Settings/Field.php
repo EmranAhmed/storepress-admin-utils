@@ -1957,7 +1957,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 						$tooltip_markup  = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
 						$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
 
-						$inputs[] = sprintf( '<ul %s class="input-wrapper single-input-wrapper">', $conditional_attr );
+						$inputs[] = sprintf( '<ul %s class="input-wrapper single-input-wrapper full-width-input-wrapper">', $conditional_attr );
 						$inputs[] = sprintf( '<li class="group-field-inputs"><label for="%s"><input %s /><span>%s</span> %s %s</label></li>', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $field_title ), $required_markup, $tooltip_markup );
 						$inputs[] = '</ul>';
 						continue;

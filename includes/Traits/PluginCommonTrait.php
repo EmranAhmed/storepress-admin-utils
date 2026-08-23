@@ -206,12 +206,14 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 
 			$plugin_data = $all_plugins[ $plugin_basename ];
 
+			// Have a New Update.
 			if ( isset( $plugin_info->response[ $plugin_basename ] ) ) {
 				$plugin_data = array_merge( (array) $plugin_info->response[ $plugin_basename ], $plugin_data );
 			}
 
+			// No New Update Available.
 			if ( isset( $plugin_info->no_update[ $plugin_basename ] ) ) {
-				$plugin_data = array_merge( (array) $plugin_info->response[ $plugin_basename ], $plugin_data );
+				$plugin_data = array_merge( (array) $plugin_info->no_update[ $plugin_basename ], $plugin_data );
 			}
 
 			return $plugin_data;
@@ -356,11 +358,14 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		 * @param string $file        Asset file name relative to the assets directory.
 		 * @param string $plugin_file Optional. Relative or absolute plugin file path. Default empty (current plugin).
 		 *
-		 * @return int|false File modification time as Unix timestamp, or false on failure.
+		 * @return string File modification time as Unix timestamp in string.
 		 * @since 1.0.0
 		 */
-		public function assets_version( string $file, string $plugin_file = '' ) {
-			return filemtime( $this->assets_path( $plugin_file ) . $file );
+		public function assets_version( string $file, string $plugin_file = '' ): string {
+
+			$time = filemtime( $this->assets_path( $plugin_file ) . $file );
+
+			return is_int( $time ) ? (string) $time : $this->get_plugin_version();
 		}
 
 		/**

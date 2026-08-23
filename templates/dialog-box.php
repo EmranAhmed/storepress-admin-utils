@@ -3,7 +3,7 @@
 	 * DialogBox Template File.
 	 *
 	 * @package StorePress/AdminUtils
-	 * @var AbstractDialog $this - Dialog Class Instance.
+	 * @var \StorePress\AdminUtils\Abstracts\AbstractDialog $this - Dialog Class Instance.
 	 * @since 1.0.0
 	 * @version 1.0.0
 	 */
@@ -11,8 +11,6 @@
 	declare( strict_types=1 );
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
-
-	use StorePress\AdminUtils\Abstracts\AbstractDialog;
 
 	$storepress_style = $this->get_inline_styles(
 		array(

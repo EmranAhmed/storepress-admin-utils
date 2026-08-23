@@ -16,6 +16,7 @@
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
 	use StorePress\AdminUtils\Traits\MethodShouldImplementTrait;
+	use WP_Exception;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 
@@ -118,7 +119,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 */
-		public function init(): void {}
+		public function init(): void {
+		}
 
 		// @ANNOTATION: _page_* = for submenu.
 		// @ANNOTATION: _menu_* = for parent menu.
@@ -130,8 +132,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_page_slug()
-		 * @see self::is_page_registered()
+		 * @see   self::get_page_slug()
+		 * @see   self::is_page_registered()
 		 */
 		public function get_unique_page_slug(): string {
 
@@ -140,7 +142,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 			if ( ! isset( self::$page_slug_usages[ $slug ] ) ) {
 				self::$page_slug_usages[ $slug ] = 0;
 			} else {
-				++self::$page_slug_usages[ $slug ];
+				++ self::$page_slug_usages[ $slug ];
 			}
 
 			if ( $this->is_page_registered() ) {
@@ -168,7 +170,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_unique_page_slug()
+		 * @see   self::get_unique_page_slug()
 		 */
 		public function setup_pages(): void {
 			if ( $this->has_page_slug() ) {
@@ -204,7 +206,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_capability()
+		 * @see   self::get_capability()
 		 */
 		public function get_page_capability(): string {
 			return $this->get_capability();
@@ -217,7 +219,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_page_slug()
+		 * @see   self::get_page_slug()
 		 */
 		public function has_page_slug(): bool {
 			return ! $this->is_empty_string( $this->get_page_slug() );
@@ -270,7 +272,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::page_init()
+		 * @see   self::page_init()
 		 */
 		public function handle_admin_init(): void {
 			$this->page_init();
@@ -283,12 +285,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_all_pages()
-		 * @see self::get_page_slug()
+		 * @see   self::get_all_pages()
+		 * @see   self::get_page_slug()
 		 */
 		public function is_page_registered(): bool {
 			$submenu_slug      = $this->get_page_slug();
 			$all_submenu_slugs = array_keys( $this->get_all_pages() );
+
 			return in_array( $submenu_slug, $all_submenu_slugs, true );
 		}
 
@@ -299,7 +302,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_menu_slug()
+		 * @see   self::get_menu_slug()
 		 */
 		public function is_menu_registered(): bool {
 
@@ -317,7 +320,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::menu_separator()
+		 * @see   self::menu_separator()
 		 */
 		public function handle_add_parent_menu(): void {
 			// Bail if submenu.
@@ -333,19 +336,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 
 			$separator_menu_position = (float) sprintf( '%d.%d', $this->get_menu_position(), self::$position );
 			$this->menu_separator( $separator_menu_position, $this->get_menu_slug(), $capability );
-			++self::$position;
+			++ self::$position;
 
 			$menu_position = (float) sprintf( '%d.%d', $this->get_menu_position(), self::$position );
-			add_menu_page(
-				esc_html( $this->get_menu_title() ),
-				wp_kses_post( $this->get_menu_title() ),
-				$capability,
-				$this->get_menu_slug(),
-				'__return_false',
-				$this->get_menu_icon(),
-				$menu_position
-			);
-			++self::$position;
+			add_menu_page( esc_html( $this->get_menu_title() ), wp_kses_post( $this->get_menu_title() ), $capability, $this->get_menu_slug(), '__return_false', $this->get_menu_icon(), $menu_position );
+			++ self::$position;
 		}
 
 		/**
@@ -355,7 +350,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_all_pages()
+		 * @see   self::get_all_pages()
 		 */
 		public function handle_add_submenu(): void {
 
@@ -365,15 +360,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 
 			foreach ( $this->get_all_pages() as $menu_slug => $submenu ) {
 
-				$page_hook_suffix = add_submenu_page(
-					$submenu->get_menu_slug(),
-					esc_html( $submenu->get_page_title() ),
-					wp_kses_post( $submenu->get_page_menu_title() ),
-					$submenu->get_page_capability(),
-					sanitize_key( $menu_slug ),
-					array( $submenu, 'render' ),
-					$submenu->get_page_position()
-				);
+				$page_hook_suffix = add_submenu_page( $submenu->get_menu_slug(), esc_html( $submenu->get_page_title() ), wp_kses_post( $submenu->get_page_menu_title() ), $submenu->get_page_capability(), sanitize_key( $menu_slug ), array( $submenu, 'render' ), $submenu->get_page_position() );
 
 				if ( false === $page_hook_suffix ) {
 					continue;
@@ -414,7 +401,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_page_slug()
+		 * @see   self::get_page_slug()
 		 */
 		public function get_current_page_slug(): string {
 			return $this->current_page_slug;
@@ -427,7 +414,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::handle_add_submenu()
+		 * @see   self::handle_add_submenu()
 		 */
 		public function get_current_page_hook(): string {
 			return $this->current_page_hook;
@@ -440,8 +427,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_current_page_slug()
-		 * @see self::get_current_page()
+		 * @see   self::get_current_page_slug()
+		 * @see   self::get_current_page()
 		 */
 		public function is_current_page(): bool {
 
@@ -458,8 +445,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 * @since 1.0.0
 		 */
 		public function get_current_page(): string {
-			$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- we use it just to get page.
-			return $GLOBALS['plugin_page'] ?? $page;
+
+			$get_page = $_GET['page'] ?? ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- we use it just to get page.
+			$get_page = is_string( $get_page ) ? $get_page : '';
+			$page     = sanitize_key( wp_unslash( $get_page ) );
+
+			return is_string( $GLOBALS['plugin_page'] ?? null ) ? $GLOBALS['plugin_page'] : $page;
 		}
 
 		/**
@@ -469,7 +460,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::menu_separator()
+		 * @see   self::menu_separator()
 		 */
 		public function add_menu_separator(): bool {
 			return true;
@@ -478,16 +469,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		/**
 		 * Add a visual separator in the admin menu at the given position.
 		 *
-		 * @param float  $position                  Menu position for the separator.
+		 * @param float  $position                   Menu position for the separator.
 		 * @param string $separator_additional_class Additional CSS class for unique slug.
-		 * @param string $capability                Required capability. Default 'manage_options'.
+		 * @param string $capability                 Required capability. Default 'manage_options'.
 		 *
 		 * @return void
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::add_menu_separator()
-		 * @see self::add_menu()
+		 * @see   self::add_menu_separator()
+		 * @see   self::add_menu()
 		 */
 		private function menu_separator( float $position, string $separator_additional_class = '', string $capability = 'manage_options' ): void {
 
@@ -501,15 +492,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 
 			$menu_slug = sprintf( 'menu_separator_%s wp-menu-separator', strtolower( $separator_additional_class ) );
 
-			add_menu_page(
-				'',
-				'',
-				$capability,
-				$menu_slug,
-				'__return_false',
-				'none',
-				$position
-			);
+			add_menu_page( '', '', $capability, $menu_slug, '__return_false', 'none', $position );
 		}
 
 		/**
@@ -519,10 +502,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_menu_slug()
+		 * @see   self::get_menu_slug()
 		 */
 		protected function is_submenu(): bool {
-			return false !== strpos( $this->get_menu_slug(), '.php' );
+			return str_contains( $this->get_menu_slug(), '.php' );
 		}
 
 		/**
@@ -532,7 +515,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::has_capability()
+		 * @see   self::has_capability()
 		 */
 		public function get_capability(): string {
 			return 'manage_options';
@@ -545,7 +528,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_capability()
+		 * @see   self::get_capability()
 		 */
 		public function has_capability(): bool {
 			return current_user_can( $this->get_capability() );
@@ -558,7 +541,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_page_capability()
+		 * @see   self::get_page_capability()
 		 */
 		public function has_page_capability(): bool {
 			return current_user_can( $this->get_page_capability() );
@@ -575,7 +558,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::add_menu()
+		 * @see   self::add_menu()
 		 */
 		public function get_menu_position(): int {
 			return 45;
@@ -586,6 +569,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @return string
 		 *
+		 * @throws WP_Exception Throw Exception.
 		 * @since 1.0.0
 		 */
 		public function get_menu_title(): string {
@@ -645,9 +629,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::page_loaded()
+		 * @see   self::page_loaded()
 		 */
-		public function page_init(): void {}
+		public function page_init(): void {
+		}
 
 		/**
 		 * Called when this specific admin page is loaded.
@@ -656,9 +641,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::render()
+		 * @see   self::render()
 		 */
-		public function page_loaded(): void {}
+		public function page_loaded(): void {
+		}
 
 		/**
 		 * Render the admin page content. Override to output page HTML.
@@ -667,7 +653,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::page_loaded()
+		 * @see   self::page_loaded()
 		 */
 		public function render(): void {
 			$this->subclass_should_implement( __FUNCTION__, $this );
@@ -682,7 +668,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see self::get_current_page_slug()
+		 * @see   self::get_current_page_slug()
 		 */
 		public function get_current_page_uri( array $page_args = array() ): string {
 			$admin_url = $this->is_submenu() ? $this->get_menu_slug() : 'admin.php';

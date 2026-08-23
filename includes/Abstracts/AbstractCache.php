@@ -358,7 +358,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 
 			$data = $this->get_transient( $key );
 
-			if ( $this->is_empty( $data ) ) {
+			if ( is_null( $data ) ) {
 				return $this->set_transient( $key, $value, $expiration );
 			}
 
@@ -441,8 +441,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 
 			global $wpdb;
 
-			$group_like = $wpdb->esc_like( $this->get_cache_group() ) . '%';
-
+			$group_like  = $wpdb->esc_like( $this->get_cache_group() ) . '%';
 			$option_key  = $wpdb->esc_like( $this->transient_option_key ) . $group_like;
 			$timeout_key = $wpdb->esc_like( $this->transient_timeout_key ) . $group_like;
 
