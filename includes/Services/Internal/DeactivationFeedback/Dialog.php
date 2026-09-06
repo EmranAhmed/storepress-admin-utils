@@ -15,9 +15,7 @@
 
 	use StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedback;
 	use StorePress\AdminUtils\Abstracts\AbstractDialog;
-	use StorePress\AdminUtils\Interfaces\DeactivationFeedbackInterface;
 	use StorePress\AdminUtils\Traits\SingletonTrait;
-
 
 if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\DeactivationFeedback\Dialog' ) ) {
 
@@ -164,7 +162,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\DeactivationFeedb
 		/**
 		 * Action buttons.
 		 *
-		 * @return array<int, mixed>
+		 * @return array<array-key, mixed>
 		 *
 		 * @throws \WP_Exception If get_buttons method not overriden in sub-class.
 		 * @since 1.0.0

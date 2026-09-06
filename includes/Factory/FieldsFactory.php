@@ -35,9 +35,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Factory\FieldsFactory' ) ) {
 		/**
 		 * Create a settings field instance.
 		 *
-		 * @param AbstractSettings     $settings Settings owner instance.
-		 * @param array<string, mixed> $field    Field configuration array.
-		 * @param array<string, mixed> $values   Saved field values.
+		 * @param AbstractSettings        $settings Settings owner instance.
+		 * @param array<array-key, mixed> $field    Field configuration array.
+		 * @param array<array-key, mixed> $values   Saved field values.
 		 *
 		 * @return Field
 		 *
@@ -51,8 +51,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Factory\FieldsFactory' ) ) {
 		/**
 		 * Create a settings section instance.
 		 *
-		 * @param AbstractSettings     $settings Settings owner instance.
-		 * @param array<string, mixed> $section  Section configuration array.
+		 * @param AbstractSettings                                                                            $settings Settings owner instance.
+		 * @param array{_id?: string, title?: string, description?: string, fields?: array<array-key, Field>} $section Section configuration array.
 		 *
 		 * @return Section
 		 *

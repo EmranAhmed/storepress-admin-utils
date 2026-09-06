@@ -57,16 +57,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Upgrader'
 		 * 5. Reactivates the plugin
 		 * 6. Clears plugin cache
 		 *
-		 * @param string               $plugin  Path to the plugin file relative to the plugins directory.
-		 * @param string               $package URL or path to the plugin zip file for the target version.
-		 * @param array<string, mixed> $args    {
+		 * @param string                  $plugin  Path to the plugin file relative to the plugins directory.
+		 * @param string                  $package URL or path to the plugin zip file for the target version.
+		 * @param array<array-key, mixed> $args    {
 		 *     Optional. Arguments for the rollback operation. Default empty array.
 		 *
 		 *     @type bool $clear_update_cache Whether to clear the plugin updates cache if successful.
 		 *                                    Default true.
 		 * }
 		 *
-		 * @return bool|\WP_Error True if rollback successful, false or WP_Error on failure.
+		 * @return bool|array<array-key, mixed>|\WP_Error True if rollback successful, false, an empty result array,
+		 *                                              or WP_Error on failure.
 		 *
 		 * @see \Plugin_Upgrader::bulk_upgrade() For similar upgrade logic.
 		 * @see \WP_Upgrader::run() For the core upgrade process.
@@ -123,6 +124,13 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Upgrader'
 			remove_filter( 'upgrader_post_install', array( $this, 'active_after' ) );
 
 			if ( ! $this->result || is_wp_error( $this->result ) ) {
+				// Core's WP_Upgrader::$result docblock carries an unparseable array shape, so it widens to mixed.
+				// When falsy here it is still the initial empty array, never a bool.
+				/**
+				 * When falsy here it is still the initial empty array, never a bool.
+				 *
+				 * @var array{}|\WP_Error
+				 */
 				return $this->result;
 			}
 

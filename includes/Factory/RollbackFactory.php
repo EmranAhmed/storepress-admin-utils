@@ -77,7 +77,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Factory\RollbackFactory' ) ) {
 		 * @param Rollback $rollback Rollback-capable plugin instance.
 		 * @param string   $package  URL or path to the rollback package.
 		 *
-		 * @return bool|\WP_Error True on success, false or WP_Error on failure.
+		 * @return bool|array<array-key, mixed>|\WP_Error True on success, false, an empty result array,
+		 *                                              or WP_Error on failure.
 		 *
 		 * @see   get_upgrader_skin()
 		 * @since 1.0.0

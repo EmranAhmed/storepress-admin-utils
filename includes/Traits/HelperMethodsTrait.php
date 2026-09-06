@@ -35,57 +35,45 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		}
 
 		/**
-		 * Get $_REQUEST data if set, otherwise return a default value or null. Prevents notices when data is not set.
+		 * Check is given value is empty.
 		 *
-		 * @param string $variable      Variable.
-		 * @param mixed  $default_value Default value.
+		 * @param bool|string|array<array-key, mixed>|int|float|null $value Value.
 		 *
-		 * @return mixed
-		 * @since  1.0.0
+		 * @return bool
 		 */
-		public function http_request_var( string $variable = '', $default_value = null ) {
-			$request_data = $_REQUEST; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			if ( $this->is_empty_string( $variable ) ) {
-				return $this->is_empty_array( $request_data ) ? false : $request_data;
+		public function is_empty_value( $value ): bool {
+
+			if ( is_null( $value ) ) {
+				return true;
 			}
 
-			return $this->get_var( $request_data[ $variable ], $default_value );
-		}
-
-		/**
-		 * Get $_GET data if set, otherwise return a default value or null. Prevents notices when data is not set.
-		 *
-		 * @param string $variable      Variable.
-		 * @param mixed  $default_value Default value.
-		 *
-		 * @return mixed
-		 * @since  1.0.0
-		 */
-		public function http_get_var( string $variable = '', $default_value = null ) {
-			$get_data = $_GET; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-			if ( $this->is_empty_string( $variable ) ) {
-				return $this->is_empty_array( $get_data ) ? false : $get_data;
+			if ( is_bool( $value ) ) {
+				return false === $value;
 			}
 
-			return $this->get_var( $get_data[ $variable ], $default_value );
-		}
-
-		/**
-		 * Get $_POST data if set, otherwise return a default value or null. Prevents notices when data is not set.
-		 *
-		 * @param string $variable      Variable.
-		 * @param mixed  $default_value Default value.
-		 *
-		 * @return mixed
-		 * @since  1.0.0
-		 */
-		public function http_post_var( string $variable = '', $default_value = null ) {
-			$post_data = $_POST; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			if ( $this->is_empty_string( $variable ) ) {
-				return $this->is_empty_array( $post_data ) ? false : $post_data;
+			if ( is_string( $value ) ) {
+				return $this->is_empty_string( $value );
 			}
 
-			return $this->get_var( $post_data[ $variable ], $default_value );
+			if ( 0 === $value ) {
+				return true;
+			}
+
+			if ( is_float( $value ) ) {
+				return false;
+			}
+
+			if ( is_array( $value ) ) {
+
+				if ( wp_is_numeric_array( $value ) ) {
+					return $this->is_empty_array( $value );
+				}
+
+				return $this->is_array_each_empty_value( $value );
+
+			}
+
+			return false;
 		}
 
 		/**
@@ -97,7 +85,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * become space-separated), style (arrays become CSS declarations), and
 		 * boolean attributes.
 		 *
-		 * @param array<string, ?mixed> ...$attribute_sets Variable number of attribute arrays to merge.
+		 * @param array<array-key, mixed> ...$attribute_sets Variable number of attribute arrays to merge.
 		 *                                                 Special keys:
 		 *                                                 - '_exclude': list<string> Attribute names to skip.
 		 *
@@ -239,6 +227,11 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 					continue;
 				}
 
+				/**
+				 * Attribute value.
+				 *
+				 * @var string $attribute_value
+				 */
 				if ( 'href' === $attribute_name ) {
 					$attribute_value = esc_url( $attribute_value );
 				} else {
@@ -254,12 +247,21 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		/**
 		 * Check is string is empty.
 		 *
-		 * @param string $check_value Check value.
+		 * @param string|bool|null $check_value Check value.
 		 *
 		 * @return bool
 		 */
-		public function is_empty_string( string $check_value = '' ): bool {
-			return '' === trim( $check_value );
+		public function is_empty_string( $check_value = '' ): bool {
+
+			if ( is_null( $check_value ) ) {
+				return true;
+			}
+
+			if ( false === $check_value ) {
+				return true;
+			}
+
+			return is_string( $check_value ) && '' === trim( $check_value );
 		}
 
 		/**
@@ -270,7 +272,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * - Arrays with numeric keys treat values as class names
 		 * - Arrays with string keys treat keys as class names when values are truthy
 		 *
-		 * @param string|array<int|string, ?mixed> ...$css_classes_args Variable number of arguments.
+		 * @param string|array<array-key, mixed> ...$css_classes_args Variable number of arguments.
 		 *                                                              Each argument can be:
 		 *                                                              - string: Added directly as a class name.
 		 *                                                              - array<int, string>: Indexed array of class names.
@@ -382,7 +384,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * Later property declarations override earlier ones when using associative arrays,
 		 * allowing for easy default/override patterns.
 		 *
-		 * @param string|array<int|string, ?mixed> ...$inline_styles_args                           Variable number of arguments.
+		 * @param string|array<array-key, mixed> ...$inline_styles_args                           Variable number of arguments.
 		 *                                                                                          Each argument can be:
 		 *                                                                                          - string: Added directly as a raw style declaration if non-empty.
 		 *                                                                                          - array: Processed based on key type:
@@ -488,6 +490,11 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 				}
 			}
 
+			/**
+			 * Loop value.
+			 *
+			 * @var string $value
+			 */
 			foreach ( $merged as $property => $value ) {
 				$styles[] = sprintf( '%s:%s', esc_attr( $property ), esc_attr( $value ) );
 			}
@@ -498,12 +505,26 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		/**
 		 * Check is array is empty.
 		 *
-		 * @param array<int|string, ?mixed> $check_value Check value.
+		 * @param string|array<array-key, mixed>|null|bool $check_value Check value.
 		 *
 		 * @return bool
 		 */
-		public function is_empty_array( array $check_value = array() ): bool {
-			return 0 === count( $check_value );
+		public function is_empty_array( $check_value = array() ): bool {
+
+			if ( is_null( $check_value ) ) {
+				return true;
+			}
+
+			if ( false === $check_value ) {
+				return true;
+			}
+
+			if ( is_string( $check_value ) ) {
+				$check_value = wp_parse_list( $check_value );
+				return 0 === count( $check_value );
+			}
+
+			return is_array( $check_value ) && 0 === count( $check_value );
 		}
 
 		/**
@@ -544,9 +565,12 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * arrays and both values are arrays, they are merged using wp_parse_args().
 		 * Otherwise, later values overwrite earlier ones.
 		 *
-		 * @param array<string|int, mixed> ...$arrays Variable number of arrays to merge.
+		 * @template TKey of array-key
+		 * @template TValue
 		 *
-		 * @return array<string|int, mixed> The merged array with nested arrays combined.
+		 * @param array<TKey, TValue> ...$arrays Variable number of arrays to merge.
+		 *
+		 * @return array<TKey, TValue> The merged array with nested arrays combined.
 		 *
 		 * @since   1.0.0
 		 *
@@ -601,6 +625,14 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 				}
 			}
 
+			// The wp_parse_args() branch above only runs when TValue is itself an array,
+			// so the merged values never widen beyond TValue.
+
+			/**
+			 * Return.
+			 *
+			 * @var array<TKey, TValue>
+			 */
 			return $result;
 		}
 
@@ -729,8 +761,8 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * - Attributes with specific options (arrays) → passed through as-is
 		 * - Standard attributes (strings) → set to true (any value allowed)
 		 *
-		 * @param array<string, list<string|array<string, mixed>>> $tags Simplified tag definitions.
-		 *                                                               Keys are tag names, values are lists of allowed attributes.
+		 * @param array<string, array<int|string, string|array<string, mixed>>> $tags Simplified tag definitions.
+		 *                                                                            Keys are tag names, values are lists of allowed attributes.
 		 *
 		 * @return array<string, array<string, true|array<string, mixed>>> Formatted array
 		 *         compatible with wp_kses() $allowed_html parameter.
@@ -823,34 +855,40 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 
 			$empty_attributes = $this->get_html_valueless_attributes();
 
-			return array_reduce(
-				array_keys( $tags ),
-				function ( $result, $tag ) use ( $tags, $empty_attributes ) {
-					foreach ( $tags[ $tag ] as $key => $value ) {
-						if ( in_array( $value, $empty_attributes, true ) ) {
-							$result[ $tag ][ $value ] = array( 'valueless' => 'y' );
-						} elseif ( is_array( $value ) ) {
-							$result[ $tag ][ $key ] = $value;
-						} else {
-							$result[ $tag ][ $value ] = true;
-						}
-					}
+			$result = array();
 
-					return $result;
-				},
-				array()
-			);
+			foreach ( $tags as $tag => $attributes ) {
+				foreach ( $attributes as $key => $value ) {
+					if ( is_array( $value ) ) {
+						// Attributes with options are keyed by the attribute name.
+						if ( is_string( $key ) ) {
+							$result[ $tag ][ $key ] = $value;
+						}
+					} elseif ( in_array( $value, $empty_attributes, true ) ) {
+						$result[ $tag ][ $value ] = array( 'valueless' => 'y' );
+					} else {
+						$result[ $tag ][ $value ] = true;
+					}
+				}
+			}
+
+			return $result;
 		}
 
 		/**
 		 * Returns an array of allowed HTML tags and attributes for a given context.
 		 *
-		 * @param array<string, string[]> $args extra argument.
+		 * @param array<string, array<array-key, string|array<string, mixed>>> $args extra argument.
 		 *
-		 * @return array<string, mixed>
+		 * @return array<string, array<array-key, mixed>>
 		 */
 		public function get_kses_allowed_html( array $args = array() ): array {
 
+			/**
+			 * Allowed HTML tags and attributes for the 'post' context.
+			 *
+			 * @var array<string, array<int|string, mixed>> $defaults
+			 */
 			$defaults = wp_kses_allowed_html( 'post' );
 
 			$tags = array(
@@ -861,8 +899,18 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 				'table' => array( 'class', 'role' ),
 			);
 
+			/**
+			 * Allowed attributes keyed by tag name.
+			 *
+			 * @var array<string, array<array-key, bool>> $allowed_args
+			 */
 			$allowed_args = $this->prepare_kses_args( $tags );
 
+			/**
+			 * Allowed attributes keyed by tag name.
+			 *
+			 * @var array<string, array<array-key, bool>> $extra_args
+			 */
 			$extra_args = $this->prepare_kses_args( $args );
 
 			return $this->array_merge( $defaults, $allowed_args, $extra_args );
@@ -871,12 +919,17 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		/**
 		 * Returns an array of allowed HTML tags and attributes for a given context.
 		 *
-		 * @param array<string, string[]> $args extra argument.
+		 * @param array<string, array<array-key, string|array<string, mixed>>> $args extra argument.
 		 *
-		 * @return array<string, mixed>
+		 * @return array<string, array<array-key, mixed>>
 		 */
 		public function get_kses_allowed_input_html( array $args = array() ): array {
 
+			/**
+			 * Allowed HTML tags and attributes for the 'post' context.
+			 *
+			 * @var array<string, array<array-key, mixed>> $defaults
+			 */
 			$defaults = wp_kses_allowed_html( 'post' );
 
 			$allowed_attributes = array( 'action', 'method', 'list', 'autocomplete', 'data-*', 'readonly', 'disabled', 'type', 'width', 'size', 'id', 'class', 'style', 'checked', 'selected', 'multiple', 'name', 'inputmode', 'pattern', 'required', 'label', 'aria-label', 'aria-describedby', 'value', 'step', 'min', 'max', 'placeholder' );
@@ -902,12 +955,17 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		/**
 		 * Returns an array of allowed HTML tags and attributes for dialog box.
 		 *
-		 * @param array<string, string[]> $args extra argument.
+		 * @param array<string, array<array-key, string|array<string, mixed>>> $args extra argument.
 		 *
-		 * @return array<string, mixed>
+		 * @return array<string, array<array-key, mixed>>
 		 */
 		public function get_kses_allowed_dialog_html( array $args = array() ): array {
 
+			/**
+			 * Allowed HTML tags and attributes for the 'post' context.
+			 *
+			 * @var array<string, array<int|string, mixed>> $defaults
+			 */
 			$defaults = wp_kses_allowed_html( 'post' );
 
 			$allowed_attributes = array( 'list', 'autocomplete', 'data-*', 'readonly', 'disabled', 'type', 'width', 'size', 'id', 'class', 'style', 'checked', 'selected', 'multiple', 'name', 'inputmode', 'pattern', 'required', 'label', 'aria-label', 'aria-describedby', 'value', 'step', 'min', 'max', 'placeholder' );
@@ -935,7 +993,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		/**
 		 * Check is array is all empty values.
 		 *
-		 * @param array<int|string, ?mixed> $items Check array.
+		 * @param array<array-key, mixed> $items Check array.
 		 *
 		 * @return bool
 		 */
@@ -1061,11 +1119,25 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * ```
 		 */
 		public function array_merge_deep( array $args, array $defaults ): array {
+
 			$new_args = $defaults;
 
+			/**
+			 * Loop value.
+			 *
+			 * @var array<array-key, mixed> $value
+			 */
 			foreach ( $args as $key => $value ) {
+
 				if ( is_array( $value ) && isset( $new_args[ $key ] ) ) {
-					$new_args[ $key ] = $this->array_merge_deep( $value, $new_args[ $key ] );
+
+					/**
+					 * Loop value.
+					 *
+					 * @var array<array-key, mixed> $new_value
+					 */
+					$new_value        = $new_args[ $key ];
+					$new_args[ $key ] = $this->array_merge_deep( $value, $new_value );
 				} else {
 					$new_args[ $key ] = $value;
 				}
@@ -1089,6 +1161,12 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 */
 		public function convert_to_snake_key( string $key ): string {
 			$key = strtolower( $key );
+			// preg_replace() only returns null for a malformed pattern, and this one is a valid literal.
+			/**
+			 * Key.
+			 *
+			 * @var string $key
+			 */
 			$key = preg_replace( '/\W+/', '_', $key );
 
 			return trim( $key, '_' );
@@ -1119,6 +1197,31 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 			$middle = str_repeat( $mask_char, $len - $visible_start - $visible_end );
 
 			return $start . $middle . $end;
+		}
+
+		/**
+		 * Normalize an object or array into a field keyed array.
+		 * Casts them into a predictable string keyed array.
+		 *
+		 * @param object|array<array-key, mixed>|null $value Value to normalize.
+		 *
+		 * @return array<array-key, mixed> Field keyed array.
+		 *
+		 * @since 1.0.0
+		 */
+		public function object_to_array( $value ): array {
+
+			$fields = array();
+
+			if ( is_null( $value ) ) {
+				return $fields;
+			}
+
+			foreach ( (array) $value as $field_key => $field_value ) {
+				$fields[ (string) $field_key ] = $field_value;
+			}
+
+			return $fields;
 		}
 	}
 }

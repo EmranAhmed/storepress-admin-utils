@@ -49,7 +49,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 		 *
 		 * @since 1.0.0
 		 *
-		 * @var array<string, mixed>
+		 * @var array{_id: string, title: string, description: string, fields: array<array-key, Field>}
 		 */
 		private array $section;
 
@@ -74,8 +74,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 		 *
 		 * @since 1.0.0
 		 *
-		 * @param AbstractSettings     $settings Parent settings object that manages this section.
-		 * @param array<string, mixed> $section  Section configuration array containing _id, title, description, etc.
+		 * @param AbstractSettings                                                                            $settings Parent settings object that manages this section.
+		 * @param array{_id?: string, title?: string, description?: string, fields?: array<array-key, Field>} $section  Section configuration array containing _id, title, description, etc.
 		 *
 		 * @see Section::add() For configuration processing.
 		 * @see Section::init() For custom initialization.
@@ -130,7 +130,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 		 *
 		 * @since 1.0.0
 		 *
-		 * @param array<string, mixed> $section Section configuration array.
+		 * @param array{_id?: string, title?: string, description?: string, fields?: array<array-key, Field>} $section Section configuration array.
 		 *
 		 * @return self Returns the Section instance for method chaining.
 		 *
@@ -148,14 +148,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 		 *          ```
 		 */
 		public function add( array $section ): self {
-			$this->section = wp_parse_args(
-				$section,
-				array(
-					'_id'         => wp_unique_prefixed_id( 'section-' ),
-					'title'       => '',
-					'description' => '',
-					'fields'      => array(),
-				)
+			$this->section = array(
+				'_id'         => $section['_id'] ?? wp_unique_prefixed_id( 'section-' ),
+				'title'       => $section['title'] ?? '',
+				'description' => $section['description'] ?? '',
+				'fields'      => $section['fields'] ?? array(),
 			);
 			return $this;
 		}
@@ -309,7 +306,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Section'
 		 *
 		 * @since 1.0.0
 		 *
-		 * @return array<int, Field> Array of Field objects.
+		 * @return array<array-key, Field> Array of Field objects.
 		 *
 		 * @see Section::has_fields() For checking if fields exist.
 		 * @see Section::add_field() For adding fields.

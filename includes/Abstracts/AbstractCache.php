@@ -13,9 +13,9 @@
 
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
-	use Psr\SimpleCache\CacheInterface;
 	use StorePress\AdminUtils\Traits\HelperMethodsTrait;
 	use StorePress\AdminUtils\Traits\Internal\InternalPackageTrait;
+	use wpdb;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 
@@ -47,6 +47,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * @var   string
 		 */
 		private string $transient_option_key = '_transient_';
+
 		/**
 		 * Transient timeout option name prefix used when purging by group.
 		 *
@@ -294,7 +295,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * @see    self::has()
 		 */
 		public function is_empty( string $key ): bool {
-
 			return is_null( $this->get( $key ) );
 		}
 
@@ -312,7 +312,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * @return bool               True if stored, false if key already existed.
 		 * @see    self::add_transient()
 		 */
-		public function add( string $key, $value, $ttl = null ): bool {
+		public function add( string $key, $value, int $ttl = null ): bool {
+
+			if ( is_wp_error( $value ) ) {
+				return false;
+			}
 
 			$expire = $ttl ?? YEAR_IN_SECONDS;
 
@@ -333,7 +337,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * @return bool
 		 * @see    self::set_transient()
 		 */
-		public function set( string $key, $value, $ttl = null ): bool {
+		public function set( string $key, $value, int $ttl = null ): bool {
+
+			if ( is_wp_error( $value ) ) {
+				return false;
+			}
 
 			$expire = $ttl ?? YEAR_IN_SECONDS;
 
@@ -439,19 +447,29 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 */
 		private function delete_all_transient(): bool {
 
+			/**
+			 * WordPress database abstraction object.
+			 *
+			 * @var wpdb $wpdb
+			 */
 			global $wpdb;
 
 			$group_like  = $wpdb->esc_like( $this->get_cache_group() ) . '%';
 			$option_key  = $wpdb->esc_like( $this->transient_option_key ) . $group_like;
 			$timeout_key = $wpdb->esc_like( $this->transient_timeout_key ) . $group_like;
 
-			$id = $wpdb->query(
-				$wpdb->prepare(
-					"DELETE FROM {$wpdb->options} WHERE option_name LIKE %s OR option_name LIKE %s",
-					$option_key,
-					$timeout_key
-				)
+			$query = $wpdb->prepare(
+				'DELETE FROM %i WHERE option_name LIKE %s OR option_name LIKE %s',
+				$wpdb->options,
+				$option_key,
+				$timeout_key
 			);
+
+			if ( is_null( $query ) ) {
+				return false;
+			}
+
+			$id = $wpdb->query( $query ); //phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query is built with $wpdb->prepare() above.
 
 			return absint( $id ) > 0;
 		}
@@ -492,15 +510,23 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 
 			$this->sort_data( $data );
 
-			return md5( wp_json_encode( $data ) );
+			$encoded = wp_json_encode( $data );
+
+			// JSON encoding fails on values like resources, closures or recursive references.
+			if ( false === $encoded ) {
+				$encoded = serialize( $data ); //phpcs:ignore WordPress.PHP.DiscouragedPHPFunctions.serialize_serialize -- Local fallback to keep the generated key unique, never stored or unserialized.
+			}
+
+			return md5( $encoded );
 		}
 
 		/**
 		 * Recursively sorts arrays and objects so equivalent structures always produce the same JSON.
 		 *
 		 * @since  3.5.0
-		 * @param  array<array-key, mixed>|object $data  Data to sort, passed by reference.
-		 * @param  int                            $depth Current recursion depth; aborts at 32 to prevent stack overflow.
+		 * @param  mixed $data  Data to sort, passed by reference. Scalars are left untouched, so the
+		 *                       recursive calls below can hand it any array member.
+		 * @param  int   $depth Current recursion depth; aborts at 32 to prevent stack overflow.
 		 * @return void
 		 * @see    self::create_key()
 		 */

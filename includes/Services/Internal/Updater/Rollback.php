@@ -167,7 +167,25 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 *
 		 * Returns the localization strings defined in the parent updater class.
 		 *
-		 * @return array<string, string> The localized strings array.
+		 * @return array{
+		 *       license_key_empty_message: string,
+		 *       check_update_link_text: string,
+		 *       rollback_changelog_title: string,
+		 *       rollback_action_running: string,
+		 *       rollback_action_button: string,
+		 *       rollback_cancel_button: string,
+		 *       rollback_current_version: string,
+		 *       rollback_last_updated: string,
+		 *       rollback_view_changelog: string,
+		 *       rollback_page_title: string,
+		 *       rollback_link_text: string,
+		 *       rollback_failed: string,
+		 *       rollback_success: string,
+		 *       rollback_plugin_not_available: string,
+		 *       rollback_no_access: string,
+		 *       rollback_not_available: string,
+		 *       rollback_no_target_version: string
+		 *  } The localized strings array.
 		 *
 		 * @throws \WP_Exception If localize_strings() not overridden in parent.
 		 *
@@ -323,7 +341,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 
 			check_ajax_referer( 'updates' );
 
-			$version = isset( $_POST['targetVersion'] ) ? sanitize_text_field( $_POST['targetVersion'] ) : '';
+			$version = ( isset( $_POST['targetVersion'] ) && is_string( $_POST['targetVersion'] ) ) ? sanitize_text_field( $_POST['targetVersion'] ) : '';
 
 			$strings = $this->get_localize_strings();
 
@@ -364,6 +382,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 				$status['message'] = $plugin_info->get_error_message();
 				wp_send_json_error( $status );
 			}
+
+			/**
+			 * Plugin Info.
+			 *
+			 * @var array{versions:array<string, string>} $plugin_info
+			 */
 
 			$plugin_info = (array) $plugin_info;
 
@@ -449,6 +473,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 				$this->get_localize_strings()
 			);
 
+			/**
+			 * Rollback Response.
+			 *
+			 * @var array<string, string> $l10
+			 */
 			$this->register_package_scripts( 'rollback', $l10 );
 		}
 
@@ -549,8 +578,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 
 			$data = $this->get_plugin_transient_data( $this->get_plugin_basename() );
 
-			$allow_rollback = $this->string_to_boolean( $this->get_var( $data['allow_rollback'], 'no' ) );
-			$has_versions   = ! $this->is_empty_array( $this->get_var( $data['versions'], array() ) );
+			$rollback_flag = $data['allow_rollback'] ?? false;
+			$versions      = $data['versions'] ?? array();
+
+			$allow_rollback = ( is_string( $rollback_flag ) || is_bool( $rollback_flag ) ) && $this->string_to_boolean( $rollback_flag );
+			$has_versions   = is_array( $versions ) && ! $this->is_empty_array( $versions );
 
 			if ( $allow_rollback && $has_versions ) {
 				$links[ $this->menu_slug() ] = $action_links;
@@ -572,14 +604,49 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 		 * @since 1.0.0
 		 */
 		public function get_plugin_transient_data( string $plugin ): array {
+
+			/**
+			 * Transient response.
+			 *
+			 * @var object{
+			 *     response?: array<string, object{
+			 *         id: string,
+			 *         slug: string,
+			 *         plugin: string,
+			 *         new_version: string,
+			 *         url: string,
+			 *         package: string,
+			 *         requires_php?: string,
+			 *         tested?: string
+			 *     }>,
+			 *     no_update?: array<string, object>,
+			 *     last_checked?: int,
+			 *     checked?: array<string, string>
+			 * }|false $current
+			 */
 			$current = get_site_transient( 'update_plugins' );
 
-			if ( isset( $current->response[ $plugin ] ) ) {
-				return (array) $current->response[ $plugin ];
+			if ( ! is_object( $current ) ) {
+				return array();
 			}
 
-			if ( isset( $current->no_update[ $plugin ] ) ) {
-				return (array) $current->no_update[ $plugin ];
+			// Core stores this transient as a stdClass holding 'response' and 'no_update' arrays keyed by plugin basename.
+			$transient = $this->object_to_array( $current );
+
+			foreach ( array( 'response', 'no_update' ) as $property ) {
+
+				$plugins = $transient[ $property ] ?? array();
+
+				if ( ! is_array( $plugins ) || ! isset( $plugins[ $plugin ] ) || ! is_object( $plugins[ $plugin ] ) ) {
+					continue;
+				}
+
+				/**
+				 * Response.
+				 *
+				 * @var array<string, mixed>
+				 */
+				return $this->object_to_array( $plugins[ $plugin ] );
 			}
 
 			return array();
@@ -685,17 +752,27 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 				);
 			}
 
+			// plugins_api() returns either an object or an array, always keyed by field name.
+			/**
+			 * Plugin Info.
+			 *
+			 * @var array<string, mixed> $plugin_info
+			 */
 			$this->plugin_info = (array) $plugin_info;
 
 			$this->plugin_data = get_plugin_data( $plugin_file );
 
-			$is_rollback_available = isset( $this->plugin_info['allow_rollback'] ) && $this->string_to_boolean( $this->plugin_info['allow_rollback'] );
+			$rollback_flag = $this->plugin_info['allow_rollback'] ?? false;
+			$versions      = $this->plugin_info['versions'] ?? array();
+			$plugin_name   = is_string( $this->plugin_info['name'] ?? null ) ? $this->plugin_info['name'] : '';
 
-			$is_versions_available = isset( $this->plugin_info['versions'] ) && is_array( $this->plugin_info['versions'] ) && ! $this->is_empty_array( $this->plugin_info['versions'] );
+			$is_rollback_available = ( is_string( $rollback_flag ) || is_bool( $rollback_flag ) ) && $this->string_to_boolean( $rollback_flag );
+
+			$is_versions_available = is_array( $versions ) && ! $this->is_empty_array( $versions );
 
 			if ( ! $is_rollback_available ) {
 				wp_die(
-					sprintf( esc_html( $strings['rollback_not_available'] ), esc_html( $this->plugin_info['name'] ) ),
+					sprintf( esc_html( $strings['rollback_not_available'] ), esc_html( $plugin_name ) ),
 					esc_html( $strings['rollback_page_title'] ),
 					array(
 						'back_link' => true,
@@ -705,7 +782,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 
 			if ( ! $is_versions_available ) {
 				wp_die(
-					sprintf( esc_html( $strings['rollback_not_available'] ), esc_html( $this->plugin_info['name'] ) ),
+					sprintf( esc_html( $strings['rollback_not_available'] ), esc_html( $plugin_name ) ),
 					esc_html( $strings['rollback_page_title'] ),
 					array(
 						'back_link' => true,

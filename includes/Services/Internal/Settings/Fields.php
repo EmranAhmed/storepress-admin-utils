@@ -53,7 +53,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *
 		 * @since 1.0.0
 		 *
-		 * @var array<string, Section>
+		 * @var array<array-key, Section>
 		 */
 		private array $sections = array();
 
@@ -62,7 +62,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *
 		 * @since 1.0.0
 		 *
-		 * @var array<int, array<string, mixed>>
+		 * @var array<array-key, array<array-key, mixed>>
 		 */
 		private array $fields = array();
 
@@ -106,9 +106,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 * Initializes the fields collection with the given settings context
 		 * and processes the provided fields configuration array.
 		 *
-		 * @param AbstractSettings                 $settings Parent settings object that manages these fields.
-		 * @param array<int, array<string, mixed>> $fields   Array of field configuration arrays.
-		 * @param FieldsFactory|null               $factory  Optional. Factory class name for creating fields/sections. Default FieldsFactory::class.
+		 * @param AbstractSettings                          $settings Parent settings object that manages these fields.
+		 * @param array<array-key, array<array-key, mixed>> $fields   Array of field configuration arrays.
+		 * @param FieldsFactory|null                        $factory  Optional. Factory class name for creating fields/sections. Default FieldsFactory::class.
 		 *
 		 * @since   1.0.0
 		 *
@@ -237,7 +237,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 			/**
 			 * Fields configuration array.
 			 *
-			 * @var array<string, string|string[]> $field Individual field configuration.
+			 * @var array<array-key, mixed> $field Individual field configuration.
 			 */
 			foreach ( $this->fields as $field ) {
 
@@ -251,8 +251,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 						$this->get_settings(),
 						array(
 							'_id'         => $section_id,
-							'title'       => $_field->get_attribute( 'title' ),
-							'description' => $_field->get_attribute( 'description' ),
+							'title'       => (string) $_field->get_attribute( 'title', '' ),
+							'description' => (string) $_field->get_attribute( 'description', '' ),
 						)
 					);
 
@@ -286,7 +286,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *
 		 * @since 1.0.0
 		 *
-		 * @return array<string, Field> Field objects keyed by field ID.
+		 * @return array<array-key, Field> Field objects keyed by field ID.
 		 */
 		public function get_fields(): array {
 			$available_fields = array();
@@ -315,7 +315,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *
 		 * @since 1.0.0
 		 *
-		 * @param array<string, mixed> $field Field configuration array.
+		 * @param array<array-key, mixed> $field Field configuration array.
 		 *
 		 * @return bool True if the field type is 'section', false otherwise.
 		 *
@@ -341,7 +341,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *
 		 * @since 1.0.0
 		 *
-		 * @param array<string, mixed> $field Field configuration array.
+		 * @param array<array-key, mixed> $field Field configuration array.
 		 *
 		 * @return bool True if not a section, false if it is a section.
 		 *
@@ -392,7 +392,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *
 		 * @since 1.0.0
 		 *
-		 * @param array<string, mixed> $field Field configuration array.
+		 * @param array<array-key, mixed> $field Field configuration array.
 		 *
 		 * @return string The field ID.
 		 *
@@ -404,7 +404,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *          ```
 		 */
 		public function get_field_id( array $field ): string {
-			return $field['id'];
+			return is_string( $field['id'] ) ? $field['id'] : '';
 		}
 
 		// =====================================================================
@@ -419,7 +419,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Fields' 
 		 *
 		 * @since 1.0.0
 		 *
-		 * @return array<string, Section> Array of Section objects keyed by section ID.
+		 * @return array<array-key, Section> Array of Section objects keyed by section ID.
 		 *
 		 * @see Fields::display() Uses this to iterate sections.
 		 *

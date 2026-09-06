@@ -84,7 +84,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\MethodShouldImplementTrait' 
 				return;
 			}
 
-			$class         = $subclass_object ? $subclass_object : $this;
+			$class         = $subclass_object ?? $this;
 			$relative_file = $this->get_class_relative_path( $class );
 
 			/* translators: %s: Method name. */
@@ -107,6 +107,12 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\MethodShouldImplementTrait' 
 		 * @since 1.0.0
 		 */
 		public function get_class_relative_path( object $class_object ): string {
+			// Only userland classes reach here, so getFileName() never returns false.
+			/**
+			 * Class file name.
+			 *
+			 * @var string $class_file
+			 */
 			$class_file = ( new ReflectionClass( $class_object ) )->getFileName();
 			return str_ireplace( ABSPATH, '/', $class_file );
 		}
@@ -144,6 +150,12 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\MethodShouldImplementTrait' 
 				return '';
 			}
 
+			// Only userland classes reach here, so getFileName() never returns false.
+			/**
+			 * Class file name.
+			 *
+			 * @var string $class_file
+			 */
 			$class_file = $parent_class->getFileName();
 			return str_ireplace( ABSPATH, '/', $class_file );
 		}

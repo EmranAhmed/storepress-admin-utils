@@ -14,6 +14,7 @@
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	use Psr\Container\ContainerInterface;
+	use StorePress\AdminUtils\Interfaces\ServiceProviderInterface;
 
 if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractServiceProvider' ) ) {
 
@@ -24,7 +25,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractServiceProvider' 
 	 *
 	 * @since 1.0.0
 	 */
-	abstract class AbstractServiceProvider {
+	abstract class AbstractServiceProvider implements ServiceProviderInterface {
+
 
 		/**
 		 * The dependency injection container instance.

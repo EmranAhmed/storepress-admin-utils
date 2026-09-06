@@ -128,7 +128,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Dialog' )
 		/**
 		 * Action buttons.
 		 *
-		 * @return array<int, mixed>
+		 * @return array<array-key, mixed>
 		 */
 		public function get_buttons(): array {
 			return array();

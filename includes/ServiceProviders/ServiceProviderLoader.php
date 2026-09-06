@@ -13,6 +13,8 @@
 
 	namespace StorePress\AdminUtils\ServiceProviders;
 
+	use StorePress\AdminUtils\Interfaces\ServiceProviderInterface;
+
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 
 	/**
@@ -28,64 +30,74 @@
 	 * @example new ServiceProviderLoader( [ BlocksServiceProvider::class, BlockSupportServiceProvider::class ] );
 	 * @example ServiceProviderLoader::get_instance()->get_providers();
 	 */
-class ServiceProviderLoader {
 
+if ( ! class_exists( '\StorePress\AdminUtils\ServiceProviders\ServiceProviderLoader' ) ) {
 	/**
-	 * Registered service provider class names.
+	 * Service Provider loader.
 	 *
-	 * @var array<int, class-string>
+	 * @name ServiceProviderLoader
+	 *
+	 * @since 1.0.0
 	 */
-	protected array $service_providers = array();
+	class ServiceProviderLoader {
 
-	// =====================================================================
-	// Service Lifecycle Methods
-	// =====================================================================
+		/**
+		 * Registered service provider class names.
+		 *
+		 * @var array<array-key, ServiceProviderInterface>
+		 */
+		protected array $service_providers = array();
 
-	/**
-	 * Stores the provider list and immediately boots all providers via init().
-	 *
-	 * @param  array<int, class-string> $service_providers List of service provider class names.
-	 *
-	 * @since  3.4.0
-	 * @see    init()
-	 */
-	public function __construct( array $service_providers = array() ) {
-		$this->service_providers = $service_providers;
-		$this->init();
-	}
+		// =====================================================================
+		// Service Lifecycle Methods
+		// =====================================================================
 
-	/**
-	 * Returns all registered service provider class names.
-	 *
-	 * @since   3.4.0
-	 * @return  array<int, class-string>
-	 * @see     init()
-	 * @example ServiceProviders::instance()->get_providers(); // [ BlocksServiceProvider::class, ... ]
-	 */
-	public function get_providers(): array {
-		return $this->service_providers;
-	}
+		/**
+		 * Stores the provider list and immediately boots all providers via init().
+		 *
+		 * @param array<array-key, ServiceProviderInterface> $service_providers List of service provider class names.
+		 *
+		 * @since  3.4.0
+		 * @see    init()
+		 */
+		public function __construct( array $service_providers = array() ) {
+			$this->service_providers = $service_providers;
+			$this->init();
+		}
 
-	// =====================================================================
-	// Service Provider Registration Methods
-	// =====================================================================
+		/**
+		 * Returns all registered service provider class names.
+		 *
+		 * @return  array<array-key, ServiceProviderInterface>
+		 * @since   3.4.0
+		 * @see     init()
+		 * @example ServiceProviders::instance()->get_providers(); // [ BlocksServiceProvider::class, ... ]
+		 */
+		public function get_providers(): array {
+			return $this->service_providers;
+		}
 
-	/**
-	 * Instantiates, registers, and boots each service provider in order.
-	 *
-	 * @since  3.4.0
-	 * @return void
-	 * @see    get_providers()
-	 */
-	protected function init(): void {
-		$providers = $this->get_providers();
+		// =====================================================================
+		// Service Provider Registration Methods
+		// =====================================================================
 
-		foreach ( $providers as $provider ) {
-			$instance = $provider::instance();
-			$instance->register();
+		/**
+		 * Instantiates, registers, and boots each service provider in order.
+		 *
+		 * @return void
+		 * @since  3.4.0
+		 * @see    get_providers()
+		 */
+		protected function init(): void {
+			$providers = $this->get_providers();
 
-			if ( method_exists( $instance, 'boot' ) ) {
-				$instance->boot();
+			foreach ( $providers as $provider ) {
+				$instance = $provider::instance();
+				$instance->register();
+
+				if ( method_exists( $instance, 'boot' ) ) {
+					$instance->boot();
+				}
 			}
 		}
 	}

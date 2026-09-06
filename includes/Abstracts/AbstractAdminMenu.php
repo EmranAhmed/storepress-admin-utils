@@ -47,7 +47,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		/**
 		 * Tracks usage count of page slugs for unique suffix generation.
 		 *
-		 * @var array<string, int>
+		 * @var array<array-key, int>
 		 *
 		 * @since 1.0.0
 		 */
@@ -83,7 +83,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		/**
 		 * Registry of all registered page slugs mapped to their menu instances.
 		 *
-		 * @var array<string, static>
+		 * @var array<array-key, static>
 		 *
 		 * @since 1.0.0
 		 */
@@ -155,7 +155,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		/**
 		 * Get registered pages.
 		 *
-		 * @return array<string, static>
+		 * @return array<array-key, static>
 		 *
 		 * @since 1.0.0
 		 */
@@ -446,7 +446,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 */
 		public function get_current_page(): string {
 
-			$get_page = $_GET['page'] ?? ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- we use it just to get page.
+			$get_page = $_GET['page'] ?? ''; //phpcs:ignore WordPress.Security.NonceVerification.Recommended -- we need it which page we're browsing.
 			$get_page = is_string( $get_page ) ? $get_page : '';
 			$page     = sanitize_key( wp_unslash( $get_page ) );
 
@@ -504,7 +504,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 *
 		 * @see   self::get_menu_slug()
 		 */
-		protected function is_submenu(): bool {
+		public function is_submenu(): bool {
 			return str_contains( $this->get_menu_slug(), '.php' );
 		}
 

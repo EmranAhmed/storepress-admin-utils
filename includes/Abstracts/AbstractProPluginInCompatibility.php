@@ -72,7 +72,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 		 * Stores the plugin header data retrieved via get_plugin_data() to avoid
 		 * repeated file reads.
 		 *
-		 * @var array<string, mixed> Plugin header data array.
+		 * @var array<array-key, mixed> Plugin header data array.
 		 *
 		 * @since 1.0.0
 		 */

@@ -41,7 +41,12 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\SingletonTrait' ) ) {
 		 * @since  1.11.0
 		 */
 		public static function instance( ...$args ): self {
-			return self::$instance ??= new self( ...$args ); // @phpstan-ignore new.noConstructor
+			/**
+			 * PHPStan Ignore.
+			 *
+			 * @phpstan-ignore new.noConstructor, argument.type
+			 */
+			return self::$instance ??= new self( ...$args );
 		}
 
 		/**

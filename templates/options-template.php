@@ -14,6 +14,7 @@
 
 	$storepress_rtl_class = is_rtl() ? 'has-rtl' : '';
 ?>
+
 <div class="wrap storepress-settings-wrapper <?php echo esc_attr( $storepress_rtl_class ); ?>" style="<?php echo esc_attr( $this->get_sidebar_width_css() ); ?>">
 	<h1><?php echo esc_html( get_admin_page_title() ); ?></h1>
 
@@ -28,7 +29,8 @@
 	<div class="storepress-settings-content-wrapper">
 		<div class="storepress-settings-main">
 			<?php if ( $this->has_save_button() ) : ?>
-				<form action="<?php echo esc_url( $this->get_action_uri() ); ?>" method="post">
+				<form method="post" action="<?php echo esc_url( $this->get_form_action_uri() ); ?>">
+					<input type="hidden" name="tab" value="<?php echo esc_attr( $this->get_current_tab() ); ?>" />
 					<?php $this->display_fields(); ?>
 				</form>
 			<?php else : ?>

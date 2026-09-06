@@ -230,6 +230,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceContainers\ServiceContainer'
 				throw new DependencyNotAvailableException( esc_html( $id ) );
 			}
 
+			/**
+			 * Return Object.
+			 *
+			 * @var T
+			 */
 			return $this->resolvers[ $id ]( $this );
 		}
 

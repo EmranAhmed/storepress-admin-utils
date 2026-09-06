@@ -1,7 +1,7 @@
 {
 	"name": "storepress/admin-utils",
 	"description": "Utility Classes for WordPress Plugin Projects.",
-	"version": "3.9.0",
+	"version": "4.0.0",
 	"license": "GPL-2.0-or-later",
 	"type": "library",
 	"keywords": [
@@ -28,16 +28,18 @@
 	},
 	"require-dev": {
 		"automattic/vipwpcs": "^3.1.0",
+		"brain/monkey": "^2.7",
 		"dealerdirect/phpcodesniffer-composer-installer": "^v1.2.1",
+		"php-stubs/wordpress-stubs": "^7.1",
 		"phpcompatibility/phpcompatibility-wp": "^2.1.8",
 		"phpstan/extension-installer": "^1.4.3",
 		"phpstan/phpstan": "^2.2.9",
-		"slevomat/coding-standard": "^8.20",
+		"phpunit/phpunit": "^9.6",
 		"plugin-check/phpcs-sniffs": "@dev",
 		"squizlabs/php_codesniffer": "^3.13.5",
-		"szepeviktor/phpstan-wordpress": "^v2.0.3",
+		"szepeviktor/phpstan-wordpress": "^2.0",
 		"woocommerce/woocommerce-sniffs": "^2.0.0",
-		"wp-cli/i18n-command": "^v3.0.0",
+		"wp-cli/i18n-command": "^v3.0.1",
 		"wp-coding-standards/wpcs": "^3.4.1",
 		"wp-phpunit/wp-phpunit": "^7.1.0",
 		"yoast/phpunit-polyfills": "^4.0.0"
@@ -68,11 +70,12 @@
 	},
 	"scripts": {
 		"test": "./vendor/bin/phpunit --testdox",
-		"test:unit": "./vendor/bin/phpunit --testsuite Unit",
-		"test:integration": "./vendor/bin/phpunit --testsuite Integration",
+		"test:unit": "./vendor/bin/phpunit --testsuite Unit  --testdox",
+		"test:integration": "./vendor/bin/phpunit --testsuite Integration  --testdox",
 		"test:coverage": "./vendor/bin/phpunit --coverage-html coverage",
-		"phpstan": "./vendor/bin/phpstan --memory-limit=1024M",
+		"phpstan": "./vendor/bin/phpstan --memory-limit=2G",
 		"phpstan-report": "./vendor/bin/phpstan --memory-limit=4G -vvv > phpstan-report.txt",
+		"phpstan-clear": "./vendor/bin/phpstan clear-result-cache",
 		"format": "./vendor/bin/phpcbf --standard=phpcs.xml",
 		"lint-report": "./vendor/bin/phpcs --standard=phpcs.xml --report-summary --report-source --ignore-annotations --report-full=phpcs-report.txt",
 		"lint": "./vendor/bin/phpcs --standard=phpcs.xml --report=full"

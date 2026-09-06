@@ -374,7 +374,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDialog' ) ) {
 		 * - `data-label`: Original button text (for restoring after processing).
 		 * - `data-processing`: Text shown while processing.
 		 *
-		 * @return array<int, array{type: string, label: string, attributes: array<string, mixed>, spinner?: bool}> Button configurations.
+		 * @return array<array-key, array{type: string, label: string, attributes: array<array-key, mixed>, spinner?: bool}> Button configurations.
 		 *
 		 * @throws \WP_Exception Logs a notice that subclass should implement this method.
 		 *

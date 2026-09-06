@@ -14,6 +14,22 @@
 
 	$storepress_rtl_class = is_rtl() ? 'has-rtl' : '';
 
+	/**
+	 * Plugin info.
+	 *
+	 * @var array{
+	 *     name:string,
+	 *     banners:string[],
+	 *     icons:string[],
+	 *     homepage:string,
+	 *     rollback_current_version:string,
+	 *     rollback_last_updated:string,
+	 *     rollback_view_changelog:string,
+	 *     version:string,
+	 *     last_updated:string,
+	 *     versions:array<string, string>,
+	 * } $storepress_plugin_info
+	 */
 	$storepress_plugin_info = $this->get_plugin_info();
 	$storepress_strings     = $this->get_localize_strings();
 
@@ -43,7 +59,7 @@
 				</div>
 				<div class="plugin-meta">
 					<button id="show-changelog" data-request-storepress-dialog="#changelog-dialog" type="button" class="plugin-changelog button button-secondary"><?php echo esc_html( $storepress_strings['rollback_view_changelog'] ); ?></button>
-					<div class="last-updated"><?php echo wp_kses_post( sprintf( $storepress_strings['rollback_last_updated'], '<span class="dashicon dashicons dashicons-clock"></span>' . human_time_diff( strtotime( $storepress_plugin_info['last_updated'] ) ) ) ); ?></div>
+					<div class="last-updated"><?php echo wp_kses_post( sprintf( $storepress_strings['rollback_last_updated'], '<span class="dashicon dashicons dashicons-clock"></span>' . human_time_diff( (int) strtotime( $storepress_plugin_info['last_updated'] ) ) ) ); ?></div>
 				</div>
 			</div>
 			</div>

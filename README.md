@@ -1111,9 +1111,7 @@ composer require storepress/admin-utils
 
 ### Settings REST API
 
-- URL will be: `/wp-json/<get_page_slug>/<rest_api_version>/<rest_api_base>`
-- Default IS: `/wp-json/<get_page_slug>/<rest_api_version>/<rest_api_base>`
-- Example: `/wp-json/plugin-example/v1/settings`
+- Example: `/wp-json/wp/v2/settings`
 
 ### WordPress Data Store Usages example
 
@@ -1121,38 +1119,76 @@ composer require storepress/admin-utils
 import { select } from '@wordpress/data';
 
 // For a single record (no ID needed if your endpoint returns one object)
-const settings = select( 'core' ).getEntityRecord( '<get_menu_slug>', '<get_page_slug>' );
-const settings = wp.data.select( 'core' ).getEntityRecord( '<get_menu_slug>', '<get_page_slug>' );
+const settings = select( 'core' ).getEntityRecord( 'root', 'site' );
+const settings = wp.data.select( 'core' ).getEntityRecord( 'root', 'site' );
+
+wp.data.resolveSelect( 'core' ).getEntityRecord( 'root', 'site' ).then( function ( s ) {
+  console.log( s[ 'my-plugin-settings' ] );
+} );
 
 // Or use the resolver hook in a component
 import { useEntityRecord } from '@wordpress/core-data';
 
 function MyComponent() {
-  const { record, isResolving } = useEntityRecord( 'storepress', '<get_page_slug>' );
+  const { record: { 'my-plugin-settings': settings } = {}, hasResolved, isResolving } = useEntityRecord( 'root', 'site' );
 
   if ( isResolving ) return <p>Loading...</p>;
 
-  return <div>{ record?.['field-text'] }</div>;
+  return <div>{ settings?.['field-text'] }</div>;
 }
 ```
 
-NOTE: If menu_slug return as sub-menu like:
-
-```php
-public function get_menu_slug(): string {
-		return 'edit.php?post_type=wporg_product';
-}
-```
-
-It will create like:
+- Sample Update Settings by REST
 
 ```js
-select( 'core' ).getEntityRecord( '<show_in_rest>', '<rest_api_base>' );
-select( 'core' ).getEntityRecord( '<get_page_slug>/<rest_api_version>', '<rest_api_base>' );
+// Schema
+wp.apiFetch( { path: '/wp/v2/settings', method: 'OPTIONS' } ).then( function ( r ) {
+  console.log( r.schema.properties['my-plugin-settings'] );
+} );
+
+// Get
+wp.apiFetch( { path: '/wp/v2/settings' } ).then( function ( s ) {
+  console.log( s['my-plugin-settings'] );
+} );
+
+// Update
+wp.apiFetch( { path: '/wp/v2/settings' } ).then( function ( s ) {
+	const updated = Object.assign( {}, s['my-plugin-settings'], { 'advanced-multiple-select': ['0', '5'] } );
+
+	return wp.apiFetch( {
+		path: '/wp/v2/settings',
+		method: 'POST',
+		data: { 'my-plugin-settings': updated }
+	} );
+} ).then( function ( r ) {
+	console.log( r['my-plugin-settings'] );
+} ).catch( function ( e ) {
+	console.error( e.message, e.data && e.data.params );
+} );
+
+// Remove an item
+wp.apiFetch( { path: '/wp/v2/settings' } ).then( function ( s ) {
+  var next = Object.assign( {}, s['my-plugin-settings'] );
+  delete next.api_key;
+
+  return wp.apiFetch( {
+    path: '/wp/v2/settings',
+    method: 'POST',
+    data: { 'my-plugin-settings': next }
+  } );
+} ).then( function ( r ) {
+  console.log( r['my-plugin-settings'] );
+} );
+
+// Remove All
+wp.apiFetch( {
+  path: '/wp/v2/settings',
+  method: 'POST',
+  data: { 'my-plugin-settings': null }
+} ).then( function ( r ) {
+  console.log( r['my-plugin-settings'] );  // the registered default
+} );
 ```
-
-NOTE: You can override methods `show_in_rest()`, `rest_api_base()`, `get_menu_slug()`, `get_page_slug()` from `Settings` class or in `AdminPage` class.
-
 
 - See: [@wordpress/core-data](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-core-data/)
 
@@ -1192,7 +1228,7 @@ array(
       
       'placeholder' => '' // Placeholder
       'suffix'      => '' // Field suffix.
-      'html_attributes' => array('min' => 10) // Custom html attributes.
+      'html_attributes' => array('min' => 10) // Custom HTML attributes.
       'html_datalist'   => array('value 1', 'value 2') // HTML Datalist for suggestion.
       'required'    => true, // If field is required and cannot be empty.
       'private'     => true, // Private field does not delete from db during reset all action trigger.
@@ -1205,9 +1241,6 @@ array(
   
       'sanitize_callback'=>'absint', // Use custom sanitize function. Default is: sanitize_text_field.
       'show_in_rest'    => true, // Hide from rest api field. Default is: true
-      'show_in_rest'    => 'custom_rest_id', // Change field id on rest api.
-      'show_in_rest'    => array( 'name'=>'custom_rest_id' ), // Change field id on rest api.
-      'show_in_rest'    => array( 'name'=>'custom_rest_id', 'schema'=>array() ), // Add input schema for REST Api. See: https://developer.wordpress.org/rest-api/extending-the-rest-api/schema/
       // Options array for select, radio and checkbox [key=>value]
       // If checkbox have no options or value, default will be yes|no
       'options' => array(

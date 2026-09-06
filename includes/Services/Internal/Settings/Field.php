@@ -81,7 +81,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * @since 1.0.0
 		 *
-		 * @var string[]|array<string, mixed>
+		 * @var array<array-key, mixed>
 		 */
 		private array $field;
 
@@ -115,9 +115,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Initializes a new Field object with the given settings context and field configuration.
 		 * Optionally accepts preloaded values to populate the field.
 		 *
-		 * @param AbstractSettings     $settings Parent settings object that manages this field.
-		 * @param array<string, mixed> $field    Field configuration array containing id, type, title, etc.
-		 * @param array<string, mixed> $values   Optional. Preloaded values for the field. Default empty array.
+		 * @param AbstractSettings        $settings Parent settings object that manages this field.
+		 * @param array<array-key, mixed> $field    Field configuration array containing id, type, title, etc.
+		 * @param array<array-key, mixed> $values   Optional. Preloaded values for the field. Default empty array.
 		 *
 		 * @since   1.0.0
 		 *
@@ -150,8 +150,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * @since 1.0.0
 		 */
-		public function init(): void {
-		}
+		public function init(): void {}
 
 		/**
 		 * Add and configure field.
@@ -159,8 +158,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Processes the field configuration array, populates values from database or
 		 * provided values array, and sets up REST API visibility.
 		 *
-		 * @param array<string, mixed> $field  Field configuration array.
-		 * @param array<string, mixed> $values Optional. Values to populate. Default empty array.
+		 * @param array<array-key, mixed> $field  Field configuration array.
+		 * @param array<array-key, mixed> $values Optional. Values to populate. Default empty array.
 		 *
 		 * @return self Returns the Field instance for method chaining.
 		 *
@@ -189,13 +188,73 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				$this->populate_from_values( $values );
 			}
 
-			$this->field['show_in_rest'] = $this->get_attribute( 'show_in_rest', true );
+			$this->field['label']             = $this->get_title();
+			$this->field['sanitize_callback'] = $this->get_sanitize_callback();
+			$this->field['show_in_rest']      = $this->get_attribute( 'show_in_rest', true );
 
-			if ( $this->is_private() || 'password' === $this->get_type() ) {
-				$this->field['show_in_rest'] = false; // Never expose secrets via REST.
+			$type      = $this->get_type();
+			$rest_type = $this->get_rest_type();
+			$format    = '';
+
+			if ( 'color' === $type ) {
+				$format = 'hex-color';
 			}
 
+			if ( 'url' === $type ) {
+				$format = 'uri';
+			}
+
+			if ( 'email' === $type ) {
+				$format = 'email';
+			}
+
+			$property = array();
+
+			$property['type'] = $rest_type;
+
+			if ( '' !== trim( $this->get_description() ) ) {
+				$property['description'] = $this->get_description();
+			}
+
+			if ( '' !== $format ) {
+				$property['format'] = $format;
+			}
+
+			if ( 'array' === $rest_type ) {
+				$property['items'] = array(
+					'type' => array( 'string', 'number' ),
+				);
+			}
+
+			if ( $this->has_attribute( 'required' ) ) {
+				$property['required'] = true;
+			}
+
+			if ( $this->has_constant_value() || $this->is_private() ) {
+				$property['readonly'] = true;
+			}
+
+			$this->field['property'] = $property;
+
 			return $this;
+		}
+
+		/**
+		 * Get schema property.
+		 *
+		 * @return array{type:string, description?:string,format?:string,required?:bool,readonly?:bool,items?:array{type:string[]}}
+		 */
+		public function get_property(): array {
+			return $this->get_attribute( 'property', array( 'type' => 'string' ) );
+		}
+
+		/**
+		 * Is Allowed in rest.
+		 *
+		 * @return bool
+		 */
+		public function is_allowed_in_rest(): bool {
+			return (bool) $this->field['show_in_rest'];
 		}
 
 		// =====================================================================
@@ -236,7 +295,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Used when values are passed directly (e.g., in group fields) rather
 		 * than loading from the database.
 		 *
-		 * @param array<string, mixed> $values Key-value pairs of field IDs to values.
+		 * @param array<array-key, mixed> $values Key-value pairs of field IDs to values.
 		 *
 		 * @return void
 		 *
@@ -333,7 +392,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Sets the current value for this field. Accepts various types including
 		 * strings, arrays (for multi-select/checkbox), numbers, and booleans.
 		 *
-		 * @param string|string[]|numeric|bool|null $value The value to set.
+		 * @param mixed $value  The value to set. Comes from get_option() or a submitted form,
+		 *                      so it is only as narrow as those are.
 		 *
 		 * @return self Returns the Field instance for method chaining.
 		 *
@@ -348,6 +408,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          ```
 		 */
 		public function add_value( $value ): self {
+
 			$this->field['value'] = $value;
 
 			return $this;
@@ -359,9 +420,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns the field value, falling back to the provided default or
 		 * the field's configured default value if no value is set.
 		 *
-		 * @param bool|string|string[]|null $default_value Optional. Default value if none set.
+		 * @param array<array-key, mixed>|bool|float|int|string|null $default_value Optional. Default value if none set.
 		 *
-		 * @return bool|string|string[]|null The field value.
+		 * @return array<array-key, mixed>|bool|float|int|string|null The field value.
 		 *
 		 * @since 1.0.0
 		 *
@@ -377,9 +438,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		public function get_value( $default_value = null ) {
 
 			if ( $this->has_constant_value() ) {
+				/**
+				 * Constant.
+				 *
+				 * @var bool|string
+				 */
 				return $this->get_constant_value( $default_value );
 			}
 
+			/**
+			 * Response value.
+			 *
+			 * @var array<array-key, mixed>|bool|float|int|string|null
+			 */
 			return $this->get_attribute( 'value', $default_value ?? $this->get_default_value() );
 		}
 
@@ -388,7 +459,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the default value specified in the field configuration array.
 		 *
-		 * @return bool|string|numeric|array<int|string, mixed>|null The default value or null.
+		 * @return array<array-key, mixed>|bool|float|int|string|null The default value or null.
 		 *
 		 * @since 1.0.0
 		 *
@@ -400,6 +471,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          ```
 		 */
 		public function get_default_value() {
+			/**
+			 * Default value.
+			 *
+			 * @var array<array-key, mixed>|bool|float|int|string|null
+			 */
 			return $this->get_attribute( 'default' );
 		}
 
@@ -415,13 +491,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		/**
 		 * Get field constant value.
 		 *
-		 * @param mixed|null $default_value Default value.
+		 * @param array<array-key, mixed>|bool|float|int|string|null $default_value Default value.
 		 *
-		 * @return mixed|null
+		 * @return array<array-key, mixed>|bool|float|int|string|null
 		 */
 		public function get_constant_value( $default_value = null ) {
 			if ( $this->has_constant_value() ) {
-				return constant( $this->get_attribute( 'constant' ) );
+				$constant_value = constant( $this->get_attribute( 'constant' ) );
+
+				if ( is_scalar( $constant_value ) || is_array( $constant_value ) || is_null( $constant_value ) ) {
+					return $constant_value;
+				}
+
+				return $default_value;
 			}
 
 			return $default_value;
@@ -437,7 +519,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns the unique identifier for this field, used in form names,
 		 * database storage, and HTML element IDs.
 		 *
-		 * @return string|null The field ID or null if not set.
+		 * @return string The field ID or null if not set.
 		 *
 		 * @since 1.0.0
 		 *
@@ -447,8 +529,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          // Returns: 'my_field_id'
 		 *          ```
 		 */
-		public function get_id(): ?string {
-			return $this->get_attribute( 'id' );
+		public function get_id(): string {
+			return $this->get_attribute( 'id', '' );
 		}
 
 		/**
@@ -456,7 +538,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the human-readable title displayed as the field label.
 		 *
-		 * @return string|null The field title or null if not set.
+		 * @return string The field title or null if not set.
 		 *
 		 * @since 1.0.0
 		 *
@@ -466,8 +548,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          // Returns: 'Email Address'
 		 *          ```
 		 */
-		public function get_title(): ?string {
-			return $this->get_attribute( 'title' );
+		public function get_title(): string {
+			return $this->get_attribute( 'title', '' );
+		}
+
+		/**
+		 * Get description.
+		 *
+		 * @return string
+		 */
+		public function get_description(): string {
+			return wp_strip_all_tags( $this->get_attribute( 'description', '' ) );
 		}
 
 		/**
@@ -626,6 +717,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          ```
 		 */
 		public function get_raw_type(): string {
+			/**
+			 * Get type.
+			 *
+			 * @var string
+			 */
 			return $this->get_attribute( 'type', 'text' );
 		}
 
@@ -708,6 +804,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			return array( 'radio', 'checkbox', 'toggle', 'group' );
 		}
 
+		/**
+		 * Is input value is array.
+		 *
+		 * @return bool
+		 */
+		public function is_multi_input(): bool {
+
+			$options        = $this->get_options();
+			$is_multi_input = in_array( $this->get_type(), array( 'radio', 'checkbox', 'toggle' ), true );
+
+			return $is_multi_input && count( $options ) > 0;
+		}
+
 		// =====================================================================
 		// Options Methods
 		// =====================================================================
@@ -717,7 +826,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Returns the options array configured for fields that offer choices.
 		 *
-		 * @return string[]|array<string, string> Options as key-value pairs.
+		 * @return array<array-key, string|array{label: string, description?: string}> Options as key-value pairs.
+		 *                                        A value may also be a label/description pair.
 		 *
 		 * @since 1.0.0
 		 *
@@ -768,7 +878,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * before storing in the database. Uses custom callback if set, otherwise
 		 * determines based on field type.
 		 *
-		 * @return string The sanitization function name.
+		 * @return callable-string The sanitization function name.
 		 *
 		 * @since   1.0.0
 		 *
@@ -793,6 +903,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$type = $this->get_type();
 
 			if ( $this->has_sanitize_callback() ) {
+				/**
+				 * Callback string.
+				 *
+				 * @var callable-string
+				 */
 				return $this->get_attribute( 'sanitize_callback' );
 			}
 
@@ -819,7 +934,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * from the database. Uses custom callback if set, otherwise determines
 		 * based on field type.
 		 *
-		 * @return string The escape function name.
+		 * @return callable-string The escape function name.
 		 *
 		 * @since   1.0.0
 		 *
@@ -844,6 +959,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$type = $this->get_type();
 
 			if ( $this->has_escape_callback() ) {
+				/**
+				 * Callback.
+				 *
+				 * @var callable-string
+				 */
 				return $this->get_attribute( 'escape_callback' );
 			}
 
@@ -873,7 +993,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Returns all field attributes as originally configured plus any
 		 * modifications made during processing.
 		 *
-		 * @return string[]|array<string, mixed> The field configuration array.
+		 * @return array<array-key, mixed> The field configuration array.
 		 *
 		 * @since 1.0.0
 		 *
@@ -917,10 +1037,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * Retrieves an attribute from the field configuration, returning
 		 * the default value if the attribute is not set.
 		 *
-		 * @param string                    $attribute     The attribute name to retrieve.
-		 * @param string|string[]|null|bool $default_value Optional. Default if not set. Default null.
+		 * @param string $attribute     The attribute name to retrieve.
+		 * @param mixed  $default_value Optional. Default if not set. Default null.
 		 *
-		 * @return string|string[]|null|bool The attribute value or default.
+		 * @return mixed The attribute value, or the default when the attribute is not set.
+		 *
+		 * The well-known configuration keys below always carry the same type, so they are
+		 * declared here instead of being narrowed again at every read site.
+		 *
+		 * @phpstan-return ($attribute is 'id'|'constant'|'description'|'title'|'tooltip'|'placeholder' ? string
+		 *                 : ($attribute is 'units' ? array<string>
+		 *                 : ($attribute is 'options' ? array<array-key, string|array{label: string, description?: string}>
+		 *                 : ($attribute is 'property' ? array{type:string, description?:string,format?:string,required?:bool,readonly?:bool,items?:array{type:string[]}}
+		 *                 : ($attribute is 'html_attributes' ? array<string, mixed>
+		 *                 : ($attribute is 'html_datalist' ? array<array-key, string>
+		 *                 : ($attribute is 'disabled' ? bool|string
+		 *                 : ($attribute is 'fields' ? array<array-key, array<array-key, mixed>>
+		 *                 : ($attribute is 'add_tag' ? string|array<array-key, string>|null
+		 *                 : mixed)))))))))
 		 *
 		 * @since 1.0.0
 		 *
@@ -936,45 +1070,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$field = $this->get_field();
 
 			return $field[ $attribute ] ?? $default_value;
-		}
-
-		/**
-		 * Check if field should be shown in REST API.
-		 *
-		 * Validates the show_in_rest attribute to determine REST API visibility.
-		 * Returns false if attribute is missing, false, or empty string.
-		 *
-		 * @return bool True if field should be included in REST API.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see   Field::get_rest_value() For REST API value retrieval.
-		 * @see   Field::get_rest_type() For REST schema type.
-		 *
-		 * @example
-		 *          ```php
-		 *          if ( $field->has_show_in_rest() ) {
-		 *              $schema['properties'][ $field->get_id() ] = array(
-		 *                  'type' => $field->get_rest_type(),
-		 *              );
-		 *          }
-		 *          ```
-		 */
-		public function has_show_in_rest(): bool {
-
-			if ( ! $this->has_attribute( 'show_in_rest' ) ) {
-				return false;
-			}
-
-			if ( false === $this->get_attribute( 'show_in_rest' ) ) {
-				return false;
-			}
-
-			if ( is_string( $this->get_attribute( 'show_in_rest' ) ) && $this->is_empty_string( $this->get_attribute( 'show_in_rest' ) ) ) {
-				return false;
-			}
-
-			return true;
 		}
 
 		// =====================================================================
@@ -1063,7 +1158,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * @param string $default_value Optional. Default class if none set.
 		 *
-		 * @return bool|string|string[]|null The class value.
+		 * @return list<string>|string The class value.
 		 *
 		 * @since 1.0.0
 		 *
@@ -1073,6 +1168,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          ```
 		 */
 		public function get_css_class( string $default_value = '' ) {
+			/**
+			 * CSS Class.
+			 *
+			 * @var list<string>|string
+			 */
 			return $this->get_attribute( 'class', $default_value );
 		}
 
@@ -1098,6 +1198,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          ```
 		 */
 		public function get_suffix(): ?string {
+			/**
+			 * Suffix.
+			 *
+			 * @var string|null
+			 */
 			return $this->get_attribute( 'suffix' );
 		}
 
@@ -1117,9 +1222,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		/**
 		 * Check unpredicted input value and saved values.
 		 *
-		 * @param bool                              $in_array_check Is in array check.
-		 * @param int|string                        $input_value    Input value.
-		 * @param int|string|array<int, mixed>|null $saved_value    Saved value.
+		 * @param bool  $in_array_check Is in array check.
+		 * @param mixed $input_value    Input value.
+		 * @param mixed $saved_value    Saved value.
 		 *
 		 * @return bool
 		 */
@@ -1130,17 +1235,22 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			}
 
 			if ( is_numeric( $input_value ) ) {
-				$input_value = sanitize_text_field( $input_value );
+				$input_value = sanitize_text_field( (string) $input_value );
 			}
 
 			// $input_value and $saved_value data type is unpredictable so we convert all saved value and input value to string.
 			if ( $in_array_check ) {
-				$saved_value = array_map( 'sanitize_text_field', is_array( $saved_value ) ? $saved_value : array( $saved_value ) );
+				$saved_value = array_map(
+					static function ( $item ) {
+						return is_scalar( $item ) ? sanitize_text_field( (string) $item ) : '';
+					},
+					is_array( $saved_value ) ? $saved_value : array( $saved_value )
+				);
 
 				return in_array( $input_value, $saved_value, true );
 			}
 
-			$saved_value = sanitize_text_field( $saved_value );
+			$saved_value = is_scalar( $saved_value ) ? sanitize_text_field( (string) $saved_value ) : '';
 
 			return $input_value === $saved_value;
 		}
@@ -1260,6 +1370,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			return sprintf( '<select id="%s">%s</select>', esc_attr( $_id ), implode( '', $options ) );
 		}
 
+		/**
+		 * Get Additional HTML Attribute.
+		 *
+		 * @return array<array-key, mixed>
+		 */
+		public function get_additional_html_attributes(): array {
+			return $this->get_attribute( 'html_attributes', array() );
+		}
+
 		// =====================================================================
 		// Input Markup Methods - Text Inputs
 		// =====================================================================
@@ -1289,12 +1408,17 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$id                    = $this->get_settings()->get_field_id( $this->get_id() );
 			$class                 = $this->get_css_class();
 			$type                  = $this->get_type();
-			$additional_attributes = $this->get_attribute( 'html_attributes', array() );
+			$additional_attributes = $this->get_additional_html_attributes();
 			$escape_callback       = $this->get_escape_callback();
-			$value                 = map_deep( $this->get_value(), $escape_callback );
-			$raw_type              = $this->get_raw_type();
-			$system_class          = array( $css_class );
-			$masked                = false;
+			/**
+			 * Value.
+			 *
+			 * @var string $value
+			 */
+			$value        = map_deep( $this->get_value(), $escape_callback );
+			$raw_type     = $this->get_raw_type();
+			$system_class = array( $css_class );
+			$masked       = false;
 
 			if ( 'code' === $raw_type ) {
 				$system_class[] = 'code';
@@ -1352,7 +1476,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				'has-mask'   => $masked && ! $this->has_constant_value(),
 			);
 
-			$suffix_markup = $this->has_suffix() ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $this->get_suffix() ) ) : '';
+			$suffix_markup = $this->has_suffix() ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $this->get_suffix() ?? '' ) ) : '';
 
 			$mask_markup = $masked && ! $this->has_constant_value() ? '<span class="input-mask-button"><button data-storepress-toggle-mask-for="' . esc_attr( $attributes['id'] ) . '" type="button" class="button"><span class="dashicons dashicons-hidden" aria-hidden="true"></span></button></span>' : '';
 
@@ -1383,11 +1507,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 
 			$id                    = $this->get_settings()->get_field_id( $this->get_id() );
 			$class                 = $this->get_css_class();
-			$additional_attributes = $this->get_attribute( 'html_attributes', array() );
+			$additional_attributes = $this->get_additional_html_attributes();
 			$units                 = $this->get_attribute( 'units', array() );
 			$escape_callback       = $this->get_escape_callback();
-			$value                 = map_deep( $this->get_value(), $escape_callback );
-			$system_class          = array( $css_class );
+			/**
+			 * Value.
+			 *
+			 * @var string $value
+			 */
+			$value        = map_deep( $this->get_value(), $escape_callback );
+			$system_class = array( $css_class );
 
 			[ 'value' => $input ] = $this->parse_unit( $value );
 
@@ -1451,13 +1580,19 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 */
 		public function textarea_input( string $css_class = 'regular-text' ): string {
 
-			$id                    = $this->get_settings()->get_field_id( $this->get_id() );
-			$class                 = $this->get_css_class();
-			$type                  = $this->get_type();
-			$additional_attributes = $this->get_attribute( 'html_attributes', array() );
+			$id    = $this->get_settings()->get_field_id( $this->get_id() );
+			$class = $this->get_css_class();
+			$type  = $this->get_type();
+
+			$additional_attributes = $this->get_additional_html_attributes();
 
 			$escape_callback = $this->get_escape_callback();
-			$value           = map_deep( $this->get_value(), $escape_callback );
+			/**
+			 * Value.
+			 *
+			 * @var string $value
+			 */
+			$value = map_deep( $this->get_value(), $escape_callback );
 
 			$attributes = array(
 				'id'    => $id,
@@ -1540,7 +1675,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			/**
 			 * Group Options.
 			 *
-			 * @var array<string, string> $options
+			 * @var array<string, string|array{label: string, description?: string}> $options
 			 */
 			foreach ( $options as $option_key => $option_value ) {
 
@@ -1597,15 +1732,16 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 */
 		public function select_input(): string {
 
-			$id                    = $this->get_settings()->get_field_id( $this->get_id() );
-			$type                  = $this->get_type();
-			$title                 = $this->get_title();
-			$value                 = $this->get_value();
-			$is_multiple           = $this->has_attribute( 'multiple' );
-			$options               = $this->get_options();
-			$class                 = $this->get_css_class();
-			$name                  = $this->get_name( $is_multiple );
-			$additional_attributes = $this->get_attribute( 'html_attributes', array() );
+			$id          = $this->get_settings()->get_field_id( $this->get_id() );
+			$type        = $this->get_type();
+			$title       = $this->get_title();
+			$value       = $this->get_value();
+			$is_multiple = $this->has_attribute( 'multiple' );
+			$options     = $this->get_options();
+			$class       = $this->get_css_class();
+			$name        = $this->get_name( $is_multiple );
+
+			$additional_attributes = $this->get_additional_html_attributes();
 
 			$raw_type     = $this->get_raw_type();
 			$system_class = array( 'regular-text' );
@@ -1641,6 +1777,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 
 			foreach ( $options as $option_key => $option_value ) {
 				$selected = $this->unpredicted_comparison( $is_multiple, $option_key, $value );
+
+				if ( is_array( $option_value ) && isset( $option_value['label'] ) ) {
+					$option_value = $option_value['label'];
+				}
+
 				$inputs[] = sprintf( '<option %s value="%s"><span>%s</span></option>', $this->get_html_attributes( array( 'selected' => $selected ) ), esc_attr( $option_key ), esc_html( $option_value ) );
 			}
 
@@ -1680,6 +1821,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$type = $this->get_type();
 
 			if ( method_exists( $this->get_settings(), 'custom_field' ) ) {
+				/**
+				 * Custom field.
+				 *
+				 * @var string
+				 */
 				return $this->get_settings()->custom_field( $this );
 			}
 
@@ -1715,18 +1861,28 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 */
 		public function get_group_fields(): array {
 
-			$name         = $this->get_name();
-			$group_value  = $this->get_value( array() );
+			$name = $this->get_name();
+			/**
+			 * Value.
+			 *
+			 * @var array<array-key, mixed> $group_value
+			 */
+			$group_value = $this->get_value( array() );
+
+			/**
+			 * Nested field configuration arrays.
+			 *
+			 * @var array<array-key, array<string, mixed>> $group_fields
+			 */
 			$group_fields = $this->get_attribute( 'fields', array() );
 
 			$fields = array();
 
 			/**
-			 * Group Filed object array
+			 * Nested field configuration arrays.
 			 *
-			 * @var array<string, mixed> $group_fields $group_fields
+			 * @var array<string, mixed> $field
 			 */
-
 			foreach ( $group_fields as $field ) {
 
 				$_field = ( new self( $this->get_settings(), $field, $group_value ) )->add_settings_id( $name );
@@ -1738,71 +1894,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		}
 
 		/**
-		 * Get REST API values for group fields.
-		 *
-		 * Collects escaped values from all nested fields that should be
-		 * included in REST API responses.
-		 *
-		 * @return array<string, string|string[]> Associative array of field IDs to values.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see   Field::has_show_in_rest() For REST visibility check.
-		 *
-		 * @example
-		 *          ```php
-		 *          $rest_values = $field->get_rest_group_values();
-		 *          // Returns: array( 'sub_field_1' => 'value1', 'sub_field_2' => 'value2' )
-		 *          ```
-		 */
-		public function get_rest_group_values(): array {
-
-			$values = array();
-
-			foreach ( $this->get_group_fields() as $field ) {
-
-				if ( false === $field->has_show_in_rest() ) {
-					continue;
-				}
-
-				$id              = $field->get_id();
-				$escape_callback = $this->get_escape_callback();
-				$value           = map_deep( $field->get_value(), $escape_callback );
-
-				$values[ $id ] = $value;
-			}
-
-			return $values;
-		}
-
-		/**
-		 * Get REST API value for this field.
-		 *
-		 * Returns the escaped field value suitable for REST API responses.
-		 *
-		 * @return mixed The escaped field value.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see   Field::get_escape_callback() For the escape function.
-		 *
-		 * @example
-		 *          ```php
-		 *          $rest_value = $field->get_rest_value();
-		 *          ```
-		 */
-		public function get_rest_value() {
-			$escape_callback = $this->get_escape_callback();
-
-			return map_deep( $this->get_value(), $escape_callback );
-		}
-
-		/**
 		 * Get all values from group fields.
 		 *
 		 * Collects raw values from all nested fields in a group.
 		 *
-		 * @return array<string, mixed> Associative array of field IDs to values.
+		 * @return array<array-key, mixed> Associative array of field IDs to values.
 		 *
 		 * @since 1.0.0
 		 *
@@ -1831,10 +1927,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *
 		 * Retrieves the value of a single field within a group by its ID.
 		 *
-		 * @param string                    $field_id      The nested field ID to find.
-		 * @param bool|null|string|string[] $default_value Optional. Default if not found.
+		 * @param string                                             $field_id      The nested field ID to find.
+		 * @param array<array-key, mixed>|bool|float|int|string|null $default_value Optional. Default if not found.
 		 *
-		 * @return bool|null|string|string[] The field value or default.
+		 * @return array<array-key, mixed>|bool|float|int|string|null The field value or default.
 		 *
 		 * @since 1.0.0
 		 *
@@ -1902,9 +1998,14 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				$has_field_suffix  = $field->has_suffix();
 				$field_classes     = $this->prepare_classes( $field->get_css_class(), $css_class );
 				$escape_callback   = $this->get_escape_callback();
-				$field_value       = map_deep( $field->get_value(), $escape_callback );
-				$field_attributes  = $field->get_attribute( 'html_attributes', array() );
-				$masked            = false;
+				/**
+				 * Value.
+				 *
+				 * @var list<string>|string $field_value
+				 */
+				$field_value      = map_deep( $field->get_value(), $escape_callback );
+				$field_attributes = $field->get_additional_html_attributes();
+				$masked           = false;
 
 				$has_condition = $field->has_attribute( 'condition' );
 
@@ -1981,6 +2082,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 
 						$attributes['required'] = false;
 
+						if ( is_array( $option_value ) && isset( $option_value['label'] ) ) {
+							$option_value = $option_value['label'];
+						}
+
 						$inputs[] = sprintf( '<li><label for="%s"><input %s /><span>%s</span></label></li>', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $option_value ) );
 					}
 					$inputs[] = '</ul></li></ul>';
@@ -2011,6 +2116,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					$inputs[] = '</ul>';
 				} elseif ( 'textarea' === $field_type ) {
 					// Input box.
+					/**
+					 * Value.
+					 *
+					 * @var string $field_value
+					 */
 					$attributes['value'] = false;
 					$tooltip_markup      = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
 					$required_markup     = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
@@ -2020,6 +2130,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					$inputs[] = '</ul>';
 				} elseif ( 'unit' === $field_type ) {
 
+					/**
+					 * Unit Value.
+					 *
+					 * @var string $field_value
+					 */
 					$units = $field->get_attribute( 'units', array() );
 
 					$has_suffix = count( $units ) < 2;
@@ -2053,7 +2168,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 							if ( $is_numeric ) {
 								$datalist_markup .= sprintf( '<option value="%s"></option>', esc_attr( $label ) );
 							} else {
-								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( $value ), esc_attr( $label ) );
+								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( (string) $value ), esc_attr( $label ) );
 							}
 						}
 						$datalist_markup .= '</datalist>';
@@ -2073,6 +2188,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					$inputs[] = '</ul>';
 				} else {
 
+					/**
+					 * Field Value.
+					 *
+					 * @var string $field_value
+					 */
 					$datalist_markup = '';
 					if ( $field->has_attribute( 'html_datalist' ) ) {
 
@@ -2086,7 +2206,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 							if ( $is_numeric ) {
 								$datalist_markup .= sprintf( '<option value="%s"></option>', esc_attr( $label ) );
 							} else {
-								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( $value ), esc_attr( $label ) );
+								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( (string) $value ), esc_attr( $label ) );
 							}
 						}
 						$datalist_markup .= '</datalist>';
@@ -2106,7 +2226,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 						$attributes['class'][] = 'code';
 					}
 
-					$suffix_markup = $has_field_suffix ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $field_suffix ) ) : '';
+					$suffix_markup = $has_field_suffix ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $field_suffix ?? '' ) ) : '';
 
 					$wrapper_classes = array(
 						'input-container',
@@ -2395,7 +2515,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					if ( $is_numeric ) {
 						$datalist_markup .= sprintf( '<option value="%s"></option>', esc_attr( $label ) );
 					} else {
-						$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( $value ), esc_attr( $label ) );
+						$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( (string) $value ), esc_attr( $label ) );
 					}
 				}
 				$datalist_markup .= '</datalist>';

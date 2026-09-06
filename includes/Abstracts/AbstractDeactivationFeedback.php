@@ -107,7 +107,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		/**
 		 * Get the plugin settings to include in the feedback payload.
 		 *
-		 * @return array<string, mixed>
+		 * @return array<array-key, mixed>
 		 *
 		 * @since 1.0.0
 		 */
@@ -145,7 +145,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		public function get_plugin_slug_for_plugin_list(): string {
 			$plugin_data = $this->get_plugin_data();
 
-			return $plugin_data['slug'] ?? sanitize_title( $plugin_data['Name'] );
+			$slug = $plugin_data['slug'] ?? null;
+
+			if ( is_string( $slug ) ) {
+				return $slug;
+			}
+
+			$name = $plugin_data['Name'] ?? '';
+
+			return is_string( $name ) ? sanitize_title( $name ) : '';
 		}
 
 		/**
@@ -235,7 +243,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		/**
 		 * Get the dialog action buttons configuration.
 		 *
-		 * @return array<int, array{type: string, label: string, attributes: array<string, mixed>, spinner?: bool}>
+		 * @return array<array-key, array{type: string, label: string, attributes: array<array-key, mixed>, spinner?: bool}>
 		 *
 		 * @since 1.0.0
 		 */
@@ -282,7 +290,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		/**
 		 * Get the deactivation reasons configuration.
 		 *
-		 * @return array<string, array{title: string, message?: string, input?: array{placeholder: string, value?: string}}>
+		 * @return array<array-key, array{title: string, message?: string, input?: array{placeholder?: string, value?: string}}>
 		 *
 		 * @since 1.0.0
 		 */
@@ -328,7 +336,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 		/**
 		 * Public accessor for plugin settings included in the feedback payload.
 		 *
-		 * @return array<string, mixed>
+		 * @return array<array-key, mixed>
 		 *
 		 * @since 1.0.0
 		 *
@@ -418,9 +426,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 			$get_active_plugins         = (array) get_option( 'active_plugins', array() );
 			$get_network_active_plugins = (array) get_site_option( 'active_sitewide_plugins', array() );
 
-			$get_available_active_plugins = array_merge( $get_network_active_plugins, $get_active_plugins );
+			// 'active_plugins' is a list of basenames, 'active_sitewide_plugins' is keyed by basename with activation timestamps as values.
+			$get_available_active_plugins = array_merge( array_keys( $get_network_active_plugins ), array_values( $get_active_plugins ) );
 
-			foreach ( $get_available_active_plugins as $plugin ) {
+			foreach ( array_filter( $get_available_active_plugins, 'is_string' ) as $plugin ) {
 
 				// Skip Current Deactivating plugin info from list.
 				if ( $plugin_name === $plugin ) {
@@ -452,32 +461,32 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 					'license_key'     => $this->license_key(),
 				),
 				'wordpress' => array(
-					'version'          => $wp['wp-core']['fields']['version']['value'],
-					'site_language'    => $wp['wp-core']['fields']['site_language']['value'],
-					'user_language'    => $wp['wp-core']['fields']['user_language']['value'],
-					'site_url'         => $wp['wp-core']['fields']['site_url']['value'],
-					'is_multisite'     => $this->string_to_boolean( $wp['wp-core']['fields']['multisite']['value'] ),
-					'environment_type' => $wp['wp-core']['fields']['environment_type']['value'],
+					'version'          => $this->get_debug_data_value( $wp, 'wp-core', 'version' ),
+					'site_language'    => $this->get_debug_data_value( $wp, 'wp-core', 'site_language' ),
+					'user_language'    => $this->get_debug_data_value( $wp, 'wp-core', 'user_language' ),
+					'site_url'         => $this->get_debug_data_value( $wp, 'wp-core', 'site_url' ),
+					'is_multisite'     => $this->string_to_boolean( $this->get_debug_data_value( $wp, 'wp-core', 'multisite' ) ),
+					'environment_type' => $this->get_debug_data_value( $wp, 'wp-core', 'environment_type' ),
 				),
 				'theme'     => array(
-					'name'           => $wp['wp-active-theme']['fields']['name']['value'],
-					'version'        => $wp['wp-active-theme']['fields']['version']['value'],
-					'author'         => $wp['wp-active-theme']['fields']['author']['value'],
-					'author_website' => $wp['wp-active-theme']['fields']['author_website']['value'],
-					'parent_theme'   => $wp['wp-active-theme']['fields']['parent_theme']['value'],
-					'theme_slug'     => basename( $wp['wp-active-theme']['fields']['theme_path']['value'] ),
+					'name'           => $this->get_debug_data_value( $wp, 'wp-active-theme', 'name' ),
+					'version'        => $this->get_debug_data_value( $wp, 'wp-active-theme', 'version' ),
+					'author'         => $this->get_debug_data_value( $wp, 'wp-active-theme', 'author' ),
+					'author_website' => $this->get_debug_data_value( $wp, 'wp-active-theme', 'author_website' ),
+					'parent_theme'   => $this->get_debug_data_value( $wp, 'wp-active-theme', 'parent_theme' ),
+					'theme_slug'     => basename( $this->get_debug_data_value( $wp, 'wp-active-theme', 'theme_path' ) ),
 				),
 				'plugins'   => $active_plugins,
 				'database'  => array(
-					'extension' => $wp['wp-database']['fields']['extension']['value'],
-					'version'   => $wp['wp-database']['fields']['server_version']['value'],
+					'extension' => $this->get_debug_data_value( $wp, 'wp-database', 'extension' ),
+					'version'   => $this->get_debug_data_value( $wp, 'wp-database', 'server_version' ),
 				),
 				'server'    => array(
-					'os'               => $wp['wp-server']['fields']['server_architecture']['value'],
-					'server'           => $wp['wp-server']['fields']['httpd_software']['value'],
-					'php'              => $wp['wp-server']['fields']['php_version']['value'],
-					'php_time_limit'   => $wp['wp-server']['fields']['time_limit']['value'],
-					'php_memory_limit' => $wp['wp-server']['fields']['memory_limit']['value'],
+					'os'               => $this->get_debug_data_value( $wp, 'wp-server', 'server_architecture' ),
+					'server'           => $this->get_debug_data_value( $wp, 'wp-server', 'httpd_software' ),
+					'php'              => $this->get_debug_data_value( $wp, 'wp-server', 'php_version' ),
+					'php_time_limit'   => $this->get_debug_data_value( $wp, 'wp-server', 'time_limit' ),
+					'php_memory_limit' => $this->get_debug_data_value( $wp, 'wp-server', 'memory_limit' ),
 				),
 			);
 
@@ -495,6 +504,49 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 			} else {
 				wp_send_json_error();
 			}
+		}
+
+		/**
+		 * Read a single field value from a site health debug data payload.
+		 *
+		 * Core types the payload as a plain array, so the section, its fields and the
+		 * field value are all checked before use. Values are display ready strings,
+		 * but a few are reported as numbers.
+		 *
+		 * @param array<array-key, mixed> $debug_data Payload from WP_Debug_Data::debug_data().
+		 * @param string                  $section    Section key, e.g. 'wp-core'.
+		 * @param string                  $field      Field key inside the section, e.g. 'version'.
+		 *
+		 * @return string Field value, or empty string when the field is missing or not a scalar.
+		 *
+		 * @since 3.9.0
+		 *
+		 * @see   self::send_feedback()
+		 * @see   \WP_Debug_Data::debug_data()
+		 */
+		private function get_debug_data_value( array $debug_data, string $section, string $field ): string {
+
+			$section_data = $debug_data[ $section ] ?? null;
+
+			if ( ! is_array( $section_data ) ) {
+				return '';
+			}
+
+			$fields = $section_data['fields'] ?? null;
+
+			if ( ! is_array( $fields ) ) {
+				return '';
+			}
+
+			$field_data = $fields[ $field ] ?? null;
+
+			if ( ! is_array( $field_data ) ) {
+				return '';
+			}
+
+			$value = $field_data['value'] ?? '';
+
+			return is_scalar( $value ) ? (string) $value : '';
 		}
 
 		/**

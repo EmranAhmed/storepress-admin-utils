@@ -62,6 +62,24 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 	 *          ```
 	 *
 	 * @since 1.0.0
+	 *
+	 * @phpstan-type PluginHeaderData array{
+	 *     Name: string,
+	 *     PluginURI: string,
+	 *     Version: string,
+	 *     Description: string,
+	 *     Author: string,
+	 *     AuthorURI: string,
+	 *     TextDomain: string,
+	 *     DomainPath: string,
+	 *     Network: bool,
+	 *     RequiresWP: string,
+	 *     RequiresPHP: string,
+	 *     UpdateURI: string,
+	 *     RequiresPlugins: string,
+	 *     Title: string,
+	 *     AuthorName: string
+	 * }
 	 */
 	abstract class AbstractUpdater {
 
@@ -72,7 +90,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		/**
 		 * Plugin Data.
 		 *
-		 * @var array<string, mixed>
+		 * @var array{}|PluginHeaderData
 		 */
 		protected array $plugin_data = array();
 
@@ -322,7 +340,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *
 		 * Retrieves and caches the plugin header data using WordPress get_plugin_data().
 		 *
-		 * @return array<string, mixed> The plugin header data.
+		 * @return PluginHeaderData The plugin header data.
 		 *
 		 * @see get_plugin_file()
 		 *
@@ -374,7 +392,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *
 		 * Override this method to add custom arguments to the update server request.
 		 *
-		 * @return array<string, string> Additional request arguments.
+		 * @return array<array-key, mixed> Additional request arguments.
 		 *
 		 * @example Override to add custom data:
 		 *          ```php
@@ -530,7 +548,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *                              the version, author, author URI, and plugin URI.
 		 * @param string   $plugin_file Path to the plugin file relative to the plugins' directory.
 		 *
-		 * @return array<string, string> Modified plugin meta array.
+		 * @return string[] Modified plugin meta array.
 		 *
 		 * @throws \WP_Exception If "localize_strings" method not overridden in subclass.
 		 *
@@ -576,7 +594,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 * Override this method to customize the plugin banners shown in the
 		 * plugin information popup.
 		 *
-		 * @return array<string, string> Banner images with 'high' and/or 'low' resolution keys.
+		 * @return array{high?:string, low?:string, svg?:string} Banner images with 'high' and/or 'low' resolution keys.
 		 *
 		 * @example Override banners:
 		 *          ```php
@@ -603,7 +621,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *
 		 * Returns the plugin banners from the plugin_banners() method.
 		 *
-		 * @return array<string, string> Banner images array.
+		 * @return array{high?:string, low?:string, svg?:string} Banner images array.
 		 *
 		 * @see plugin_banners()
 		 *
@@ -619,7 +637,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 * Override this method to customize the plugin icons shown in the
 		 * plugin information popup and updates screen.
 		 *
-		 * @return array<string, string> Icon images with '2x', '1x', and/or 'svg' keys.
+		 * @return array<non-empty-string, string> Icon images with '2x', '1x', and/or 'svg' keys.
 		 *
 		 * @example Override icons:
 		 *          ```php
@@ -647,7 +665,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *
 		 * Returns the plugin icons from the plugin_icons() method.
 		 *
-		 * @return array<string, string> Icon images array.
+		 * @return array<non-empty-string, string> Icon images array.
 		 *
 		 * @see plugin_icons()
 		 *
@@ -679,7 +697,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 * Builds the arguments array for wp_remote_get() when contacting
 		 * the update server.
 		 *
-		 * @return array<string, mixed> Request arguments array.
+		 * @return array{body: array<array-key, mixed>, headers: array<array-key, string>, user-agent: string} Request arguments array.
 		 *
 		 * @see get_remote_plugin_data()
 		 * @see additional_request_args()
@@ -712,7 +730,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *
 		 * Makes an HTTP request to the update server and returns the response data.
 		 *
-		 * @return array<string, string> Remote plugin data or empty array on failure.
+		 * @return array<array-key, mixed> Remote plugin data or empty array on failure.
 		 *
 		 * @see get_request_args()
 		 * @see get_update_server_uri()
@@ -740,11 +758,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 * Filter callback for 'update_plugins_{hostname}'. Checks the custom update
 		 * server for new plugin versions.
 		 *
-		 * @param bool|array<string, mixed> $update       The plugin update data with the latest details.
-		 * @param array<string, mixed>      $_plugin_data Plugin headers.
-		 * @param string                    $plugin_file  Plugin filename.
+		 * @param bool|array<array-key, mixed> $update       The plugin update data with the latest details.
+		 * @param array<array-key, mixed>      $_plugin_data Plugin headers.
+		 * @param string                       $plugin_file  Plugin filename.
 		 *
-		 * @return bool|array<string, mixed> Update data array or false/original value.
+		 * @return bool|array<array-key, mixed> Update data array or false/original value.
 		 *
 		 * @see WP_Site_Health::detect_plugin_theme_auto_update_issues()
 		 * @see wp_update_plugins() In wp-includes/update.php.
@@ -808,7 +826,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 *
 		 * Builds an ordered list of screenshot images with captions.
 		 *
-		 * @param array<string, array<string, string>> $screenshots Screenshot array with 'src' and 'caption' keys.
+		 * @param array<array-key, array{src: string, caption: string}> $screenshots Screenshot list with 'src' and 'caption' keys.
 		 *
 		 * @return string The screenshots HTML.
 		 *
@@ -824,7 +842,52 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 			}
 			echo '</ol>';
 
-			return ob_get_clean();
+			$html = ob_get_clean();
+
+			return false === $html ? '' : $html;
+		}
+
+		/**
+		 * Normalize the raw screenshots value from the update server.
+		 *
+		 * Entries that do not provide both a string "src" and a string "caption"
+		 * are discarded, so the result is always safe to render.
+		 *
+		 * @param mixed $screenshots Raw screenshots value from the update server.
+		 *
+		 * @return array<array-key, array{src: string, caption: string}> Normalized screenshot list.
+		 *
+		 * @see prepare_remote_data()
+		 * @see screenshots_html()
+		 *
+		 * @since 1.0.0
+		 */
+		private function prepare_remote_screenshots( $screenshots ): array {
+			$prepared = array();
+
+			if ( ! is_array( $screenshots ) ) {
+				return $prepared;
+			}
+
+			foreach ( $screenshots as $screenshot ) {
+				if ( ! is_array( $screenshot ) ) {
+					continue;
+				}
+
+				$src     = $screenshot['src'] ?? '';
+				$caption = $screenshot['caption'] ?? '';
+
+				if ( ! is_string( $src ) || ! is_string( $caption ) ) {
+					continue;
+				}
+
+				$prepared[] = array(
+					'src'     => $src,
+					'caption' => $caption,
+				);
+			}
+
+			return $prepared;
 		}
 
 		/**
@@ -833,9 +896,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 * Transforms the remote server response into the format expected by
 		 * WordPress plugin update and information APIs.
 		 *
-		 * @param bool|array<string, mixed> $remote_data Remote data from update server.
+		 * @param bool|array<array-key, mixed> $remote_data Remote data from update server.
 		 *
-		 * @return array<string, mixed> Prepared data in WordPress plugin API format.
+		 * @return array<array-key, mixed> Prepared data in WordPress plugin API format.
 		 *
 		 * @see update_check()
 		 * @see plugin_information()
@@ -882,116 +945,137 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		final public function prepare_remote_data( $remote_data ): array {
 			$item = array();
 
-			if ( $this->is_empty_array( $remote_data ) ) {
+			if ( ! is_array( $remote_data ) || $this->is_empty_array( $remote_data ) ) {
 				return $item;
 			}
 
-			if ( isset( $remote_data['description'] ) ) {
-				$item['sections']['description'] = wp_kses_post( $remote_data['description'] );
+			$sections = array();
+
+			if ( isset( $remote_data['description'] ) && is_string( $remote_data['description'] ) ) {
+				$sections['description'] = wp_kses_post( $remote_data['description'] );
 			}
 
-			if ( isset( $remote_data['allow_rollback'] ) ) {
-				$item['allow_rollback'] = $this->string_to_boolean( $remote_data['allow_rollback'] );
+			if ( isset( $remote_data['installation'] ) && is_string( $remote_data['installation'] ) ) {
+				$sections['installation'] = wp_kses_post( $remote_data['installation'] );
 			}
 
-			if ( isset( $remote_data['installation'] ) ) {
-				$item['sections']['installation'] = wp_kses_post( $remote_data['installation'] );
+			if ( isset( $remote_data['faq'] ) && is_string( $remote_data['faq'] ) ) {
+				$sections['faq'] = wp_kses_post( $remote_data['faq'] );
 			}
 
-			if ( isset( $remote_data['faq'] ) ) {
-				$item['sections']['faq'] = wp_kses_post( $remote_data['faq'] );
+			if ( isset( $remote_data['changelog'] ) && is_string( $remote_data['changelog'] ) ) {
+				$sections['changelog'] = wp_kses_post( $remote_data['changelog'] );
 			}
 
-			if ( isset( $remote_data['changelog'] ) ) {
-				$item['sections']['changelog'] = wp_kses_post( $remote_data['changelog'] );
+			$allow_rollback = $remote_data['allow_rollback'] ?? null;
+
+			if ( is_string( $allow_rollback ) || is_bool( $allow_rollback ) ) {
+				$item['allow_rollback'] = $this->string_to_boolean( $allow_rollback );
 			}
 
-			if ( isset( $remote_data['screenshots'] ) && ! $this->is_empty_array( $remote_data['screenshots'] ) ) {
-				foreach ( $remote_data['screenshots'] as $index => $screenshot ) {
+			$screenshots = $this->prepare_remote_screenshots( $remote_data['screenshots'] ?? null );
+
+			if ( ! $this->is_empty_array( $screenshots ) ) {
+				foreach ( $screenshots as $index => $screenshot ) {
 					$item['screenshots'][ ( $index + 1 ) ] = $screenshot;
 				}
 
-				$item['sections']['screenshots'] = wp_kses_post( $this->screenshots_html( $remote_data['screenshots'] ) );
+				$sections['screenshots'] = wp_kses_post( $this->screenshots_html( $screenshots ) );
 			}
 
-			if ( isset( $remote_data['version'] ) ) {
+			if ( ! $this->is_empty_array( $sections ) ) {
+				$item['sections'] = $sections;
+			}
+
+			if ( isset( $remote_data['version'] ) && is_string( $remote_data['version'] ) ) {
 				$item['new_version'] = sanitize_text_field( $remote_data['version'] );
 			}
 
-			if ( isset( $remote_data['new_version'] ) ) {
+			if ( isset( $remote_data['new_version'] ) && is_string( $remote_data['new_version'] ) ) {
 				$item['new_version'] = sanitize_text_field( $remote_data['new_version'] );
 			}
 
 			// Unset version we already set it as new version.
 			unset( $remote_data['version'] );
 
-			if ( isset( $remote_data['last_updated'] ) ) {
+			if ( isset( $remote_data['last_updated'] ) && is_string( $remote_data['last_updated'] ) ) {
 				$item['last_updated'] = sanitize_text_field( $remote_data['last_updated'] ); // Example: "2025-03-14 7:15pm GMT".
 			}
 
-			if ( isset( $remote_data['upgrade_notice'] ) ) {
+			if ( isset( $remote_data['upgrade_notice'] ) && is_string( $remote_data['upgrade_notice'] ) ) {
 				$item['upgrade_notice'] = wp_kses_post( $remote_data['upgrade_notice'] );
 			}
 
-			if ( isset( $remote_data['versions'] ) ) {
-				$item['versions'] = map_deep( $remote_data['versions'], 'sanitize_text_field' );
+			$versions = array();
+
+			if ( isset( $remote_data['versions'] ) && is_array( $remote_data['versions'] ) ) {
+				foreach ( $remote_data['versions'] as $version_number => $version_package ) {
+					if ( is_string( $version_package ) ) {
+						$versions[ $version_number ] = sanitize_text_field( $version_package );
+					}
+				}
 			}
 
 			$package_set = false;
 
-			$is_valid_download_link = ! $this->is_empty_string( esc_url_raw( $remote_data['download_link'] ?? '' ) );
-			$is_valid_package_link  = ! $this->is_empty_string( esc_url_raw( $remote_data['package'] ?? '' ) );
+			$download_link = isset( $remote_data['download_link'] ) && is_string( $remote_data['download_link'] ) ? $remote_data['download_link'] : '';
+			$package_link  = isset( $remote_data['package'] ) && is_string( $remote_data['package'] ) ? $remote_data['package'] : '';
+
+			$is_valid_download_link = ! $this->is_empty_string( esc_url_raw( $download_link ) );
+			$is_valid_package_link  = ! $this->is_empty_string( esc_url_raw( $package_link ) );
 
 			// Production environment only allow HTTPS protocol.
 			if ( $this->is_production_environment() ) {
-				$is_valid_download_link = ! $this->is_empty_string( esc_url_raw( $remote_data['download_link'] ?? '', array( 'https' ) ) );
-				$is_valid_package_link  = ! $this->is_empty_string( esc_url_raw( $remote_data['package'] ?? '', array( 'https' ) ) );
+				$is_valid_download_link = ! $this->is_empty_string( esc_url_raw( $download_link, array( 'https' ) ) );
+				$is_valid_package_link  = ! $this->is_empty_string( esc_url_raw( $package_link, array( 'https' ) ) );
 			}
 
-			if ( isset( $remote_data['download_link'] ) && $is_valid_download_link ) {
-				$item['package']           = esc_url_raw( $remote_data['download_link'] );
-				$item['download_link']     = esc_url_raw( $remote_data['download_link'] );
-				$item['versions']['trunk'] = esc_url_raw( $remote_data['download_link'] );
-				$package_set               = true;
+			if ( $is_valid_download_link ) {
+				$item['package']       = esc_url_raw( $download_link );
+				$item['download_link'] = esc_url_raw( $download_link );
+				$versions['trunk']     = esc_url_raw( $download_link );
+				$package_set           = true;
 			}
 
-			if ( isset( $remote_data['package'] ) && ! $package_set && $is_valid_package_link ) {
-				$item['package']           = esc_url_raw( $remote_data['package'] );
-				$item['download_link']     = esc_url_raw( $remote_data['package'] );
-				$item['versions']['trunk'] = esc_url_raw( $remote_data['package'] );
-				$package_set               = true;
+			if ( ! $package_set && $is_valid_package_link ) {
+				$item['package']       = esc_url_raw( $package_link );
+				$item['download_link'] = esc_url_raw( $package_link );
+				$versions['trunk']     = esc_url_raw( $package_link );
+				$package_set           = true;
 			}
 
 			// Disable all versions if no package file available.
 			if ( ! $package_set ) {
-				$item['versions'] = array();
+				$versions = array();
 			}
 
-			if ( isset( $remote_data['tested'] ) ) {
+			$item['versions'] = $versions;
+
+			if ( isset( $remote_data['tested'] ) && is_string( $remote_data['tested'] ) ) {
 				$item['tested'] = sanitize_text_field( $remote_data['tested'] );
 			}
 
-			if ( isset( $remote_data['requires'] ) ) {
+			if ( isset( $remote_data['requires'] ) && is_string( $remote_data['requires'] ) ) {
 				$item['requires'] = sanitize_text_field( $remote_data['requires'] );
 			}
 
-			if ( isset( $remote_data['requires_php'] ) ) {
+			if ( isset( $remote_data['requires_php'] ) && is_string( $remote_data['requires_php'] ) ) {
 				$item['requires_php'] = sanitize_text_field( $remote_data['requires_php'] );
 			}
 
-			if ( isset( $remote_data['preview_link'] ) ) {
+			if ( isset( $remote_data['preview_link'] ) && is_string( $remote_data['preview_link'] ) ) {
 				$item['preview_link'] = esc_url_raw( $remote_data['preview_link'] );
 			}
 
-			if ( isset( $remote_data['requires_plugins'] ) ) {
+			if ( isset( $remote_data['requires_plugins'] ) && is_string( $remote_data['requires_plugins'] ) ) {
 				$item['requires_plugins'] = sanitize_text_field( $remote_data['requires_plugins'] );
 			}
 
-			if ( isset( $remote_data['active_installs'] ) ) {
+			if ( isset( $remote_data['active_installs'] ) && is_scalar( $remote_data['active_installs'] ) ) {
 				$item['active_installs'] = absint( $remote_data['active_installs'] );
 			}
 
-			if ( isset( $remote_data['rating'] ) ) {
+			if ( isset( $remote_data['rating'] ) && is_scalar( $remote_data['rating'] ) ) {
 				$item['rating'] = absint( $remote_data['rating'] );
 			}
 
@@ -999,36 +1083,37 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 				$item['ratings'] = map_deep( $remote_data['ratings'], 'absint' );
 			}
 
-			if ( isset( $remote_data['support_threads'] ) ) {
+			if ( isset( $remote_data['support_threads'] ) && is_scalar( $remote_data['support_threads'] ) ) {
 				$item['support_threads'] = absint( $remote_data['support_threads'] );
 			}
 
-			if ( isset( $remote_data['support_threads_resolved'] ) ) {
+			if ( isset( $remote_data['support_threads_resolved'] ) && is_scalar( $remote_data['support_threads_resolved'] ) ) {
 				$item['support_threads_resolved'] = absint( $remote_data['support_threads_resolved'] );
 			}
 
-			if ( isset( $remote_data['added'] ) ) {
+			if ( isset( $remote_data['added'] ) && is_string( $remote_data['added'] ) ) {
 				$item['added'] = sanitize_text_field( $remote_data['added'] ); // Example: "2018-05-04".
 			}
 
-			if ( isset( $remote_data['homepage'] ) ) {
+			if ( isset( $remote_data['homepage'] ) && is_string( $remote_data['homepage'] ) ) {
 				$item['homepage'] = esc_url_raw( $remote_data['homepage'] );
 			}
 
-			if ( isset( $remote_data['num_ratings'] ) ) {
+			if ( isset( $remote_data['num_ratings'] ) && is_scalar( $remote_data['num_ratings'] ) ) {
 				$item['num_ratings'] = absint( $remote_data['num_ratings'] );
 			}
 
-			if ( isset( $remote_data['business_model'] ) ) {
-				$business_model         = $this->string_to_boolean( $remote_data['business_model'] ) ? 'commercial' : '';
-				$item['business_model'] = esc_html( $business_model );
+			$business_model = $remote_data['business_model'] ?? null;
+
+			if ( is_string( $business_model ) || is_bool( $business_model ) ) {
+				$item['business_model'] = esc_html( $this->string_to_boolean( $business_model ) ? 'commercial' : '' );
 			}
 
-			if ( isset( $remote_data['commercial_support_url'] ) ) {
+			if ( isset( $remote_data['commercial_support_url'] ) && is_string( $remote_data['commercial_support_url'] ) ) {
 				$item['commercial_support_url'] = esc_url_raw( $remote_data['commercial_support_url'] );
 			}
 
-			if ( isset( $remote_data['support_url'] ) ) {
+			if ( isset( $remote_data['support_url'] ) && is_string( $remote_data['support_url'] ) ) {
 				$item['support_url'] = esc_url_raw( $remote_data['support_url'] );
 			}
 
@@ -1044,18 +1129,18 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 				$item['icons'] = map_deep( $remote_data['icons'], 'esc_url_raw' );
 			}
 
-			if ( isset( $remote_data['preview_link'] ) ) {
+			if ( isset( $remote_data['preview_link'] ) && is_string( $remote_data['preview_link'] ) ) {
 				$item['preview_link'] = esc_url_raw( $remote_data['preview_link'] );
 			}
 
-			if ( isset( $remote_data['author_profile'] ) ) {
+			if ( isset( $remote_data['author_profile'] ) && is_string( $remote_data['author_profile'] ) ) {
 				$item['author_profile'] = esc_url_raw( $remote_data['author_profile'] );
 			}
 
-			if ( isset( $remote_data['author'] ) ) {
+			if ( isset( $remote_data['author'] ) && is_string( $remote_data['author'] ) ) {
 				$item['author'] = esc_html( $remote_data['author'] );
 
-				if ( isset( $remote_data['author_profile'] ) ) {
+				if ( isset( $remote_data['author_profile'] ) && is_string( $remote_data['author_profile'] ) ) {
 					$item['author'] = sprintf( '<a target="_blank" href="%s">%s</a>', esc_url( $remote_data['author_profile'] ), esc_html( $remote_data['author'] ) );
 				}
 			}
@@ -1078,11 +1163,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 * Filter callback for 'plugins_api'. Returns plugin information for the
 		 * "View Details" popup in the WordPress admin.
 		 *
-		 * @param false|object|array<string, mixed> $result The result object or array. Default false.
-		 * @param string                            $action The type of information being requested.
-		 * @param object                            $args   Plugin API arguments including 'slug'.
+		 * @param false|object|array<array-key, mixed> $result The result object or array. Default false.
+		 * @param string                               $action The type of information being requested.
+		 * @param object                               $args   Plugin API arguments including 'slug'.
 		 *
-		 * @return false|array<string, mixed>|object Plugin information object or pass-through result.
+		 * @return false|array<array-key, mixed>|object Plugin information object or pass-through result.
 		 *
 		 * @see plugins_api() In wp-admin/includes/plugin-install.php.
 		 * @see get_plugin_data()
@@ -1156,7 +1241,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 		 * additional information at the end of the plugin update notice, such as
 		 * license key warnings or upgrade notices.
 		 *
-		 * @param array<string, string> $plugin_data An array of plugin metadata including 'new_version' and 'upgrade_notice'.
+		 * @param array<array-key, mixed> $plugin_data An array of plugin metadata including 'new_version' and 'upgrade_notice'.
 		 *
 		 * @return void
 		 *
@@ -1177,11 +1262,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractUpdater' ) ) {
 
 			// Get Notice from notice array.
 			if ( is_array( $upgrade_notice ) && ! $this->is_empty_array( $upgrade_notice ) ) {
-				$new_version = sanitize_text_field( $plugin_data['new_version'] );
+				$version     = $plugin_data['new_version'] ?? '';
+				$new_version = is_string( $version ) ? sanitize_text_field( $version ) : '';
 
 				$notice = $this->get_var( $upgrade_notice[ $new_version ], false );
 
-				if ( $notice && ! $this->is_empty_string( $notice ) ) {
+				if ( is_string( $notice ) && ! $this->is_empty_string( $notice ) ) {
 					printf( ' <br /><br /><strong><em>%s</em></strong>', esc_html( $notice ) );
 				}
 			}
