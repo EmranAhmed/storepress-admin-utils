@@ -22,16 +22,28 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 	trait HelperMethodsTrait {
 
 		/**
-		 * Get data if set, otherwise return a default value or null. Prevents notices when data is not set.
+		 * Get a variable's value, or a default when it is not set.
 		 *
-		 * @param mixed $variable      Variable.
-		 * @param mixed $default_value Default value.
+		 * The variable is passed by reference so undefined variables, array keys
+		 * and properties can be checked without triggering an "undefined" notice.
 		 *
-		 * @return mixed
-		 * @since  1.0.0
+		 * @param mixed $variable      Variable, array offset or property to check.
+		 * @param mixed $default_value Optional. Value returned when $variable is not set. Default null.
+		 *
+		 * @phpstan-param TValue     $variable
+		 * @phpstan-param TDefault   $default_value
+		 * @phpstan-param-out TValue $variable
+		 *
+		 * @return mixed The variable's value if set, otherwise $default_value.
+		 *
+		 * @phpstan-return (TValue is null ? TDefault : TValue|TDefault)
+		 * @since 1.0.0
+		 *
+		 * @phpstan-template TValue
+		 * @phpstan-template TDefault
 		 */
 		public function get_var( &$variable, $default_value = null ) {
-			return true === isset( $variable ) ? $variable : $default_value;
+			return $variable ?? $default_value;
 		}
 
 		/**
@@ -86,8 +98,8 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * boolean attributes.
 		 *
 		 * @param array<array-key, mixed> ...$attribute_sets Variable number of attribute arrays to merge.
-		 *                                                 Special keys:
-		 *                                                 - '_exclude': list<string> Attribute names to skip.
+		 *                                                   Special keys:
+		 *                                                   - '_exclude': list<string> Attribute names to skip.
 		 *
 		 * @return string Space-separated HTML attributes string, escaped for output.
 		 *
@@ -272,7 +284,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * - Arrays with numeric keys treat values as class names
 		 * - Arrays with string keys treat keys as class names when values are truthy
 		 *
-		 * @param string|array<array-key, mixed> ...$css_classes_args Variable number of arguments.
+		 * @param string|array<array-key, mixed> ...$css_classes_args   Variable number of arguments.
 		 *                                                              Each argument can be:
 		 *                                                              - string: Added directly as a class name.
 		 *                                                              - array<int, string>: Indexed array of class names.
@@ -384,7 +396,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 		 * Later property declarations override earlier ones when using associative arrays,
 		 * allowing for easy default/override patterns.
 		 *
-		 * @param string|array<array-key, mixed> ...$inline_styles_args                           Variable number of arguments.
+		 * @param string|array<array-key, mixed> ...$inline_styles_args                             Variable number of arguments.
 		 *                                                                                          Each argument can be:
 		 *                                                                                          - string: Added directly as a raw style declaration if non-empty.
 		 *                                                                                          - array: Processed based on key type:
@@ -521,6 +533,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\HelperMethodsTrait' ) ) {
 
 			if ( is_string( $check_value ) ) {
 				$check_value = wp_parse_list( $check_value );
+
 				return 0 === count( $check_value );
 			}
 
