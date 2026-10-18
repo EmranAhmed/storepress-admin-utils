@@ -25,11 +25,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDeactivationFeedb
 	 * Base class for collecting user feedback on plugin deactivation.
 	 *
 	 * @name AbstractDeactivationFeedback
-	 *
-	 * @phpstan-use HelperMethodsTrait<AbstractDeactivationFeedback>
-	 * @phpstan-use PluginCommonTrait<AbstractDeactivationFeedback>
-	 * @phpstan-use MethodShouldImplementTrait<AbstractDeactivationFeedback>
-	 * @phpstan-use InternalPackageTrait<AbstractDeactivationFeedback>
 	 */
 	abstract class AbstractDeactivationFeedback {
 

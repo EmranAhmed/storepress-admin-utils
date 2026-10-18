@@ -44,10 +44,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractDialog' ) ) {
 	 *
 	 * @name AbstractDialog
 	 *
-	 * @phpstan-use HelperMethodsTrait<AbstractDialog>
-	 * @phpstan-use InternalPackageTrait<AbstractDialog>
-	 * @phpstan-use MethodShouldImplementTrait<AbstractDialog>
-	 *
 	 * @see AbstractDeactivationFeedback For a concrete implementation example.
 	 *
 	 * @since 1.0.0

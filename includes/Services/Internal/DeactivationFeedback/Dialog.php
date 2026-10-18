@@ -26,9 +26,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\DeactivationFeedb
 	 *
 	 * @name Dialog
 	 *
-	 * @phpstan-use SingletonTrait<Dialog>
-	 *
 	 * @since 1.0.0
+	 * @phpstan-consistent-constructor
 	 */
 	class Dialog extends AbstractDialog {
 

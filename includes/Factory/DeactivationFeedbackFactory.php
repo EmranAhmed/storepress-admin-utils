@@ -26,6 +26,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Factory\DeactivationFeedbackFactory
 	 * @name DeactivationFeedbackFactory
 	 *
 	 * @since 1.0.0
+	 * @phpstan-consistent-constructor
 	 */
 	class DeactivationFeedbackFactory {
 

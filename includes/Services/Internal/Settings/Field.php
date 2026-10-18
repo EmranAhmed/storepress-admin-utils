@@ -474,9 +474,15 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			/**
 			 * Default value.
 			 *
-			 * @var array<array-key, mixed>|bool|float|int|string|null
+			 * @var array<array-key, mixed>|bool|float|int|string|null $default
 			 */
-			return $this->get_attribute( 'default' );
+			$default = $this->get_attribute( 'default' );
+
+			if ( null === $default && 'url' === $this->get_type() ) {
+				$default = ''; // Empty URL Type show issue for esc_url, So if user does not add default to url type, we will add empty string for url.
+			}
+
+			return $default;
 		}
 
 		/**

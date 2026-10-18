@@ -28,6 +28,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Factory\RollbackFactory' ) ) {
 	 * @name RollbackFactory
 	 *
 	 * @since 1.0.0
+	 * @phpstan-consistent-constructor
 	 */
 	class RollbackFactory {
 

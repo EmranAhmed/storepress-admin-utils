@@ -27,6 +27,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Factory\FieldsFactory' ) ) {
 	 * @name FieldsFactory
 	 *
 	 * @since 1.0.0
+	 * @phpstan-consistent-constructor
 	 */
 	class FieldsFactory {
 

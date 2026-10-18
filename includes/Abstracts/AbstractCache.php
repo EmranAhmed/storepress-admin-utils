@@ -41,6 +41,20 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		// =====================================================================
 
 		/**
+		 * Is group already flushed.
+		 *
+		 * @var bool
+		 */
+		protected bool $is_group_flushed = false;
+
+		/**
+		 * Is transient deleted.
+		 *
+		 * @var bool
+		 */
+		protected bool $is_transient_deleted = false;
+
+		/**
 		 * Transient option name prefix used when purging by group.
 		 *
 		 * @since 3.5.0
@@ -430,9 +444,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 */
 		public function clear(): bool {
 
-			// Flash By Group.
-			if ( $this->is_object_cache() && wp_cache_supports( 'flush_group' ) ) {
-				return wp_cache_flush_group( $this->get_cache_group() );
+			// Flushed By Group.
+			if ( false === $this->is_group_flushed && $this->is_object_cache() && wp_cache_supports( 'flush_group' ) ) {
+					$this->is_group_flushed = true;
+					return wp_cache_flush_group( $this->get_cache_group() );
 			}
 
 			return $this->delete_version();
@@ -446,6 +461,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 		 * @see    self::flush_all()
 		 */
 		private function delete_all_transient(): bool {
+
+			if ( $this->is_transient_deleted ) {
+				return true;
+			}
 
 			/**
 			 * WordPress database abstraction object.
@@ -471,7 +490,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 
 			$id = $wpdb->query( $query ); //phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared -- $query is built with $wpdb->prepare() above.
 
-			return absint( $id ) > 0;
+			$is_deleted = absint( $id ) > 0;
+
+			$this->is_transient_deleted = $is_deleted;
+
+			return $is_deleted;
 		}
 
 		/**
@@ -487,7 +510,8 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 				return false;
 			}
 
-			if ( $this->is_object_cache() ) {
+			if ( false === $this->is_group_flushed && $this->is_object_cache() ) {
+				$this->is_group_flushed = true;
 				return wp_cache_flush();
 			}
 

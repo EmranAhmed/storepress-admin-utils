@@ -25,8 +25,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 	 *
 	 * @name AbstractAdminMenu
 	 *
-	 * @phpstan-use HelperMethodsTrait<AbstractAdminMenu>
-	 *
 	 * @since 1.0.0
 	 */
 	abstract class AbstractAdminMenu {

@@ -26,6 +26,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Factory\SettingsFactory' ) ) {
 	 * @name SettingsFactory
 	 *
 	 * @since 1.0.0
+	 * @phpstan-consistent-constructor
 	 */
 	class SettingsFactory {
 

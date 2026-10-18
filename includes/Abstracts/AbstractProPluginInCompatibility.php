@@ -47,10 +47,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractProPluginInCompat
 	 *
 	 * @name AbstractProPluginInCompatibility
 	 *
-	 * @phpstan-use HelperMethodsTrait<AbstractProPluginInCompatibility>
-	 * @phpstan-use PluginCommonTrait<AbstractProPluginInCompatibility>
-	 * @phpstan-use MethodShouldImplementTrait<AbstractProPluginInCompatibility>
-	 *
 	 * @see   HelperMethodsTrait For helper utility methods.
 	 * @see   PluginCommonTrait For plugin-related methods.
 	 *

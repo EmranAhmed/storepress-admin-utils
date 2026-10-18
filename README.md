@@ -77,7 +77,7 @@ composer require storepress/admin-utils
 
 ## Usage
 
-### Plugin entry file `plugin-example.php`
+### Plugin entry file `storepress-example-plugin.php`
 
 ```php
 <?php
@@ -87,10 +87,12 @@ composer require storepress/admin-utils
   Description: Example Plugin.
   Author: Emran Ahmed
   Version: 1.0.0
-  Tested up to: 6.3
+  Tested up to: 6.4
   Author URI: https://storepress.com/emran/
   Update URI: https://update.example.com/
   */
+  
+  declare(strict_types=1);
   
   defined( 'ABSPATH' ) || die( 'Keep Silent' );
   
@@ -108,7 +110,7 @@ composer require storepress/admin-utils
    *
    * @return Plugin|PluginPro
    */
-  function plugin_example() {
+  function example_plugin(): Plugin {
   
     if ( function_exists( 'plugin_example_pro') ){
       return plugin_example_pro();
@@ -117,18 +119,21 @@ composer require storepress/admin-utils
     return Plugin::instance();
   }
   
-  add_action( 'plugins_loaded', 'plugin_example' );
+  add_action( 'plugins_loaded', 'example_plugin' );
 ```
 
 ### Sample `includes/functions.php` file
 
 ```php
 <?php
+
+	declare( strict_types=1 );
+	
 	namespace StorePress\Example;
 	
-	use StorePress\Example\Containers\Container;
-	
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+		
+	use StorePress\Example\Containers\Container;
 	
 	function get_container(): Container {
 		return Container::instance();
@@ -139,15 +144,16 @@ composer require storepress/admin-utils
 	}
 	
 	function get_pro_plugin_file(): string {
-		
-		if( defined( 'EXAMPLE_PLUGIN_PRO_FILE' ) ) {
-			return constant( 'EXAMPLE_PLUGIN_PRO_FILE' );
-		}
-		
-		return 'example-plugin-pro/example-plugin-pro.php';
+	
+      $pro_file = 'example-plugin-pro/example-plugin-pro.php';
+      
+      if ( defined( 'EXAMPLE_PLUGIN_PRO_FILE' ) ) {
+        $constant_file = constant( 'EXAMPLE_PLUGIN_PRO_FILE' );
+        return is_string( $constant_file ) ? $constant_file : $pro_file;
+      }
+      
+      return $pro_file;
 	}
-
-
 ```
 
 ### Sample `includes/Plugin.php` class file
@@ -187,19 +193,6 @@ composer require storepress/admin-utils
 	class Plugin {
 
 		// =====================================================================
-		// Properties
-		// =====================================================================
-
-		/**
-		 * Plugin file path.
-		 *
-		 * Stores the absolute path to the main plugin file.
-		 *
-		 * @var string
-		 */
-		protected string $plugin_file;
-
-		// =====================================================================
 		// Singleton Instance
 		// =====================================================================
 
@@ -208,7 +201,6 @@ composer require storepress/admin-utils
 		 *
 		 * The instance will be created if it does not exist yet.
 		 *
-		 * @param string $plugin_file The absolute path to the main plugin file.
 		 *
 		 * @return self The singleton instance.
 		 *
@@ -216,17 +208,23 @@ composer require storepress/admin-utils
 		 *
 		 * @example
 		 * // Get or create the singleton instance.
-		 * $init = Init::instance( __FILE__ );
+		 * $init = Plugin::instance();
 		 *
 		 * @example
 		 * // Access from global function.
-		 * function plugin_b(): Init {
-		 *     return Init::instance( __FILE__ );
+		 * function plugin_a(): Plugin {
+		 *     return Plugin::instance();
 		 * }
 		 */
 		public static function instance(): self {
-			static $instance = null;
-			return $instance ??= new self();
+        /** @var array<string, static> $instances */
+        static $instances = array();
+    
+        if ( ! isset( $instances[ static::class ] ) ) {
+          $instances[ static::class ] = new static();
+        }
+    
+        return $instances[ static::class ];
 		}
 
 		// =====================================================================
@@ -263,21 +261,20 @@ composer require storepress/admin-utils
 		 *
 		 * @since 1.0.0
 		 *
-		 * @see Init::get_plugin_file() Gets the plugin file path.
 		 *
 		 * @example
 		 * // Files loaded:
+ 		 * // - includes/functions.php
 		 * // - vendor/autoload_packages.php (if exists)
-		 * // - includes/functions.php
 		 */
 		public function includes(): void {
-			$vendor_path = untrailingslashit( plugin_dir_path( $this->get_plugin_file() ) ) . '/vendor';
-
-			if ( file_exists( $vendor_path . '/autoload_packages.php' ) ) {
-				require_once $vendor_path . '/autoload_packages.php';
-			}
-
-			require_once __DIR__ . '/functions.php';
+        require_once untrailingslashit( plugin_dir_path( __DIR__ ) ) . '/includes/functions.php';
+        
+        $vendor_path = untrailingslashit( plugin_dir_path( __DIR__ ) ) . '/vendor';
+        
+        if ( file_exists( $vendor_path . '/autoload_packages.php' ) ) {
+            require_once $vendor_path . '/autoload_packages.php';
+        }
 		}
 
 		// =====================================================================
@@ -313,7 +310,7 @@ composer require storepress/admin-utils
 		 * // Returns: plugin-b/plugin-b.php
 		 */
 		public function get_plugin_file(): string {
-			return constant( 'EXAMPLE_PLUGIN_FILE' );
+			return get_plugin_file();
 		}
 
 		// =====================================================================
@@ -346,10 +343,10 @@ composer require storepress/admin-utils
 		
 		public function get_service_providers(): array {
 			return array(
-				UpdaterServiceProvider::class=>UpdaterServiceProvider::class,
-				DeactivationServiceProvider::class=>DeactivationServiceProvider::class,
-				SettingsServiceProvider::class=>SettingsServiceProvider::class,
-				ProCompatibilityServiceProvider::class=>ProCompatibilityServiceProvider::class
+				UpdaterServiceProvider::class => UpdaterServiceProvider::class,
+				DeactivationServiceProvider::class => DeactivationServiceProvider::class,
+				SettingsServiceProvider::class => SettingsServiceProvider::class,
+				ProCompatibilityServiceProvider::class => ProCompatibilityServiceProvider::class
 			);
 		}
 
@@ -368,11 +365,12 @@ composer require storepress/admin-utils
 	
 	namespace StorePress\Example\Integrations;
 	
+	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+	
 	use StorePress\AdminUtils\Traits\SingletonTrait;
 	use StorePress\AdminUtils\ServiceProviders\ServiceProviderLoader;
 	
-	defined( 'ABSPATH' ) || die( 'Keep Silent' );
-	
+	/** @phpstan-consistent-constructor */
 	class ServiceProviders extends ServiceProviderLoader {
 		
 		use SingletonTrait;
@@ -384,6 +382,8 @@ composer require storepress/admin-utils
 ```php
 <?php
 	
+	declare( strict_types=1 );
+		
 	namespace StorePress\Example\Integrations;
 	
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -477,6 +477,8 @@ composer require storepress/admin-utils
 ```php
 <?php
 	
+	declare( strict_types=1 );
+		
 	namespace StorePress\Example\Services;
 	
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
@@ -488,6 +490,8 @@ composer require storepress/admin-utils
 	 * Admin Menu Class.
 	 *
 	 * @name Settings
+   * 
+   * @phpstan-consistent-constructor
 	 */
 	
 	class Settings extends AdminPage {
@@ -1069,7 +1073,7 @@ composer require storepress/admin-utils
 	}
 ```
 
-### `SettingsServiceProvider` class example.
+### `SettingsServiceProvider` class example
 
 ```php
 <?php
@@ -1085,6 +1089,7 @@ composer require storepress/admin-utils
 	use StorePress\Example\Containers\Container;
 	use StorePress\Example\Services\Settings;
 	
+	/** @phpstan-consistent-constructor */
 	class SettingsServiceProvider extends AbstractServiceProvider {
 		
 		use SingletonTrait;
@@ -1192,7 +1197,6 @@ wp.apiFetch( {
 
 - See: [@wordpress/core-data](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-core-data/)
 
-
 ### Settings Section data structure
 
 ```php
@@ -1261,6 +1265,8 @@ array(
 
 ```php
 <?php
+
+	declare( strict_types=1 );
 	
 	namespace StorePress\Example\Integrations;
 	
@@ -1270,6 +1276,7 @@ array(
 	use StorePress\AdminUtils\Traits\SingletonTrait;
 	use function StorePress\Example\get_pro_plugin_file;
 	
+	/** @phpstan-consistent-constructor */
 	class ProPluginInCompatibility extends AbstractProPluginInCompatibility {
 		
 		use SingletonTrait;
@@ -1308,7 +1315,8 @@ array(
 
 ```php
 <?php
-<?php
+
+	declare( strict_types=1 );	
 	
 	namespace StorePress\Example\Integrations;
 	
@@ -1318,11 +1326,12 @@ array(
 	use StorePress\AdminUtils\Traits\SingletonTrait;
 	use function StorePress\Example\get_container;
 	
-	
 	/**
 	 * Updater Class.
 	 *
 	 * @name Updater
+   * 
+   * @phpstan-consistent-constructor
 	 */
 	
 	class Updater extends AbstractUpdater {
@@ -1379,6 +1388,8 @@ array(
 
 ```php
 <?php
+
+	declare( strict_types=1 );
 	
 	namespace StorePress\Example\Integrations;
 	
@@ -1392,6 +1403,8 @@ array(
 	 * Changelog Dialog Class.
 	 *
 	 * @name DeactivationFeedback
+   * 
+   * @phpstan-consistent-constructor
 	 */
 	
 	class DeactivationFeedback extends AbstractDeactivationFeedback {
@@ -1549,6 +1562,8 @@ array(
 	 *
 	 *
 	 * @name Container
+   * 
+   * @phpstan-consistent-constructor
 	 */
 	class Container extends ServiceContainer {
 		use SingletonTrait;
@@ -1579,6 +1594,7 @@ array(
 	
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
+	/** @phpstan-consistent-constructor */
 	class Cache extends AbstractCache {
 		
 		use SingletonTrait;
@@ -1624,8 +1640,8 @@ $cache->flush();
 
 
 $args = array(
-  'x'=>1,
-  'a'=>2,
+  'x' => 1,
+  'a' => 2,
 );
 
 // Generate cache key by array or object.
@@ -1659,14 +1675,16 @@ add_action( 'my_plugin_data_updated', function () {
 	/**
 	 * Bootstrap the plugin.
 	 */
+	 
+	declare( strict_types=1 );
 	
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
 	use StorePress\Example\PluginPro;
 	
-	define('PLUGIN_EXAMPLE_PRO_FILE', __FILE__);
+	define('EXAMPLE_PLUGIN_PRO_FILE', __FILE__);
 	
-	function plugin_example_pro() {
+	function example_plugin_pro(): PluginPro {
 		
 		// Include the main class.
 		if ( ! class_exists( PluginPro::class, false ) ) {
@@ -1693,12 +1711,7 @@ add_action( 'my_plugin_data_updated', function () {
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
 	
 	class PluginPro extends Plugin {
-		
-		public static function instance(): self {
-			static $instance = null;
-			return $instance ??= new self();
-		}
-
+	
 		public function includes(): void {
 			
 			parent::includes();
@@ -1719,17 +1732,12 @@ add_action( 'my_plugin_data_updated', function () {
 			$current_providers = parent::get_service_providers();
 			
 			$available_providers = array(
-				SettingsServiceProvider::class=>SettingsServiceProviderPro::class,
-				DeactivationServiceProviderPro::class=>DeactivationServiceProviderPro::class
+				SettingsServiceProvider::class => SettingsServiceProviderPro::class,
+				DeactivationServiceProviderPro::class => DeactivationServiceProviderPro::class
 			);
 			
 			return array_replace( $current_providers, $available_providers );
 		}
-		
-		public function get_pro_plugin_file(): string {
-			return constant( 'PLUGIN_EXAMPLE_PRO_FILE' );
-		}
-		
 	}
 ```
 
@@ -1878,7 +1886,7 @@ function store_deactivate_data( WP_REST_Request $request ) {
 ## Best Practices to write plugin based on this package
 
 1. **Use Singleton Pattern** - All services should use `SingletonTrait`
-3. **Register Before Boot** - Always register services before booting
-4. **Lazy Loading** - Services are only instantiated when resolved
-5. **Single Responsibility** - Each service handles one concern
-6. **Extend Base Classes** - Use abstract classes from AdminUtils
+2. **Register Before Boot** - Always register services before booting
+3. **Lazy Loading** - Services are only instantiated when resolved
+4. **Single Responsibility** - Each service handles one concern
+5. **Extend Base Classes** - Use abstract classes from `AdminUtils`
