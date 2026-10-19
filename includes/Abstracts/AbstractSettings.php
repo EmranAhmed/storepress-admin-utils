@@ -360,9 +360,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 			$has_tab = isset( $_REQUEST['tab'] ) && is_string( $_REQUEST['tab'] ); //phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Getting current tab.
 
-			$tab = $has_tab ? $_REQUEST['tab'] : $tab_query_key; //phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Getting current tab or response default.
-
-			return sanitize_key( wp_unslash( $tab ) );
+			return $has_tab ? sanitize_key( wp_unslash( $_REQUEST['tab'] ) ) : sanitize_key( wp_unslash( $tab_query_key ) ); //phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Getting current tab or response default.
 		}
 
 		/**
@@ -1857,11 +1855,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 				return 'updated';
 			}
 
-			$message = $_GET['message'] ?? ''; //phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Action redirect query value.
+			$message = ( isset( $_GET['message'] ) && is_string( $_GET['message'] ) ) ? sanitize_key( wp_unslash( $_GET['message'] ) ) : ''; //phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Action redirect query value.
 
 			// We are just checking message query args request from uri redirect.
 			if ( is_string( $message ) && $this->has_message_query_arg() ) {
-				return sanitize_key( wp_unslash( $message ) );
+				return $message;
 			}
 
 			return '';

@@ -38,13 +38,15 @@ if ( ! interface_exists( '\StorePress\AdminUtils\Interfaces\ServiceProviderInter
 		 *
 		 * The instance will be created if it does not exist yet.
 		 *
-		 * @return self
+		 * @return static
+		 * @phpstan-return static
 		 *
 		 * @since  3.9.0
 		 *
 		 * @see    \StorePress\AdminUtils\Traits\SingletonTrait::instance()
+		 * @TODO: After Minimaum PHP Requrement is finalize from WP and WC We will change return type to static. PHP 7.4 Does not support return type static now.
 		 */
-		public static function instance(): self;
+		public static function instance();
 
 		/**
 		 * Register services with the container.

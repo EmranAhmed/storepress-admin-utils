@@ -58,8 +58,9 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\SingletonTrait' ) ) {
 		 * @since 1.0.0
 		 *
 		 * @param mixed ...$args Constructor arguments. Used only on the first call.
-		 * @return self
+		 * @return static
 		 * @phpstan-return static
+		 * @TODO: After Minimaum PHP Requrement is finalize from WP and WC We will change return type to static. PHP 7.4 Does not support return type static now.
 		 */
 		public static function instance( ...$args ): self {
 			/**

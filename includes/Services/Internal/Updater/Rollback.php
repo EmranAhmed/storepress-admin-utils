@@ -341,7 +341,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Updater\Rollback'
 
 			check_ajax_referer( 'updates' );
 
-			$version = ( isset( $_POST['targetVersion'] ) && is_string( $_POST['targetVersion'] ) ) ? sanitize_text_field( $_POST['targetVersion'] ) : '';
+			$version = ( isset( $_POST['targetVersion'] ) && is_string( $_POST['targetVersion'] ) ) ? sanitize_text_field( wp_unslash( $_POST['targetVersion'] ) ) : '';
 
 			$strings = $this->get_localize_strings();
 

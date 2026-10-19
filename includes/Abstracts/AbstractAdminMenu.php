@@ -444,9 +444,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractAdminMenu' ) ) {
 		 */
 		public function get_current_page(): string {
 
-			$get_page = $_GET['page'] ?? ''; //phpcs:ignore WordPress.Security.NonceVerification.Recommended -- we need it which page we're browsing.
-			$get_page = is_string( $get_page ) ? $get_page : '';
-			$page     = sanitize_key( wp_unslash( $get_page ) );
+			$page = ( isset( $_GET['page'] ) && is_string( $_GET['page'] ) ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; //phpcs:ignore WordPress.Security.NonceVerification.Recommended -- we need it which page we're browsing.
 
 			return is_string( $GLOBALS['plugin_page'] ?? null ) ? $GLOBALS['plugin_page'] : $page;
 		}

@@ -210,7 +210,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractCache' ) ) {
 			$version = (string) time();
 
 			if ( $this->is_object_cache() ) {
-				wp_cache_set( $this->get_version_key(), $version, $this->get_cache_group(), $this->get_group_expiration() );
+				wp_cache_set( $this->get_version_key(), $version, $this->get_cache_group(), $this->get_group_expiration() ); // phpcs:ignore WordPressVIPMinimum.Performance.LowExpiryCacheTime.CacheTimeUndetermined -- Defaults to 0, overridable by subclasses.
 				return $version;
 			}
 

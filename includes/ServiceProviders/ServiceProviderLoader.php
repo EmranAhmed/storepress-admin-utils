@@ -13,9 +13,9 @@
 
 	namespace StorePress\AdminUtils\ServiceProviders;
 
-	use StorePress\AdminUtils\Interfaces\ServiceProviderInterface;
-
 	defined( 'ABSPATH' ) || die( 'Keep Silent' );
+
+	use StorePress\AdminUtils\Interfaces\ServiceProviderInterface;
 
 	/**
 	 * Bootstraps all registered service providers.
@@ -44,7 +44,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceProviders\ServiceProviderLoa
 		/**
 		 * Registered service provider class names.
 		 *
-		 * @var array<array-key, ServiceProviderInterface>
+		 * @var array<array-key, class-string<ServiceProviderInterface>>
 		 */
 		protected array $service_providers = array();
 
@@ -55,7 +55,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceProviders\ServiceProviderLoa
 		/**
 		 * Stores the provider list and immediately boots all providers via init().
 		 *
-		 * @param array<array-key, ServiceProviderInterface> $service_providers List of service provider class names.
+		 * @param array<array-key, class-string<ServiceProviderInterface>> $service_providers List of service provider class names.
 		 *
 		 * @since  3.4.0
 		 * @see    init()
@@ -68,7 +68,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\ServiceProviders\ServiceProviderLoa
 		/**
 		 * Returns all registered service provider class names.
 		 *
-		 * @return  array<array-key, ServiceProviderInterface>
+		 * @return  array<array-key, class-string<ServiceProviderInterface>>
 		 * @since   3.4.0
 		 * @see     init()
 		 * @example ServiceProviders::instance()->get_providers(); // [ BlocksServiceProvider::class, ... ]
