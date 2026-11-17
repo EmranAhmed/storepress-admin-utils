@@ -660,7 +660,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		}
 
 		/**
-		 * Get URL Origin.
+		 * Get URL Origin with URL SCHEME.
 		 *
 		 * @param string $url Site URL.
 		 *
@@ -692,7 +692,7 @@ if ( ! trait_exists( '\StorePress\AdminUtils\Traits\PluginCommonTrait' ) ) {
 		}
 
 		/**
-		 * Get URL Host Name.
+		 * Get URL Host Name without URL SCHEME.
 		 *
 		 * @param string $url Site URL.
 		 *

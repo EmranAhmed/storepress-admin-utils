@@ -763,31 +763,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				'code'               => 'text',
 				'select2'            => 'select',
 				'wc-enhanced-select' => 'select',
+				'select-woo'         => 'select',
 				'toggle'             => 'checkbox',
 			);
-		}
-
-		/**
-		 * Check if field type is a group type.
-		 *
-		 * Group type fields contain nested field configurations.
-		 *
-		 * @return bool True if type is 'group', false otherwise.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see   Field::group_input() For group field rendering.
-		 * @see   Field::get_group_fields() For nested fields access.
-		 *
-		 * @example
-		 *          ```php
-		 *          if ( $field->is_type_group() ) {
-		 *              $nested = $field->get_group_fields();
-		 *          }
-		 *          ```
-		 */
-		public function is_type_group(): bool {
-			return 'group' === $this->get_type();
 		}
 
 		/**
@@ -803,11 +781,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * @example
 		 *          ```php
 		 *          $group_types = $field->group_inputs();
-		 *          // Returns: array( 'radio', 'checkbox', 'toggle', 'group' )
+		 *          // Returns: array( 'radio', 'checkbox', 'toggle' )
 		 *          ```
 		 */
 		public function group_inputs(): array {
-			return array( 'radio', 'checkbox', 'toggle', 'group' );
+			return array( 'radio', 'checkbox', 'toggle' );
 		}
 
 		/**
@@ -1713,6 +1691,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					$attributes['id'] = $id;
 				}
 
+				// Make empty value input for checkbox and toggle.
+				if ( $is_checkbox || $is_toggle ) {
+					$inputs[] = sprintf( '<input type="hidden" name="%s" value="no">', esc_attr( $name ) );
+				}
+
 				$inputs[] = sprintf( '<label for="%s"><input %s /><span>%s</span></label> %s', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $option_value ), wp_kses_post( $option_description ) );
 			}
 
@@ -1752,11 +1735,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			$raw_type     = $this->get_raw_type();
 			$system_class = array( 'regular-text' );
 
-			if ( 'select2' === $raw_type ) {
-				$system_class[] = 'select2';
-			}
+			$select_types = array( 'select-woo', 'select2', 'wc-enhanced-select' );
 
-			if ( 'wc-enhanced-select' === $raw_type ) {
+			if ( in_array( $raw_type, $select_types, true ) ) {
 				$system_class[] = 'wc-enhanced-select';
 			}
 
@@ -1780,6 +1761,12 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 			}
 
 			$inputs = array();
+
+			if ( $this->is_empty_array( $options ) ) {
+				$message = sprintf( 'Select type "<strong>%s</strong>" have no options defined. Please add options as array.', $title );
+				wp_trigger_error( '', $message );
+			}
+
 
 			foreach ( $options as $option_key => $option_value ) {
 				$selected = $this->unpredicted_comparison( $is_multiple, $option_key, $value );
@@ -1843,418 +1830,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		}
 
 		// =====================================================================
-		// Group Field Methods
-		// =====================================================================
-
-		/**
-		 * Get nested Field objects for group type.
-		 *
-		 * Creates Field instances for each nested field in a group configuration.
-		 *
-		 * @return Field[] Array of Field objects for nested fields.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see   Field::is_type_group() For group type checking.
-		 * @see   Field::group_input() Uses this for rendering.
-		 *
-		 * @example
-		 *          ```php
-		 *          foreach ( $field->get_group_fields() as $nested_field ) {
-		 *              echo $nested_field->get_input_markup();
-		 *          }
-		 *          ```
-		 */
-		public function get_group_fields(): array {
-
-			$name = $this->get_name();
-			/**
-			 * Value.
-			 *
-			 * @var array<array-key, mixed> $group_value
-			 */
-			$group_value = $this->get_value( array() );
-
-			/**
-			 * Nested field configuration arrays.
-			 *
-			 * @var array<array-key, array<string, mixed>> $group_fields
-			 */
-			$group_fields = $this->get_attribute( 'fields', array() );
-
-			$fields = array();
-
-			/**
-			 * Nested field configuration arrays.
-			 *
-			 * @var array<string, mixed> $field
-			 */
-			foreach ( $group_fields as $field ) {
-
-				$_field = ( new self( $this->get_settings(), $field, $group_value ) )->add_settings_id( $name );
-
-				$fields[] = $_field;
-			}
-
-			return $fields;
-		}
-
-		/**
-		 * Get all values from group fields.
-		 *
-		 * Collects raw values from all nested fields in a group.
-		 *
-		 * @return array<array-key, mixed> Associative array of field IDs to values.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see   Field::get_group_fields() For nested field access.
-		 *
-		 * @example
-		 *          ```php
-		 *          $all_values = $field->get_group_values();
-		 *          ```
-		 */
-		public function get_group_values(): array {
-
-			$values = array();
-
-			foreach ( $this->get_group_fields() as $field ) {
-				$id            = $field->get_id();
-				$value         = $field->get_value();
-				$values[ $id ] = $value;
-			}
-
-			return $values;
-		}
-
-		/**
-		 * Get a specific nested field's value.
-		 *
-		 * Retrieves the value of a single field within a group by its ID.
-		 *
-		 * @param string                                             $field_id      The nested field ID to find.
-		 * @param array<array-key, mixed>|bool|float|int|string|null $default_value Optional. Default if not found.
-		 *
-		 * @return array<array-key, mixed>|bool|float|int|string|null The field value or default.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see   Field::get_group_fields() For nested field access.
-		 *
-		 * @example
-		 *          ```php
-		 *          $sub_value = $field->get_group_value( 'sub_field_id', 'default' );
-		 *          ```
-		 */
-		public function get_group_value( string $field_id, $default_value = null ) {
-
-			foreach ( $this->get_group_fields() as $field ) {
-				$id = $field->get_id();
-				if ( $id === $field_id ) {
-					return $field->get_value( $default_value );
-				}
-			}
-
-			return $default_value;
-		}
-
-		/**
-		 * Generate group field input markup.
-		 *
-		 * Creates HTML for group-type fields containing multiple nested inputs
-		 * within a fieldset. Supports various nested field types including text,
-		 * select, checkbox, radio, textarea, and unit inputs.
-		 *
-		 * @param string $css_class Optional. Default CSS class for inputs. Default 'small-text'.
-		 *
-		 * @return string The HTML fieldset markup containing all nested fields.
-		 *
-		 * @since 1.0.0
-		 *
-		 * @see   Field::get_group_fields() For nested field retrieval.
-		 * @see   Field::get_input_markup() Calls this for group type.
-		 *
-		 * @example
-		 *          ```php
-		 *          $html = $field->group_input();
-		 *          ```
-		 */
-		public function group_input( string $css_class = '' ): string {
-
-			$group_id     = $this->get_id();
-			$group_title  = $this->get_title();
-			$group_fields = $this->get_group_fields();
-
-			$inputs = array();
-
-			foreach ( $group_fields as $field ) {
-
-				$field_id          = $field->get_id();
-				$uniq_id           = $this->get_settings()->get_group_field_id( $group_id, $field_id );
-				$field_title       = $field->get_title();
-				$field_type        = $field->get_type();
-				$raw_field_type    = $field->get_raw_type();
-				$field_options     = $field->get_options();
-				$field_placeholder = $field->get_attribute( 'placeholder' );
-				$field_required    = $field->has_attribute( 'required' );
-				$is_field_multiple = $field->has_attribute( 'multiple' );
-				$field_name        = $field->get_name( $is_field_multiple );
-				$field_suffix      = $field->get_suffix();
-				$has_field_suffix  = $field->has_suffix();
-				$field_classes     = $this->prepare_classes( $field->get_css_class(), $css_class );
-				$escape_callback   = $this->get_escape_callback();
-				/**
-				 * Value.
-				 *
-				 * @var list<string>|string $field_value
-				 */
-				$field_value      = map_deep( $field->get_value(), $escape_callback );
-				$field_attributes = $field->get_additional_html_attributes();
-				$masked           = false;
-
-				$has_condition = $field->has_attribute( 'condition' );
-
-				$condition = $has_condition ? array(
-					'inert'                             => true,
-					'data-storepress-conditional-field' => $field->get_attribute( 'condition', array() ),
-				) : array();
-
-				$conditional_attr = $this->get_html_attributes( $condition );
-
-				$attributes = array(
-					'id'          => $uniq_id,
-					'type'        => $field_type,
-					'class'       => $field_classes,
-					'name'        => $field_name,
-					'value'       => $field_value,
-					'placeholder' => $field_placeholder,
-					'required'    => $field_required,
-				);
-
-				if ( $field->has_attribute( 'disabled' ) ) {
-					$attributes['disabled'] = $this->string_to_boolean( $field->get_attribute( 'disabled' ) );
-				}
-
-				$is_toggle   = 'toggle' === $raw_field_type;
-				$is_checkbox = 'checkbox' === $field_type;
-
-				if ( $is_checkbox ) {
-					$attributes['type'] = 'checkbox';
-				}
-
-				// Group checkbox name.
-				if ( $is_checkbox && count( $field_options ) > 1 ) {
-					$attributes['name'] = $field->get_name( true );
-				}
-
-				if ( in_array( $field_type, $this->group_inputs(), true ) ) {
-
-					$attributes['class'] = array();
-
-					// Single checkbox.
-					if ( $is_checkbox && $this->is_empty_array( $field_options ) ) {
-						$attributes['value']   = 'yes';
-						$attributes['checked'] = 'yes' === $field_value;
-
-						if ( $is_toggle ) {
-							$attributes['class'][] = 'toggle';
-						}
-
-						$tooltip_markup  = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
-						$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
-
-						$inputs[] = sprintf( '<ul %s class="input-wrapper single-input-wrapper full-width-input-wrapper">', $conditional_attr );
-						$inputs[] = sprintf( '<li class="group-field-inputs"><label for="%s"><input %s /><span>%s</span> %s %s</label></li>', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $field_title ), $required_markup, $tooltip_markup );
-						$inputs[] = '</ul>';
-						continue;
-					}
-
-					$tooltip_markup  = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
-					$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
-
-					$inputs[] = sprintf( '<ul %s class="input-wrapper multiple-input-wrapper"><li class="group-field-label"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></li><li class="group-field-inputs"><ul>', $conditional_attr, esc_html( $field_title ), $required_markup, $tooltip_markup );
-					// Checkbox and Radio.
-					foreach ( $field_options as $option_key => $option_value ) {
-
-						$uniq_id               = $this->get_settings()->get_group_field_id( $group_id, $field_id, $option_key );
-						$attributes['id']      = $uniq_id;
-						$attributes['value']   = esc_attr( $option_key );
-						$attributes['checked'] = $this->unpredicted_comparison( is_array( $field_value ), $option_key, $field_value );
-
-						if ( $is_toggle ) {
-							$attributes['class'][] = 'toggle';
-						}
-
-						$attributes['required'] = false;
-
-						if ( is_array( $option_value ) && isset( $option_value['label'] ) ) {
-							$option_value = $option_value['label'];
-						}
-
-						$inputs[] = sprintf( '<li><label for="%s"><input %s /><span>%s</span></label></li>', esc_attr( $uniq_id ), $this->get_html_attributes( $attributes ), esc_html( $option_value ) );
-					}
-					$inputs[] = '</ul></li></ul>';
-				} elseif ( 'select' === $field_type ) {
-					/**
-					 * Group Options.
-					 *
-					 * @var array<string, string> $field_options
-					 */
-
-					// @TODO: Add select2 and wc-enhanced-select support.
-
-					$attributes['multiple'] = $is_field_multiple;
-
-					$options = array();
-					foreach ( $field_options as $option_key => $option_value ) {
-
-						$is_selected = $this->unpredicted_comparison( is_array( $field_value ), $option_key, $field_value );
-						$options[]   = sprintf( '<option %s value="%s">%s</option>', selected( $is_selected, true, false ), esc_attr( $option_key ), esc_html( $option_value ) );
-					}
-
-					$tooltip_markup  = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
-					$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
-
-					$inputs[] = sprintf( '<ul %s class="input-wrapper select-input-wrapper">', $conditional_attr );
-					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup );
-					$inputs[] = sprintf( '<li class="group-field-inputs"><select %s>%s</select></li>', $this->get_html_attributes( $attributes ), implode( '', $options ) );
-					$inputs[] = '</ul>';
-				} elseif ( 'textarea' === $field_type ) {
-					// Input box.
-					/**
-					 * Value.
-					 *
-					 * @var string $field_value
-					 */
-					$attributes['value'] = false;
-					$tooltip_markup      = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
-					$required_markup     = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
-
-					$inputs[] = sprintf( '<ul %s class="input-wrapper textarea-input-wrapper">', $conditional_attr );
-					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><textarea %s>%s</textarea></li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, $this->get_html_attributes( $attributes, $field_attributes ), $field_value );
-					$inputs[] = '</ul>';
-				} elseif ( 'unit' === $field_type ) {
-
-					/**
-					 * Unit Value.
-					 *
-					 * @var string $field_value
-					 */
-					$units = $field->get_attribute( 'units', array() );
-
-					$has_suffix = count( $units ) < 2;
-
-					[ 'value' => $input ] = $this->parse_unit( $field_value );
-
-					$attributes = array(
-						'id'          => $uniq_id,
-						'type'        => 'number',
-						'class'       => $field_classes,
-						'value'       => $input,
-						'placeholder' => $field_placeholder,
-						'required'    => $field_required,
-						'step'        => 'any',
-					);
-
-					$unit_markup       = sprintf( '<span class="input-unit">%s</span>', $this->get_unit_markup( $uniq_id, $field_value ) );
-					$unit_hidden_input = sprintf( '<input class="input-unit-value" readonly name="%s" type="hidden" value="%s" />', $field_name, $field_value );
-					$suffix_markup     = $has_suffix ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $units[0] ) ) : $unit_markup;
-
-					$datalist_markup = '';
-					if ( $field->has_attribute( 'html_datalist' ) ) {
-
-						$datalist_id        = sprintf( '%s-datalist', $uniq_id );
-						$attributes['list'] = $datalist_id;
-
-						$datalist_markup = sprintf( '<datalist id="%s">', $datalist_id );
-						$datalist_items  = $field->get_attribute( 'html_datalist' );
-						$is_numeric      = wp_is_numeric_array( $datalist_items );
-						foreach ( $datalist_items as $value => $label ) {
-							if ( $is_numeric ) {
-								$datalist_markup .= sprintf( '<option value="%s"></option>', esc_attr( $label ) );
-							} else {
-								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( (string) $value ), esc_attr( $label ) );
-							}
-						}
-						$datalist_markup .= '</datalist>';
-					}
-
-					$wrapper_classes = array(
-						'input-container',
-						'unit-input-container',
-						'has-suffix' => $has_suffix,
-					);
-
-					$tooltip_markup  = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
-					$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
-
-					$inputs[] = sprintf( '<ul %s class="input-wrapper unit-input-wrapper">', $conditional_attr );
-					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><span class="%s"><span class="input-field"><input %s /></span> %s %s</span>%s</li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $field_attributes ), $suffix_markup, $unit_hidden_input, $datalist_markup );
-					$inputs[] = '</ul>';
-				} else {
-
-					/**
-					 * Field Value.
-					 *
-					 * @var string $field_value
-					 */
-					$datalist_markup = '';
-					if ( $field->has_attribute( 'html_datalist' ) ) {
-
-						$datalist_id        = sprintf( '%s-datalist', $uniq_id );
-						$attributes['list'] = $datalist_id;
-
-						$datalist_markup = sprintf( '<datalist id="%s">', $datalist_id );
-						$datalist_items  = $field->get_attribute( 'html_datalist' );
-						$is_numeric      = wp_is_numeric_array( $datalist_items );
-						foreach ( $datalist_items as $value => $label ) {
-							if ( $is_numeric ) {
-								$datalist_markup .= sprintf( '<option value="%s"></option>', esc_attr( $label ) );
-							} else {
-								$datalist_markup .= sprintf( '<option value="%s" label="%s"></option>', esc_attr( (string) $value ), esc_attr( $label ) );
-							}
-						}
-						$datalist_markup .= '</datalist>';
-					}
-
-					if ( $field->has_attribute( 'mask' ) ) {
-						$masked = $field->get_attribute( 'mask' );
-					}
-
-					if ( $field->has_constant_value() ) {
-						$attributes['disabled'] = true;
-						if ( $masked ) {
-							$attributes['value'] = $this->mask_string( $field_value );
-						}
-					} elseif ( $masked ) {
-						$attributes['type']    = 'password';
-						$attributes['class'][] = 'code';
-					}
-
-					$suffix_markup = $has_field_suffix ? sprintf( '<span class="input-suffix">%s</span>', esc_html( $field_suffix ?? '' ) ) : '';
-
-					$wrapper_classes = array(
-						'input-container',
-						'has-suffix' => $has_field_suffix,
-						'has-mask'   => $masked && ! $field->has_constant_value(),
-					);
-
-					$mask_markup = $masked && ! $field->has_constant_value() ? '<span class="input-mask-button"><button data-storepress-toggle-mask-for="' . esc_attr( $attributes['id'] ) . '" type="button" class="button"><span class="dashicons dashicons-hidden" aria-hidden="true"></span></button></span>' : '';
-
-					$tooltip_markup  = $field->has_attribute( 'tooltip' ) ? sprintf( '<span data-storepress-tooltip="%s"><span class="help-tooltip"></span></span>', esc_html( $field->get_attribute( 'tooltip' ) ) ) : '';
-					$required_markup = $field->has_attribute( 'required' ) ? '<span class="required">*</span>' : '';
-
-					$inputs[] = sprintf( '<ul %s class="input-wrapper text-input-wrapper">', $conditional_attr );
-					$inputs[] = sprintf( '<li class="group-field-label"><label for="%s"><span class="input-label-wrapper"><span class="input-label">%s</span> %s %s</span></label></li><li class="group-field-inputs"><span class="%s"><span class="input-field"><input %s /> %s </span> %s </span>%s</li>', esc_attr( $uniq_id ), esc_html( $field_title ), $required_markup, $tooltip_markup, esc_attr( $this->get_css_classes( $wrapper_classes ) ), $this->get_html_attributes( $attributes, $field_attributes ), $mask_markup, $suffix_markup, $datalist_markup );
-					$inputs[] = '</ul>';
-				}
-			}
-
-			return sprintf( '<fieldset class="group-input-fields"><legend class="screen-reader-text">%s</legend>%s</fieldset>', esc_html( $group_title ), implode( '', $inputs ) );
-		}
-
-		// =====================================================================
 		// REST API Methods
 		// =====================================================================
 
@@ -2307,10 +1882,9 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 					return $is_single ? 'string' : 'array';
 				case 'select2':
 				case 'select':
+				case 'select-woo':
 				case 'wc-enhanced-select':
 					return $is_multiple ? 'array' : 'string';
-				case 'group':
-					return 'object';
 			}
 
 			return 'string';
@@ -2334,7 +1908,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 * @see     Field::textarea_input() For textarea fields.
 		 * @see     Field::check_input() For checkbox/radio/toggle fields.
 		 * @see     Field::select_input() For select fields.
-		 * @see     Field::group_input() For group fields.
 		 * @see     Field::custom_input() For custom field types.
 		 *
 		 * @example
@@ -2347,7 +1920,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 		 *          - unit (number with unit selector)
 		 *          - color, number, small-text, tiny-text, large-text
 		 *          - radio, checkbox, toggle
-		 *          - select, select2, wc-enhanced-select
+		 *          - select, select2, wc-enhanced-select, select-woo
 		 *          - group
 		 *          - textarea
 		 *          - custom types (via custom_input)
@@ -2378,12 +1951,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Services\Internal\Settings\Field' )
 				case 'checkbox':
 				case 'toggle':
 					return $this->check_input();
+				case 'select-woo':
 				case 'select':
 				case 'select2':
 				case 'wc-enhanced-select':
 					return $this->select_input();
-				case 'group':
-					return $this->group_input();
 				case 'textarea':
 					return $this->textarea_input();
 				default:

@@ -1339,40 +1339,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 					continue;
 				}
 
-				if ( $field->is_type_group() ) {
-
-					$group_fields           = $field->get_group_fields();
-					$default_values[ $key ] = array();
-
-					foreach ( $group_fields as $group_field ) {
-
-						// Do not add any constant value.
-						if ( $group_field->has_constant_value() ) {
-							continue;
-						}
-
-						// Do not add any Private Value.
-						if ( $group_field->is_private() ) {
-							continue;
-						}
-
-						$group_field_id = $group_field->get_id();
-						$group_default  = $group_field->get_default_value();
-
-						if ( 'number' === $type ) {
-							$group_default = absint( $group_default );
-						}
-
-						$default_values[ $key ][ $group_field_id ] = $group_default;
-					}
-				} else {
-
-					if ( 'number' === $type ) {
-						$default = absint( $default );
-					}
-
-					$default_values[ $key ] = $default;
+				if ( 'number' === $type ) {
+					$default = absint( $default );
 				}
+
+				$default_values[ $key ] = $default;
 			}
 
 			return $default_values;
@@ -1396,19 +1367,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 				}
 
 				$properties[ $field->get_id() ] = $field->get_property();
-
-				if ( $field->is_type_group() ) {
-					$group_fields = $field->get_group_fields();
-
-					foreach ( $group_fields as $group_field ) {
-
-						if ( ! $group_field->is_allowed_in_rest() ) {
-							continue;
-						}
-
-						$properties[ $field->get_id() ][ $group_field->get_id() ] = $group_field->get_property();
-					}
-				}
 			}
 
 			return array(
@@ -1441,7 +1399,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		/**
 		 * Sanitize before save.
 		 *
-		 * @param array<array-key, mixed> $post POST Methods.
+		 * @param array<array-key, mixed> $post POST Data.
 		 *
 		 * @return array<array-key, mixed>
 		 */
@@ -1452,8 +1410,10 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 			 *
 			 * @var array<array-key, mixed> $old_data
 			 */
-			$old_data    = $this->get_options();
-			$data        = $this->sanitize_fields( $post );
+			$old_data = $this->get_options();
+
+			$data = $this->sanitize_fields( $post );
+
 			$public_data = $this->before_update_options( $data['public'] );
 
 			if ( $this->is_empty_array( $old_data ) ) {
@@ -1470,7 +1430,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 					$private_id = $field->get_private_name();
 
 					if ( isset( $post[ $key ], $private_data[ $private_id ] ) ) {
-						$private_value = $data['private'][ $private_id ];
+						$private_value = $private_data[ $private_id ];
 						update_option( $private_id, $private_value );
 					}
 				}
@@ -1532,61 +1492,11 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 
 				// Conditional value key is not set here if it's hidden.
 				// So if is there any default value, we will set.
-				if ( ! isset( $data[ $key ] ) && ! in_array( $type, array( 'toggle', 'checkbox', 'group' ), true ) ) {
+				if ( ! isset( $data[ $key ] ) ) {
 					$data[ $key ] = $value;
 				}
 
-				switch ( $type ) {
-					case 'toggle':
-					case 'checkbox':
-						// Add default checkbox and toggle value.
-						if ( ! isset( $data[ $key ] ) ) {
-
-							$default_value = is_null( $value ) ? array() : $value;
-
-							$data[ $key ] = ( count( $options ) > 0 ) ? $default_value : $default_checkbox_value;
-						}
-
-						$public_data[ $key ] = map_deep( $data[ $key ], $sanitize_callback );
-
-						break;
-					case 'group':
-						$group_fields        = $field->get_group_fields();
-						$group_post          = isset( $data[ $key ] ) && is_array( $data[ $key ] ) ? $data[ $key ] : array();
-						$public_data[ $key ] = array();
-
-						foreach ( $group_fields as $group_field ) {
-							$group_field_id          = $group_field->get_id();
-							$group_field_type        = $group_field->get_type();
-							$group_field_options     = $group_field->get_options();
-							$group_sanitize_callback = $group_field->get_sanitize_callback();
-							$group_value             = $group_field->get_value();
-							$group_default           = $group_field->get_default_value();
-
-							// We do not save CONST value in db.
-							if ( $group_field->has_constant_value() ) {
-								continue;
-							}
-
-							// Group Conditional value key is not set here if it's hidden.
-							if ( ! isset( $group_post[ $group_field_id ] ) && ! in_array( $group_field_type, array( 'toggle', 'checkbox' ), true ) ) {
-								$group_post[ $group_field_id ] = $group_value;
-							}
-
-							// Add default checkbox value.
-							if ( ! isset( $group_post[ $group_field_id ] ) && in_array( $group_field_type, array( 'toggle', 'checkbox' ), true ) ) {
-
-								$group_default_value           = is_null( $group_value ) ? array() : $group_value;
-								$group_post[ $group_field_id ] = ( count( $group_field_options ) > 0 ) ? $group_default_value : $default_checkbox_value;
-							}
-
-							$public_data[ $key ][ $group_field_id ] = map_deep( $group_post[ $group_field_id ], $group_sanitize_callback );
-						}
-						break;
-					default:
-						$public_data[ $key ] = map_deep( $data[ $key ], $sanitize_callback );
-						break;
-				}
+				$public_data[ $key ] = map_deep( $data[ $key ], $sanitize_callback );
 			}
 
 			return array(
@@ -1689,74 +1599,6 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 */
 		public function get_raw_option( string $field_id, $default_value = null ) {
 			return $this->get_option_raw( $field_id, $default_value );
-		}
-
-		/**
-		 * Get group option value.
-		 *
-		 * @param string                                           $group_id      The group ID.
-		 * @param string                                           $field_id      The field ID within the group.
-		 * @param array<array-key, mixed>|bool|numeric|string|null $default_value Optional. Default null.
-		 *
-		 * @return array<array-key, mixed>|bool|numeric|string|null
-		 *
-		 * @since 1.0.0
-		 */
-		public function get_group_option( string $group_id, string $field_id, $default_value = null ) {
-
-			if ( ! did_action( 'init' ) ) {
-				$string = $this->get_localized_string( 'method_called_before_init' );
-				_doing_it_wrong( __METHOD__, esc_html( $string ), '1.0.0' );
-			}
-
-			$field = $this->get_field( $group_id );
-
-			return $field ? $field->get_group_value( $field_id, $default_value ) : $default_value;
-		}
-
-		/**
-		 * Get group option value directly from stored options, bypassing the field registry.
-		 *
-		 * Added so callers can read a saved group value before `init`, when fields
-		 * (and therefore `get_field()`) are not registered yet.
-		 *
-		 * @param string                                           $group_id      The group ID.
-		 * @param string                                           $field_id      The field ID within the group.
-		 * @param array<array-key, mixed>|bool|numeric|string|null $default_value Optional. Default null.
-		 *
-		 * @return array<array-key, mixed>|bool|numeric|string|null
-		 *
-		 * @since 3.6.2
-		 *
-		 * @see   AbstractSettings::get_group_option()
-		 */
-		public function get_group_option_raw( string $group_id, string $field_id, $default_value = null ) {
-
-			$options = $this->get_options( array( $group_id => array( $field_id => $default_value ) ) );
-
-			$group = is_array( $options ) ? ( $options[ $group_id ] ?? null ) : null;
-
-			return is_array( $group ) ? ( $group[ $field_id ] ?? $default_value ) : $default_value;
-		}
-
-		/**
-		 * Get group option value directly from stored options, bypassing the field registry.
-		 *
-		 * Added so callers can read a saved group value before `init`, when fields
-		 * (and therefore `get_field()`) are not registered yet.
-		 *
-		 * @param string                                           $group_id      The group ID.
-		 * @param string                                           $field_id      The field ID within the group.
-		 * @param array<array-key, mixed>|bool|numeric|string|null $default_value Optional. Default null.
-		 *
-		 * @return array<array-key, mixed>|bool|numeric|string|null
-		 *
-		 * @since 3.9.0
-		 *
-		 * @see   AbstractSettings::get_group_option()
-		 */
-		public function get_raw_group_option( string $group_id, string $field_id, $default_value = null ) {
-			return $this->get_group_option_raw( $group_id, $field_id, $default_value );
 		}
 
 		/**
@@ -1947,7 +1789,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		public function enqueue_scripts(): void {
 			$this->enqueue_package_scripts( 'settings' );
 
-			if ( $this->has_field_type( 'wc-enhanced-select' ) ) {
+			if ( $this->has_field_type( 'wc-enhanced-select' ) || $this->has_field_type( 'select2' ) || $this->has_field_type( 'select-woo' ) ) {
 				wp_enqueue_style( 'woocommerce_admin_styles' );
 				wp_enqueue_script( 'wc-enhanced-select' );
 			}
@@ -1962,7 +1804,7 @@ if ( ! class_exists( '\StorePress\AdminUtils\Abstracts\AbstractSettings' ) ) {
 		 *
 		 * @return array<array-key, mixed>|null
 		 */
-		final public function add_readonly_fields_in_rest( $response, string $settings_id, array $args ): ?array {
+		final public function add_readonly_fields_in_rest( ?array $response, string $settings_id, array $args ): ?array {
 			if ( $settings_id === $this->settings_id() ) {
 
 				$readonly_fields = $this->get_readonly_fields_for_rest();

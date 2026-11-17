@@ -1,6 +1,7 @@
 <?php return array(
 	'dependencies' => array(
+		'jquery',
 		'storepress-utils'
 	),
-	'version' => 'f236de4fec8d55c3646f'
+	'version' => 'a86819172a9a983413b1'
 );

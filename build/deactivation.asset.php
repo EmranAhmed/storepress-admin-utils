@@ -2,5 +2,5 @@
 	'dependencies' => array(
 		'storepress-utils'
 	),
-	'version' => 'e73b1dd6004da546bd50'
+	'version' => '89c29b74865541e0c2d1'
 );
